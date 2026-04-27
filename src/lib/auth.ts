@@ -11,6 +11,33 @@ function missingConfigResult(message = 'Supabase is not configured.'): AuthResul
   return { user: null, session: null, error: message };
 }
 
+function normalizeAuthErrorMessage(rawMessage?: string | null): string | null {
+  if (!rawMessage) {
+    return null;
+  }
+
+  const message = rawMessage.trim();
+  const lower = message.toLowerCase();
+
+  if (lower.includes('email rate limit exceeded') || lower.includes('rate limit')) {
+    return 'Too many auth attempts right now. Please wait a minute and try again.';
+  }
+
+  if (lower.includes('invalid login credentials')) {
+    return 'Incorrect email or password. Please try again.';
+  }
+
+  if (lower.includes('user already registered')) {
+    return 'An account with this email already exists. Try logging in instead.';
+  }
+
+  if (lower.includes('email not confirmed')) {
+    return 'Please verify your email before logging in.';
+  }
+
+  return message;
+}
+
 export function getAppOrigin(): string {
   if (typeof window === 'undefined') {
     return '';
@@ -32,7 +59,7 @@ export async function signInWithEmailPassword(email: string, password: string): 
   return {
     user: data.user,
     session: data.session,
-    error: error?.message ?? null,
+    error: normalizeAuthErrorMessage(error?.message),
   };
 }
 
@@ -45,7 +72,7 @@ export async function signUpWithEmailPassword(email: string, password: string): 
   return {
     user: data.user,
     session: data.session,
-    error: error?.message ?? null,
+    error: normalizeAuthErrorMessage(error?.message),
   };
 }
 
@@ -55,7 +82,7 @@ export async function signOutCurrentUser(): Promise<string | null> {
   }
 
   const { error } = await supabase.auth.signOut();
-  return error?.message ?? null;
+  return normalizeAuthErrorMessage(error?.message);
 }
 
 export async function sendPasswordResetEmail(email: string): Promise<string | null> {
@@ -67,7 +94,7 @@ export async function sendPasswordResetEmail(email: string): Promise<string | nu
     redirectTo: getPasswordResetRedirectUrl(),
   });
 
-  return error?.message ?? null;
+  return normalizeAuthErrorMessage(error?.message);
 }
 
 export async function updatePassword(password: string): Promise<string | null> {
@@ -76,5 +103,5 @@ export async function updatePassword(password: string): Promise<string | null> {
   }
 
   const { error } = await supabase.auth.updateUser({ password });
-  return error?.message ?? null;
+  return normalizeAuthErrorMessage(error?.message);
 }
