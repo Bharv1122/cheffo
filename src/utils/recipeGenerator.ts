@@ -325,16 +325,187 @@ function estimateNutrition(
   };
 }
 
+interface CandidateTemplateScore {
+  template: RecipeTemplate;
+  score: number;
+  pantryOverlapCount: number;
+}
+
+const TEMPLATE_HISTORY_MAX = 12;
+const RECENT_TEMPLATE_PENALTY = 2.5;
+
+function getTemplateHistoryKey(dogId: string, recipeType: RecipeType): string {
+  return `chef-doggo:template-history:${dogId}:${recipeType}`;
+}
+
+function getRecentTemplateHistory(dogId: string, recipeType: RecipeType): string[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(getTemplateHistoryKey(dogId, recipeType));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is string => typeof item === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function rememberTemplateChoice(dogId: string, recipeType: RecipeType, templateId: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const existing = getRecentTemplateHistory(dogId, recipeType);
+  const next = [templateId, ...existing.filter(id => id !== templateId)].slice(0, TEMPLATE_HISTORY_MAX);
+
+  try {
+    window.localStorage.setItem(getTemplateHistoryKey(dogId, recipeType), JSON.stringify(next));
+  } catch {
+    // Ignore storage write failures (private mode, quota, etc.)
+  }
+}
+
+function countTemplatePantryMatches(template: RecipeTemplate, pantryIngredientIds: string[]): number {
+  if (!pantryIngredientIds.length) return 0;
+
+  const pantrySet = new Set(pantryIngredientIds);
+  const templateIngredients = [
+    ...template.proteinIds,
+    ...template.carbIds,
+    ...template.vegetableIds,
+    ...template.fatIds,
+    ...template.supplementIds,
+  ];
+
+  return templateIngredients.reduce((count, ingredientId) => {
+    return count + (pantrySet.has(ingredientId) ? 1 : 0);
+  }, 0);
+}
+
+function scoreTemplateForDog(
+  template: RecipeTemplate,
+  dog: DogProfile,
+  preferredProteinIds: string[],
+  pantryIngredientIds: string[],
+  recentTemplateIds: string[]
+): CandidateTemplateScore {
+  let score = 1;
+  const templateTags = template.tags.map(tag => normalizeFoodTerm(tag));
+
+  const favoriteProteinSet = new Set(dog.favoriteProteins ?? []);
+  const preferredProteinSet = new Set(preferredProteinIds ?? []);
+
+  const favoriteProteinMatches = template.proteinIds.filter(id => favoriteProteinSet.has(id)).length;
+  if (favoriteProteinMatches > 0) {
+    score += favoriteProteinMatches * 3;
+  }
+
+  const explicitProteinMatches = template.proteinIds.filter(id => preferredProteinSet.has(id)).length;
+  if (explicitProteinMatches > 0) {
+    score += explicitProteinMatches * 4;
+  }
+
+  if (template.textureProfile === dog.texturePreference) {
+    score += 2.5;
+  }
+
+  if (template.skillLevel === 'any' || template.skillLevel === dog.parentSkillLevel) {
+    score += 1.5;
+  }
+
+  if (dog.pickyEater) {
+    if (template.textureProfile === 'soft' || template.textureProfile === 'brothy') {
+      score += 2;
+    }
+    if (templateTags.some(tag => tag.includes('picky'))) {
+      score += 2;
+    }
+  }
+
+  if (dog.lifeStage === 'senior') {
+    if (template.textureProfile === 'soft' || template.textureProfile === 'brothy') {
+      score += 1.5;
+    }
+    if (templateTags.some(tag => tag.includes('gentle') || tag.includes('joint') || tag.includes('omega'))) {
+      score += 1;
+    }
+  }
+
+  if (dog.lifeStage === 'puppy') {
+    if (templateTags.some(tag => tag.includes('gentle') || tag.includes('beginner') || tag.includes('classic'))) {
+      score += 1;
+    }
+  }
+
+  if (dog.activityLevel === 'active' || dog.activityLevel === 'very_active') {
+    if (templateTags.some(tag => tag.includes('active') || tag.includes('beef') || tag.includes('salmon'))) {
+      score += 1.5;
+    }
+  }
+
+  if (dog.activityLevel === 'low') {
+    if (templateTags.some(tag => tag.includes('gentle') || tag.includes('digest'))) {
+      score += 1;
+    }
+  }
+
+  const pantryOverlapCount = countTemplatePantryMatches(template, pantryIngredientIds);
+  if (pantryOverlapCount > 0) {
+    score += pantryOverlapCount * 2;
+  }
+
+  const recentIndex = recentTemplateIds.findIndex(templateId => templateId === template.id);
+  if (recentIndex >= 0) {
+    // stronger penalty for most recent recipes to keep variety
+    score -= (TEMPLATE_HISTORY_MAX - recentIndex) * RECENT_TEMPLATE_PENALTY;
+  }
+
+  return {
+    template,
+    score,
+    pantryOverlapCount,
+  };
+}
+
+function chooseTemplateByScore(scoredTemplates: CandidateTemplateScore[]): RecipeTemplate {
+  const sorted = [...scoredTemplates].sort((a, b) => b.score - a.score);
+  const topSlice = sorted.slice(0, Math.min(3, sorted.length));
+
+  const positiveWeights = topSlice.map(item => Math.max(1, Math.round((item.score + 10) * 10)));
+  const weightTotal = positiveWeights.reduce((sum, weight) => sum + weight, 0);
+  let roll = Math.random() * weightTotal;
+
+  for (let idx = 0; idx < topSlice.length; idx++) {
+    roll -= positiveWeights[idx];
+    if (roll <= 0) {
+      return topSlice[idx].template;
+    }
+  }
+
+  return topSlice[0].template;
+}
+
 // ── Template selection ─────────────────────────────────────────────────────────
 function pickTemplate(input: GeneratorInput): RecipeTemplate {
-  const { recipeType, forceTemplateId, preferredProteinIds = [], budgetMode, dog } = input;
+  const {
+    recipeType,
+    forceTemplateId,
+    preferredProteinIds = [],
+    budgetMode,
+    dog,
+    pantryIngredientIds = [],
+  } = input;
 
   const pool: RecipeTemplate[] =
     recipeType === 'topper' ? TOPPER_TEMPLATES :
     recipeType === 'full_meal' ? FULL_MEAL_TEMPLATES :
     recipeType === 'batch_week' ? BATCH_TEMPLATES :
     recipeType === 'treat' ? TREAT_TEMPLATES :
-    TOPPER_TEMPLATES;
+    [...TOPPER_TEMPLATES, ...FULL_MEAL_TEMPLATES];
 
   const restrictedTerms = getDogRestrictedTerms(dog);
 
@@ -356,6 +527,7 @@ function pickTemplate(input: GeneratorInput): RecipeTemplate {
         templateId: found.id,
         templateName: found.name,
       });
+      rememberTemplateChoice(dog.id, recipeType, found.id);
       return found;
     }
   }
@@ -370,6 +542,14 @@ function pickTemplate(input: GeneratorInput): RecipeTemplate {
       t.proteinIds.some(p => preferredProteinIds.includes(p))
     );
     if (proteinMatch.length) candidates = proteinMatch;
+  }
+
+  // Pantry mode should prioritize what the user actually has on hand.
+  if (pantryIngredientIds.length) {
+    const pantryMatches = candidates.filter(template => countTemplatePantryMatches(template, pantryIngredientIds) > 0);
+    if (pantryMatches.length) {
+      candidates = pantryMatches;
+    }
   }
 
   const excludedReasons = new Map<string, RestrictionMatch[]>();
@@ -398,7 +578,30 @@ function pickTemplate(input: GeneratorInput): RecipeTemplate {
     );
   }
 
-  return safeCandidates[Math.floor(Math.random() * safeCandidates.length)];
+  const recentTemplateIds = getRecentTemplateHistory(dog.id, recipeType);
+  const scoredCandidates = safeCandidates.map(template =>
+    scoreTemplateForDog(template, dog, preferredProteinIds, pantryIngredientIds, recentTemplateIds)
+  );
+
+  const selectedTemplate = chooseTemplateByScore(scoredCandidates);
+  rememberTemplateChoice(dog.id, recipeType, selectedTemplate.id);
+
+  console.info('[RecipeGenerator] Selected template', {
+    recipeType,
+    dogId: dog.id,
+    selectedTemplateId: selectedTemplate.id,
+    candidateScores: scoredCandidates
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(item => ({
+        templateId: item.template.id,
+        score: Number(item.score.toFixed(2)),
+        pantryOverlapCount: item.pantryOverlapCount,
+      })),
+    recentTemplateIds,
+  });
+
+  return selectedTemplate;
 }
 
 // ── Ingredient builder ────────────────────────────────────────────────────────
