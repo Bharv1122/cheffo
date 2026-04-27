@@ -1,14 +1,25 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Heart, Play, ShoppingBag, Timer, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { IngredientCard } from '../../components/ingredients/IngredientCard';
 import { useRecipes } from '../../hooks/useRecipes';
+import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
 import { getIngredientById } from '../../data/ingredients';
-import { formatIngredientByPreference } from '../../utils/calculator';
+import {
+  cupsToMl,
+  formatIngredientByPreference,
+  formatMetricIngredient,
+  formatVolumeIngredient,
+  gramsToCups,
+  groceryLabel,
+} from '../../utils/calculator';
+import { checkSingleIngredient } from '../../utils/safetyValidator';
 import { getRecipePhoto } from '../../utils/recipeInsights';
-import type { Recipe, ShoppingListItem } from '../../types/recipe';
+import type { Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
 
 function getBatchDays(recipe: Recipe): number {
   const dailyCups = Math.max(0.1, recipe.serving.cupsPerMeal * recipe.serving.mealsPerDay);
@@ -89,6 +100,35 @@ function formatShoppingItem(item: ShoppingListItem, fallback: string, useMetric:
   return item.displayAmountVolume ?? item.displayAmount ?? fallback;
 }
 
+function ingredientCategoryToShoppingCategory(category: RecipeIngredient['category']): ShoppingListItem['category'] {
+  if (category === 'protein') return 'protein';
+  if (category === 'supplement') return 'supplement';
+  if (category === 'carb') return 'pantry';
+  return 'produce';
+}
+
+function rebuildIngredientDisplay(ingredient: RecipeIngredient): RecipeIngredient {
+  const derivedCups = ingredient.amountCups ?? gramsToCups(ingredient.amountGrams);
+  const amountCups = ingredient.category === 'supplement' ? ingredient.amountCups : derivedCups;
+  const amountMl = ingredient.amountMl ?? (amountCups ? cupsToMl(amountCups) : Math.max(1, Math.round(ingredient.amountGrams)));
+  const displayBase = {
+    name: ingredient.name,
+    category: ingredient.category,
+    amountGrams: ingredient.amountGrams,
+    amountCups,
+    amountMl,
+  };
+
+  return {
+    ...ingredient,
+    amountCups,
+    amountMl,
+    displayMetric: formatMetricIngredient(displayBase),
+    displayVolume: formatVolumeIngredient(displayBase),
+    groceryFriendlyAmount: groceryLabel(ingredient.amountGrams, ingredient.name),
+  };
+}
+
 function normalizeFoodTerm(value: string): string {
   return value
     .toLowerCase()
@@ -113,10 +153,17 @@ function findIngredientMatchesByTerms(recipe: Recipe, checkedTerms: string[]): s
 export default function RecipeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getRecipe, toggleFavorite } = useRecipes();
+  const { getRecipe, toggleFavorite, updateRecipe } = useRecipes();
+  const { getProfile } = useDogProfiles();
   const { unitPreference, setUnitPreference } = useUnitPreference();
 
   const recipe = id ? getRecipe(id) : undefined;
+  const dogProfile = recipe ? getProfile(recipe.dogProfileId) : undefined;
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+  const [draftIngredients, setDraftIngredients] = useState<RecipeIngredient[]>([]);
+  const [customizeError, setCustomizeError] = useState<string | null>(null);
+  const [customizeSuccess, setCustomizeSuccess] = useState<string | null>(null);
+  const [isSavingCustomization, setIsSavingCustomization] = useState(false);
 
   const substitutions = useMemo(() => (recipe ? getSubstitutions(recipe) : []), [recipe]);
   const nutrition = useMemo(() => (recipe ? getNutritionBreakdown(recipe) : null), [recipe]);
@@ -134,6 +181,91 @@ export default function RecipeDetailPage() {
         </section>
       </AppShell>
     );
+  }
+
+  const currentRecipe = recipe;
+
+  function openCustomizeIngredients() {
+    setDraftIngredients(currentRecipe.ingredients.map(ingredient => ({ ...ingredient })));
+    setCustomizeError(null);
+    setCustomizeSuccess(null);
+    setIsCustomizeOpen(true);
+  }
+
+  function handleSwapIngredient(index: number, swapIngredientId: string) {
+    const swapIngredient = getIngredientById(swapIngredientId);
+    if (!swapIngredient) {
+      setCustomizeError('Could not find that swap ingredient. Please try a different option.');
+      return;
+    }
+
+    const safetyResult = checkSingleIngredient(swapIngredient.name, dogProfile);
+    if (!safetyResult.safe) {
+      setCustomizeError(safetyResult.errors.join(' '));
+      return;
+    }
+
+    setDraftIngredients(prev => prev.map((ingredient, ingredientIndex) => {
+      if (ingredientIndex !== index) return ingredient;
+
+      const nextIngredient = rebuildIngredientDisplay({
+        ...ingredient,
+        ingredientId: swapIngredient.id,
+        name: swapIngredient.name,
+        category: swapIngredient.category,
+        prepNote: swapIngredient.prepNotes,
+      });
+
+      return nextIngredient;
+    }));
+
+    setCustomizeError(null);
+  }
+
+  async function handleSaveCustomIngredients() {
+    if (!draftIngredients.length) {
+      setCustomizeError('Please keep at least one ingredient in the recipe.');
+      return;
+    }
+
+    const firstUnsafeIngredient = draftIngredients
+      .map(ingredient => ({ ingredient, result: checkSingleIngredient(ingredient.name, dogProfile) }))
+      .find(entry => !entry.result.safe);
+
+    if (firstUnsafeIngredient) {
+      setCustomizeError(firstUnsafeIngredient.result.errors.join(' '));
+      return;
+    }
+
+    const normalizedIngredients = draftIngredients.map(rebuildIngredientDisplay);
+    const ingredientNames = new Set(currentRecipe.ingredients.map(ingredient => ingredient.name.toLowerCase()));
+
+    const updatedShoppingIngredients: ShoppingListItem[] = normalizedIngredients.map(ingredient => ({
+      name: ingredient.name,
+      displayAmount: ingredient.displayVolume ?? ingredient.groceryFriendlyAmount,
+      displayAmountMetric: ingredient.displayMetric,
+      displayAmountVolume: ingredient.displayVolume,
+      category: ingredientCategoryToShoppingCategory(ingredient.category),
+      note: ingredient.prepNote,
+    }));
+
+    const preservedShoppingItems = currentRecipe.shoppingList.filter(item =>
+      item.category === 'equipment' || !ingredientNames.has(item.name.toLowerCase())
+    );
+
+    setIsSavingCustomization(true);
+    try {
+      await updateRecipe(currentRecipe.id, {
+        ingredients: normalizedIngredients,
+        shoppingList: [...updatedShoppingIngredients, ...preservedShoppingItems],
+      });
+      setCustomizeSuccess('Ingredients updated successfully.');
+      setIsCustomizeOpen(false);
+    } catch (error: any) {
+      setCustomizeError(error?.message ?? 'Could not save ingredient changes. Please try again.');
+    } finally {
+      setIsSavingCustomization(false);
+    }
   }
 
   const showMetric = unitPreference === 'metric';
@@ -260,6 +392,12 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
+      {customizeSuccess && (
+        <section className="mb-4 rounded-2xl border border-[#b6e5c3] bg-[#f0fbf3] px-4 py-3 text-sm font-medium text-[#2f7d4a]">
+          {customizeSuccess}
+        </section>
+      )}
+
       <section className="doggo-card overflow-hidden p-5">
         <div className="grid gap-5 xl:grid-cols-[1fr_1.2fr]">
           <div>
@@ -346,7 +484,13 @@ export default function RecipeDetailPage() {
               <li key={item} className="rounded-xl border border-[#eadfce] bg-white px-3 py-2">{item}</li>
             ))}
           </ul>
-          <button className="mt-3 rounded-xl border border-[#f2c8a0] px-4 py-2 text-sm font-semibold text-[#f97316]">Customize Ingredients</button>
+          <button
+            type="button"
+            className="mt-3 rounded-xl border border-[#f2c8a0] px-4 py-2 text-sm font-semibold text-[#f97316] hover:bg-[#fff6ec]"
+            onClick={openCustomizeIngredients}
+          >
+            Customize Ingredients
+          </button>
         </article>
 
         <article className="doggo-card p-5">
@@ -391,6 +535,48 @@ export default function RecipeDetailPage() {
       <section className="mt-4 doggo-soft-card p-4 text-center text-sm text-[#746a5f]">
         Real ingredients • Paw separators • Smart portions • Happy, healthy dogs • Made with love 🧡
       </section>
+
+      <Modal
+        open={isCustomizeOpen}
+        onClose={() => setIsCustomizeOpen(false)}
+        title="Customize Ingredients"
+        size="lg"
+        footer={(
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDraftIngredients(currentRecipe.ingredients.map(ingredient => ({ ...ingredient })));
+                setCustomizeError(null);
+              }}
+            >
+              Reset
+            </Button>
+            <Button variant="secondary" onClick={() => setIsCustomizeOpen(false)}>Cancel</Button>
+            <Button onClick={() => void handleSaveCustomIngredients()} loading={isSavingCustomization}>Save Changes</Button>
+          </div>
+        )}
+      >
+        <p className="text-sm text-[#6f6459]">
+          Tap any ingredient to see substitution options. Chef Doggo will keep portions the same and re-check safety against this dog's profile.
+        </p>
+
+        {customizeError && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {customizeError}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-2">
+          {draftIngredients.map((ingredient, index) => (
+            <IngredientCard
+              key={`${ingredient.ingredientId}-${index}`}
+              ingredient={ingredient}
+              onSwap={swapId => handleSwapIngredient(index, swapId)}
+            />
+          ))}
+        </div>
+      </Modal>
     </AppShell>
   );
 }
