@@ -241,13 +241,15 @@ export function useDogProfiles() {
       updatedAt: nowIso,
     };
 
-    setProfiles(prev => [...prev, profile]);
+    const next = [...profilesRef.current, profile];
+    storageSet(profilesStorageKey, next);
+    setProfiles(next);
     if (!activeProfileIdRef.current) {
       setActiveProfileId(profile.id);
     }
 
     return profile;
-  }, [setActiveProfileId, userId]);
+  }, [profilesStorageKey, setActiveProfileId, userId]);
 
   const updateProfile = useCallback(async (id: string, data: Partial<DogProfile>): Promise<void> => {
     const nowIso = new Date().toISOString();
@@ -265,8 +267,12 @@ export function useDogProfiles() {
       }
     }
 
-    setProfiles(prev => prev.map(profile => (profile.id === id ? { ...profile, ...data, updatedAt: nowIso } : profile)));
-  }, [userId]);
+    const next = profilesRef.current.map(profile => (profile.id === id ? { ...profile, ...data, updatedAt: nowIso } : profile));
+    if (!isSupabaseConfigured || !supabase || !userId) {
+      storageSet(profilesStorageKey, next);
+    }
+    setProfiles(next);
+  }, [profilesStorageKey, userId]);
 
   const deleteProfile = useCallback(async (id: string): Promise<void> => {
     if (isSupabaseConfigured && supabase && userId) {
@@ -282,12 +288,15 @@ export function useDogProfiles() {
     }
 
     const remainingProfiles = profilesRef.current.filter(profile => profile.id !== id);
+    if (!isSupabaseConfigured || !supabase || !userId) {
+      storageSet(profilesStorageKey, remainingProfiles);
+    }
     setProfiles(remainingProfiles);
 
     if (activeProfileIdRef.current === id) {
       setActiveProfileId(remainingProfiles[0]?.id ?? null);
     }
-  }, [setActiveProfileId, userId]);
+  }, [profilesStorageKey, setActiveProfileId, userId]);
 
   const getProfile = useCallback((id: string): DogProfile | undefined => {
     return profiles.find(profile => profile.id === id);

@@ -125,16 +125,23 @@ export function useRecipes() {
       }
     }
 
-    setRecipes(prev => {
-      const exists = prev.some(item => item.id === normalized.id);
-      if (exists) {
-        return prev.map(item => (item.id === normalized.id ? normalized : item));
-      }
-      return [normalized, ...prev];
-    });
+    // Compute next list from the ref so we can both update state and persist
+    // synchronously. Doing this only via setRecipes + the persist effect
+    // creates a race when callers navigate immediately after saving — the
+    // new page reads localStorage before our effect has flushed.
+    const current = recipesRef.current;
+    const exists = current.some(item => item.id === normalized.id);
+    const next = exists
+      ? current.map(item => (item.id === normalized.id ? normalized : item))
+      : [normalized, ...current];
+
+    if (!isSupabaseConfigured || !supabase || !userId) {
+      storageSet(recipesStorageKey, next);
+    }
+    setRecipes(next);
 
     return normalized;
-  }, [userId]);
+  }, [recipesStorageKey, userId]);
 
   const updateRecipe = useCallback(async (id: string, data: Partial<Recipe>): Promise<void> => {
     const nextRecipe = recipesRef.current.find(recipe => recipe.id === id);
@@ -158,8 +165,12 @@ export function useRecipes() {
       }
     }
 
-    setRecipes(prev => prev.map(recipe => (recipe.id === id ? updated : recipe)));
-  }, [userId]);
+    const next = recipesRef.current.map(recipe => (recipe.id === id ? updated : recipe));
+    if (!isSupabaseConfigured || !supabase || !userId) {
+      storageSet(recipesStorageKey, next);
+    }
+    setRecipes(next);
+  }, [recipesStorageKey, userId]);
 
   const deleteRecipe = useCallback(async (id: string): Promise<void> => {
     const client = supabase;
@@ -175,8 +186,12 @@ export function useRecipes() {
       }
     }
 
-    setRecipes(prev => prev.filter(recipe => recipe.id !== id));
-  }, [userId]);
+    const next = recipesRef.current.filter(recipe => recipe.id !== id);
+    if (!isSupabaseConfigured || !supabase || !userId) {
+      storageSet(recipesStorageKey, next);
+    }
+    setRecipes(next);
+  }, [recipesStorageKey, userId]);
 
   const toggleFavorite = useCallback(async (id: string): Promise<void> => {
     const recipe = recipesRef.current.find(item => item.id === id);

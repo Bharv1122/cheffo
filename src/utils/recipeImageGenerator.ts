@@ -5,6 +5,15 @@ const IMAGE_MODEL = import.meta.env.VITE_ABACUS_IMAGE_MODEL ?? 'flux2';
 const IMAGE_API_KEY = import.meta.env.VITE_ABACUS_API_KEY;
 const ROUTELLM_BASE_URL = import.meta.env.VITE_ABACUS_ROUTELLM_BASE_URL ?? 'https://routellm.abacus.ai/v1';
 
+// Image generation uses Abacus.AI's RouteLLM image format (model "flux2",
+// `modalities` + `image_config` request fields). Other OpenAI-compatible
+// endpoints (Google's Gemini, OpenRouter, OpenAI direct, etc.) reject those
+// fields and return 400. When the base URL clearly isn't pointed at an
+// image-capable backend, skip the API call entirely and use the SVG fallback.
+function isImageCapableEndpoint(url: string): boolean {
+  return url.includes('abacus.ai') || url.includes('routellm');
+}
+
 const memoryCache = new Map<string, string>();
 
 function buildFallbackImageDataUri(): string {
@@ -115,7 +124,7 @@ export async function generateRecipeImage(recipe: Pick<Recipe, 'name' | 'type' |
     return fromStorage;
   }
 
-  if (!IMAGE_API_KEY) {
+  if (!IMAGE_API_KEY || !isImageCapableEndpoint(ROUTELLM_BASE_URL)) {
     return DEFAULT_RECIPE_IMAGE_URL;
   }
 
