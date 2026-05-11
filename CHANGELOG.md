@@ -2,6 +2,50 @@
 
 All notable changes to **Chef Doggo** are documented in this file.
 
+## [v1.2.0] - 2026-05-11
+
+### Release summary
+Focused on the safety and assistant experience. Dog profiles now carry a medications field, and the recipe safety validator hard-blocks or warns on drug/food interactions sourced from the project bible. Recipe pages got a real nutrition panel (per-cup + per-day kcal, macro grams + %, AAFCO life-stage check). The Chef Doggo chat assistant is now LLM-backed via Google's OpenAI-compatible Gemini endpoint (Gemma 4 31B), with a vet-grade knowledge-base fallback for offline / no-key scenarios. Closes out with two real production bugs found during testing.
+
+### Safety
+
+- **Medications field on dog profile + drug-food interaction checker (`src/types/dog.ts`, `src/types/database.ts`, `src/components/dog/DogProfileForm.tsx`, `src/hooks/useDogProfiles.ts`, `src/data/medicationInteractions.ts`, `src/utils/safetyValidator.ts`, `docs/supabase-setup.md`)**
+  - **What was added:** `DogProfile.medications: string[]` with a tag-input UI mirroring allergies / foods-to-avoid. The safety validator now hard-blocks or warns on the 7 interaction rules from the project bible: blood thinners + fish-oil/turmeric/ginger (block), blood thinners + leafy greens (warning), NSAIDs + fish-oil/turmeric (warning), digoxin + hawthorn/licorice (block), immunosuppressants + echinacea/astragalus (block), insulin + turmeric/fenugreek (warning), thyroid meds + calcium/soy (warning).
+  - **Why it mattered:** Closes a real Phase 1 gap from the project bible. Drug-food interactions can be dangerous; the app now surfaces known ones inline with the existing safety messaging.
+  - **Technical details:** Mirrored into the Supabase `dog_profiles` schema with an `ALTER TABLE ... ADD COLUMN IF NOT EXISTS medications text[]` migration documented in `docs/supabase-setup.md`. Mappers fall back to `[]` for pre-migration rows and old localStorage profiles.
+
+### Nutrition
+
+- **Richer Recipe Detail nutrition section (`src/pages/Recipes/RecipeDetail.tsx`)**
+  - **What changed:** The sidebar "Nutrition (per cup)" card is now a full breakdown panel with per-cup AND per-day kcal cards, a macro table (protein / fat / carbs / fiber in grams + % kcal), and an AAFCO target check that picks adult-maintenance or puppy/growth ranges based on the dog's life stage. Out-of-range macros get an amber ⚠ icon and a "confirm with your vet" note.
+  - **Why it mattered:** Per-day calories were not surfaced before; macro completeness against AAFCO was opaque.
+
+### Assistant
+
+- **LLM-backed Chef Doggo chat (`src/utils/assistantChat.ts`, `src/pages/Assistant/index.tsx`, `src/data/assistantResponses.ts`)**
+  - **What changed:** The chat used to pick canned responses by keyword. It now posts to an OpenAI-compatible chat-completions endpoint with a strong system prompt establishing vet / nutrition / supplement expertise, explicit "be specific — say steam carrots for 8–10 min, not 'cook them'" guidance, and non-negotiable safety rules (toxic foods, acute symptoms → call ASPCA Poison Control 888-426-4435, medication interactions).
+  - **Configuration:** Reuses the existing `VITE_ABACUS_API_KEY` / `VITE_ABACUS_ROUTELLM_BASE_URL` env pair so any provider that speaks the OpenAI chat-completions shape (Abacus.AI RouteLLM, Google's Gemini/Gemma OpenAI-compatible endpoint, OpenRouter, OpenAI direct) can power the chat. Production currently runs Gemma 4 31B via Google AI Studio.
+  - **Context:** Full dog profile (breed, weight, life stage, allergies, foods-to-avoid, medications, etc.) is injected into the system prompt for personalization. The last 16 messages of chat history are sent for multi-turn coherence; the previous implementation answered each message in isolation.
+  - **Output cleanup:** Some models (notably Gemma) emit a `<thought>…</thought>` chain-of-thought block before the final answer. The chat client strips those so users only see the answer.
+  - **Markdown rendering:** Replies render Markdown (bold, italic, paragraphs, bullet lists) via a minimal inline renderer — no new dependency.
+
+- **Vet-grade knowledge base for the fallback chat (`src/data/assistantKnowledge.ts`, `src/data/assistantResponses.ts`)**
+  - **What was added:** When no LLM key is set (or the call fails), the assistant now answers from a structured knowledge base instead of generic templates: cooking methods for 16 staple ingredients (carrots, sweet potato, pumpkin, broccoli, green beans, spinach, zucchini, apple, blueberry, egg, chicken, turkey, beef, salmon, rice, oats) with method/time/doneness/prep/serving, safety records for 20 foods with mechanism of toxicity and ASPCA Poison Control callouts on toxic ones, supplement entries for 5 categories with dose-per-pound math, and condition-specific feeding guidance for kidney disease, pancreatitis, diabetes, allergies, and heart disease.
+  - **Why it mattered:** Direct response to "the chat is stupid, it didn't know to tell me to steam vegetables." Now asking "how do I cook carrots?" returns specific steaming instructions, "can dogs eat avocado?" returns a definitive answer with the toxicity mechanism, and "what should I feed a dog with kidney disease?" returns a full do-feed / avoid list.
+
+### Bug fixes
+
+- **Recipes silently failing after LLM endpoint switch (`src/utils/recipeImageGenerator.ts`, `src/hooks/useRecipes.ts`, `src/hooks/useDogProfiles.ts`)**
+  - **(1) Image generator now skips non-Abacus endpoints.** The image generator was unconditionally POSTing Abacus's `flux2` image-shape (model + `modalities` + `image_config` request fields) to whatever `VITE_ABACUS_ROUTELLM_BASE_URL` pointed at. Google's OpenAI-compatible Gemini endpoint rejected the unknown fields with 400 on every recipe generation. Now it detects `abacus.ai` / `routellm` in the base URL; for any other endpoint it uses the SVG fallback directly.
+  - **(2) localStorage race condition fixed.** In localStorage mode, the mutators (`saveRecipe`, `updateRecipe`, `deleteRecipe`, `createProfile`, `updateProfile`, `deleteProfile`) were only persisting via a `useEffect`. Callers that navigated immediately after the save (every page — BowlBuilder, Wizard, PantryMode, Treats all do `await save → navigate`) could unmount the source component before the persist effect fired, leaving the new RecipeDetail page reading an empty localStorage and showing "Recipe not found." Each mutator now writes localStorage synchronously from the state ref before returning, alongside the setState. The persist-on-state-change effect stays as a safety net.
+
+### Source commits included in this checkpoint
+- `ef3478d` - feat(safety): add medications field + drug-food interaction checker
+- `44e12f0` - feat: richer nutrition section + LLM-backed Chef Doggo assistant
+- `c2d6836` - feat(assistant): vet-grade knowledge base for the fallback chat
+- `f2bd884` - fix(assistant): strip <thought> reasoning blocks from model output
+- `7a52a59` - fix: recipes silently failing in localStorage mode after LLM endpoint switch
+
 ## [v1.1.0] - 2026-05-10
 
 ### Release summary
