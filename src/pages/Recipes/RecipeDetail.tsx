@@ -378,60 +378,6 @@ export default function RecipeDetailPage() {
             </ul>
           </section>
 
-          <section className="doggo-card p-5">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[1.25rem] font-semibold">Nutrition Breakdown</h4>
-              <span className="rounded-full bg-[#fff1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a16b38]">Estimate</span>
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
-                <p className="text-2xl font-bold text-[#2b2118]">{nutrition?.caloriesPerCup ?? recipe.nutrition.caloriesPerServing}</p>
-                <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per cup</p>
-              </div>
-              <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
-                <p className="text-2xl font-bold text-[#2b2118]">{nutrition?.caloriesPerDay ?? '-'}</p>
-                <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per day</p>
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-2xl border border-[#eadfce] bg-white">
-              <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#9a9186]">
-                <span>Macro (per cup)</span>
-                <span className="text-right">Grams</span>
-                <span className="text-right">% kcal</span>
-              </div>
-              {[
-                { label: 'Protein', g: nutrition?.proteinGrams, pct: nutrition?.proteinPct, ok: aafco?.proteinOk, target: aafco?.proteinTarget },
-                { label: 'Fat', g: nutrition?.fatGrams, pct: nutrition?.fatPct, ok: aafco?.fatOk, target: aafco?.fatTarget },
-                { label: 'Carbs', g: nutrition?.carbsGrams, pct: nutrition?.carbsPct, ok: undefined, target: undefined },
-                { label: 'Fiber', g: nutrition?.fiberGrams, pct: undefined, ok: undefined, target: undefined },
-              ].map(row => (
-                <div key={row.label} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 border-t border-[#f4ead9] px-3 py-2 text-sm text-[#3a302a]">
-                  <span className="flex items-center gap-2">
-                    {row.label}
-                    {row.ok === true && <span className="text-green-600" title={`AAFCO target ${row.target}`}>✓</span>}
-                    {row.ok === false && <span className="text-amber-600" title={`Outside AAFCO target ${row.target}`}>⚠</span>}
-                  </span>
-                  <span className="text-right tabular-nums">{row.g ?? '-'}{row.g !== undefined && row.g !== null ? 'g' : ''}</span>
-                  <span className="text-right tabular-nums text-[#7f7469]">{row.pct !== undefined ? `${row.pct}%` : '—'}</span>
-                </div>
-              ))}
-            </div>
-
-            {aafco && (
-              <p className="mt-2 text-[11px] leading-relaxed text-[#7f7469]">
-                Checked against AAFCO {dogProfile?.lifeStage === 'puppy' ? 'puppy/growth' : 'adult maintenance'} targets:
-                protein {aafco.proteinTarget}, fat {aafco.fatTarget}.
-                {!(aafco.proteinOk && aafco.fatOk) && ' One or more macros is outside the typical AAFCO range — confirm completeness with your vet.'}
-              </p>
-            )}
-
-            <p className="mt-2 text-[11px] leading-relaxed text-[#7f7469]">
-              Homemade diets need supplementation (calcium, omega-3, multivitamin) to be nutritionally complete. See the supplement checklist below.
-            </p>
-          </section>
-
           <section className="rounded-3xl border border-[#d6ebda] bg-[#f2fbf4] p-5 text-sm text-[#4c8b61]">
             <h4 className="font-semibold">Vet Note ✅</h4>
             <p className="mt-2 text-xs leading-relaxed text-[#5f8b6a]">{recipe.vetDisclaimer}</p>
@@ -536,6 +482,64 @@ export default function RecipeDetailPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mt-4 doggo-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-[1.35rem] font-semibold">Nutrition Facts</h2>
+          <span className="rounded-full bg-[#fff1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a16b38]">Estimate · per cup</span>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[260px_1fr]">
+          {/* kcal cards */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-1 lg:grid-cols-1">
+            <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
+              <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerCup ?? recipe.nutrition.caloriesPerServing}</p>
+              <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per cup</p>
+            </div>
+            <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
+              <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerDay ?? '-'}</p>
+              <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per day</p>
+            </div>
+          </div>
+
+          {/* Macro table */}
+          <div className="rounded-2xl border border-[#eadfce] bg-white">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#9a9186]">
+              <span>Macro</span>
+              <span className="text-right">Grams</span>
+              <span className="text-right">% kcal</span>
+            </div>
+            {[
+              { label: 'Protein', g: nutrition?.proteinGrams, pct: nutrition?.proteinPct, ok: aafco?.proteinOk, target: aafco?.proteinTarget },
+              { label: 'Fat', g: nutrition?.fatGrams, pct: nutrition?.fatPct, ok: aafco?.fatOk, target: aafco?.fatTarget },
+              { label: 'Carbs', g: nutrition?.carbsGrams, pct: nutrition?.carbsPct, ok: undefined, target: undefined },
+              { label: 'Fiber', g: nutrition?.fiberGrams, pct: undefined, ok: undefined, target: undefined },
+            ].map(row => (
+              <div key={row.label} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 border-t border-[#f4ead9] px-4 py-2 text-sm text-[#3a302a]">
+                <span className="flex items-center gap-2 font-medium">
+                  {row.label}
+                  {row.ok === true && <span className="text-green-600" title={`AAFCO target ${row.target}`}>✓</span>}
+                  {row.ok === false && <span className="text-amber-600" title={`Outside AAFCO target ${row.target}`}>⚠</span>}
+                </span>
+                <span className="text-right tabular-nums">{row.g ?? '-'}{row.g !== undefined && row.g !== null ? 'g' : ''}</span>
+                <span className="text-right tabular-nums text-[#7f7469]">{row.pct !== undefined ? `${row.pct}%` : '—'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {aafco && (
+          <p className="mt-3 text-xs leading-relaxed text-[#7f7469]">
+            Checked against AAFCO {dogProfile?.lifeStage === 'puppy' ? 'puppy/growth' : 'adult maintenance'} targets:
+            protein {aafco.proteinTarget}, fat {aafco.fatTarget}.
+            {!(aafco.proteinOk && aafco.fatOk) && ' One or more macros is outside the typical AAFCO range — confirm completeness with your vet.'}
+          </p>
+        )}
+
+        <p className="mt-2 text-xs leading-relaxed text-[#7f7469]">
+          Homemade diets need supplementation (calcium, omega-3, multivitamin) to be nutritionally complete. See the supplement checklist below.
+        </p>
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
