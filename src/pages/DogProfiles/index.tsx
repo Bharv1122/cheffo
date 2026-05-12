@@ -183,7 +183,9 @@ export default function DogProfilesPage() {
           <h1 className="doggo-section-title">My Dogs ❤️</h1>
           <p className="mt-1 text-[1.1rem] text-[#7e7369]">Manage your dog profiles, nutrition goals, and favorite recipes all in one place.</p>
         </div>
-        <Button icon={<Plus size={15} />} onClick={() => navigate('/profiles/new')}>Add Another Dog</Button>
+        {profiles.length > 0 && (
+          <Button icon={<Plus size={15} />} onClick={() => navigate('/profiles/new')}>Add Another Dog</Button>
+        )}
       </section>
 
       {profiles.length === 0 ? (

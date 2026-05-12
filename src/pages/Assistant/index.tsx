@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Send } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
@@ -83,18 +84,42 @@ export default function AssistantPage() {
           <section className="doggo-card p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-[1.3rem] font-semibold">Your Dog Context</h3>
-              <button className="text-sm font-semibold text-[#f97316]">Edit</button>
+              {activeProfile && (
+                <Link to={`/profiles/${activeProfile.id}/edit`} className="text-sm font-semibold text-[#f97316]">
+                  Edit
+                </Link>
+              )}
             </div>
-            <div className="mt-3 rounded-2xl border border-[#eadfce] bg-white p-3">
-              <div className="flex items-center gap-3">
-                <img src="/chef-doggo-logo.webp" alt="Dog" className="h-16 w-16 rounded-full border border-[#eadfce] object-contain" />
-                <div>
-                  <p className="font-semibold">{activeProfile?.name ?? 'Buddy'}</p>
-                  <p className="text-sm text-[#7f7469]">{activeProfile?.breed ?? 'Golden Retriever'} · {activeProfile?.ageYears ?? 4} yrs</p>
-                  <p className="mt-1 inline-block rounded-lg bg-[#fff1df] px-2 py-0.5 text-xs text-[#a16b38]">Ideal Weight: {activeProfile?.idealWeightLbs ?? 28} lbs</p>
+            {activeProfile ? (
+              <div className="mt-3 rounded-2xl border border-[#eadfce] bg-white p-3">
+                <div className="flex items-center gap-3">
+                  <img src="/chef-doggo-logo.webp" alt="Dog" className="h-16 w-16 rounded-full border border-[#eadfce] object-contain" />
+                  <div>
+                    <p className="font-semibold">{activeProfile.name}</p>
+                    <p className="text-sm text-[#7f7469]">
+                      {activeProfile.breed}
+                      {activeProfile.ageYears != null && ` · ${activeProfile.ageYears} yrs`}
+                    </p>
+                    {activeProfile.idealWeightLbs != null && (
+                      <p className="mt-1 inline-block rounded-lg bg-[#fff1df] px-2 py-0.5 text-xs text-[#a16b38]">
+                        Ideal Weight: {activeProfile.idealWeightLbs} lbs
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="mt-3 rounded-2xl border border-dashed border-[#eadfce] bg-white p-4 text-center">
+                <p className="text-sm font-medium text-[#6f6459]">No dog profile yet</p>
+                <p className="mt-1 text-xs text-[#9a9186]">Add one for personalized answers tailored to your pup.</p>
+                <Link
+                  to="/profiles/new"
+                  className="mt-3 inline-block rounded-xl bg-[#f97316] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#ea6a0c]"
+                >
+                  Add Dog Profile
+                </Link>
+              </div>
+            )}
           </section>
 
           <section className="doggo-card p-5">

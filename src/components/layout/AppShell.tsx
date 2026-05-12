@@ -3,12 +3,11 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
   Bell,
   BookOpen,
-  Bone,
+  Calculator as CalculatorIcon,
   Home,
   Menu,
   MessageCircle,
   PawPrint,
-  Settings,
   Sparkles,
   Plus,
   LogOut,
@@ -27,21 +26,13 @@ interface AppShellProps {
   rightRail?: React.ReactNode;
 }
 
-const TOP_ITEMS: Array<{ key: MainNavKey; to: string; label: string; icon: React.ReactNode }> = [
-  { key: 'home', to: '/', label: 'Home', icon: <Home size={16} /> },
-  { key: 'recipes', to: '/recipes', label: 'Recipes', icon: <BookOpen size={16} /> },
-  { key: 'dogs', to: '/profiles', label: 'My Dogs', icon: <PawPrint size={16} /> },
-  { key: 'treats', to: '/treats', label: 'Treats', icon: <Bone size={16} /> },
-  { key: 'assistant', to: '/assistant', label: 'Ask Chef', icon: <MessageCircle size={16} /> },
-];
-
 const SIDE_ITEMS = [
   { to: '/', label: 'Home', icon: <Home size={21} /> },
   { to: '/recipes', label: 'Recipes', icon: <BookOpen size={21} /> },
   { to: '/profiles', label: 'My Dogs', icon: <PawPrint size={21} /> },
   { to: '/treats', label: 'Treats', icon: <Sparkles size={21} /> },
   { to: '/assistant', label: 'Ask Chef', icon: <MessageCircle size={21} /> },
-  { to: '/calculator', label: 'Settings', icon: <Settings size={21} /> },
+  { to: '/calculator', label: 'Calculator', icon: <CalculatorIcon size={21} /> },
 ];
 
 export function AppShell({ active, children, rightRail }: AppShellProps) {
@@ -49,7 +40,7 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
   const { user, signOut, isSupabaseEnabled } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const displayName = user?.email?.split('@')[0] ?? 'Dog Parent';
+  const displayName = user?.email?.split('@')[0] ?? 'Guest';
 
   async function handleSignOut() {
     await signOut();
@@ -78,30 +69,11 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
             <p className="ml-12 -mt-1 hidden text-xs text-[#8b8378] sm:block">Homemade Dog Food Made Simple</p>
           </Link>
 
-          <nav className="hidden flex-1 items-center justify-center gap-3 lg:flex">
-            {TOP_ITEMS.map(item => (
-              <NavLink
-                key={item.key}
-                to={item.to}
-                end={item.to === '/'}
-                className={[
-                  'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[1rem] font-medium transition-colors',
-                  item.key === active
-                    ? 'text-[#f97316] border-b-2 border-[#f97316] rounded-b-none'
-                    : 'text-[#6f6459] hover:text-[#2b2118]',
-                ].join(' ')}
-              >
-                {item.icon}
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/wizard')} className="hidden sm:inline-flex">
+            <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/wizard')} className="max-md:hidden">
               Start New Bowl
             </Button>
-            <button className="hidden h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-white text-[#7f7469] sm:grid">
+            <button className="hidden h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-white text-[#7f7469] md:grid">
               <Bell size={18} />
             </button>
             <div className="flex items-center gap-2 rounded-full border border-[#eadfce] bg-white px-2 py-1.5">
@@ -117,7 +89,7 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
                 size="sm"
                 icon={<LogOut size={15} />}
                 onClick={handleSignOut}
-                className="hidden sm:inline-flex"
+                className="max-md:hidden"
               >
                 Logout
               </Button>
