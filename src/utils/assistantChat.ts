@@ -136,15 +136,77 @@ function tryParseJsonObject(text: string): unknown {
   }
 }
 
-function isValidParsedRecipe(value: unknown): value is ParsedChatRecipe {
-  if (!value || typeof value !== 'object') return false;
-  const v = value as Partial<ParsedChatRecipe>;
-  if (typeof v.name !== 'string' || !v.name) return false;
-  if (!Array.isArray(v.ingredients) || v.ingredients.length === 0) return false;
-  if (!v.ingredients.every(i => i && typeof i.name === 'string' && typeof i.grams === 'number' && Number.isFinite(i.grams) && i.grams > 0)) return false;
-  if (!Array.isArray(v.instructions) || v.instructions.length === 0) return false;
-  if (!v.instructions.every(s => typeof s === 'string' && s.trim().length > 0)) return false;
-  return true;
+const VALID_RECIPE_TYPES: ReadonlyArray<ParsedChatRecipe['type']> = [
+  'full_meal',
+  'batch_week',
+  'topper',
+  'treat',
+  'pantry',
+];
+
+// Pull a gram count out of whatever the model emitted: a number, a bare-number
+// string ("200"), a grams string ("200g"), or another unit ("8 oz", "1 cup",
+// "1.5 lb", "1 tbsp"). Returns null if we can't get a positive number out.
+function coerceGrams(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.round(value);
+  }
+  if (typeof value !== 'string') return null;
+  const match = value.match(/(-?\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const n = parseFloat(match[1]);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const lower = value.toLowerCase();
+  if (/\boz\b|ounce/.test(lower)) return Math.round(n * 28);
+  if (/\blb\b|pound/.test(lower)) return Math.round(n * 454);
+  if (/\bcup/.test(lower)) return Math.round(n * 200);
+  if (/\btbsp|tablespoon/.test(lower)) return Math.round(n * 15);
+  if (/\btsp|teaspoon/.test(lower)) return Math.round(n * 5);
+  return Math.round(n); // assume grams when no unit is given
+}
+
+// Normalize whatever the extract LLM returned into our `ParsedChatRecipe`
+// shape. More forgiving than a strict type-check: coerces string grams, accepts
+// missing `description`, defaults `type`, and drops only the unparseable
+// ingredient rows rather than failing the whole recipe.
+function normalizeParsedRecipe(value: unknown): ParsedChatRecipe | null {
+  if (!value || typeof value !== 'object') return null;
+  const v = value as Record<string, unknown>;
+
+  const name = typeof v.name === 'string' ? v.name.trim() : '';
+  if (!name) return null;
+
+  const description = typeof v.description === 'string' ? v.description.trim() : '';
+  const rawType = typeof v.type === 'string' ? v.type.trim() : '';
+  const type: ParsedChatRecipe['type'] =
+    (VALID_RECIPE_TYPES as readonly string[]).includes(rawType)
+      ? (rawType as ParsedChatRecipe['type'])
+      : 'full_meal';
+
+  if (!Array.isArray(v.ingredients)) return null;
+  const ingredients = v.ingredients
+    .map((entry): ParsedChatRecipe['ingredients'][number] | null => {
+      if (!entry || typeof entry !== 'object') return null;
+      const i = entry as Record<string, unknown>;
+      const ingredientName = typeof i.name === 'string' ? i.name.trim() : '';
+      if (!ingredientName) return null;
+      const grams = coerceGrams(i.grams);
+      if (!grams) return null;
+      const prepNote = typeof i.prepNote === 'string' && i.prepNote.trim()
+        ? i.prepNote.trim()
+        : undefined;
+      return { name: ingredientName, grams, prepNote };
+    })
+    .filter((entry): entry is ParsedChatRecipe['ingredients'][number] => entry !== null);
+  if (ingredients.length === 0) return null;
+
+  if (!Array.isArray(v.instructions)) return null;
+  const instructions = v.instructions
+    .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    .map(s => s.trim());
+  if (instructions.length === 0) return null;
+
+  return { name, description, type, ingredients, instructions };
 }
 
 async function streamLlm(
@@ -289,13 +351,23 @@ export async function extractRecipeFromText(recipeText: string): Promise<ParsedC
       }),
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.warn('[assistantChat] extract call failed', response.status, await response.text());
+      return null;
+    }
     const data = (await response.json()) as OpenAIChatResponse;
     const raw = data.choices?.[0]?.message?.content?.trim();
-    if (!raw) return null;
+    if (!raw) {
+      console.warn('[assistantChat] extract call returned empty content');
+      return null;
+    }
     const cleaned = stripThoughtBlocks(raw);
     const parsed = tryParseJsonObject(cleaned);
-    return isValidParsedRecipe(parsed) ? parsed : null;
+    const normalized = normalizeParsedRecipe(parsed);
+    if (!normalized) {
+      console.warn('[assistantChat] could not normalize parsed JSON; raw model output:', raw);
+    }
+    return normalized;
   } catch (error) {
     console.error('[assistantChat] recipe extraction failed', error);
     return null;
