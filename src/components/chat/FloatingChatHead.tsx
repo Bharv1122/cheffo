@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, X, MessageCircle } from 'lucide-react';
+import { Send, X, MessageCircle, BookmarkPlus, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { MessageContent } from './MessageContent';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useRecipes } from '../../hooks/useRecipes';
 import { chatWithAssistant } from '../../utils/assistantChat';
+import { recipeFromChatJson } from '../../utils/chatRecipeConverter';
 import { generateId } from '../../utils/storage';
 import type { ChatMessage } from '../../types/assistant';
 
@@ -18,12 +21,14 @@ const QUICK_PROMPTS = [
 export function FloatingChatHead() {
   const { user } = useAuth();
   const { activeProfile } = useDogProfiles();
+  const { saveRecipe } = useRecipes();
 
   const storageKey = `assistant-messages:${user?.id ?? 'guest'}`;
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>(storageKey, []);
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savingRecipeForId, setSavingRecipeForId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,30 +46,54 @@ export function FloatingChatHead() {
       content: trimmed,
       timestamp: new Date().toISOString(),
     };
+    const assistantId = generateId();
+    const assistantPlaceholder: ChatMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    };
 
     const history = messages;
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage, assistantPlaceholder]);
     setInput('');
     setLoading(true);
 
     try {
-      const response = await chatWithAssistant({
+      const result = await chatWithAssistant({
         history,
         userMessage: trimmed,
         dogProfile: activeProfile,
+        onChunk: visible => {
+          setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: visible } : m)));
+        },
       });
 
-      setMessages(prev => [
-        ...prev,
-        {
-          id: generateId(),
-          role: 'assistant',
-          content: response,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId
+            ? { ...m, content: result.text, parsedRecipe: result.parsedRecipe ?? undefined }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveRecipe(message: ChatMessage) {
+    if (!message.parsedRecipe || !activeProfile || savingRecipeForId) return;
+    setSavingRecipeForId(message.id);
+    try {
+      const recipe = recipeFromChatJson(message.parsedRecipe, activeProfile);
+      const saved = await saveRecipe(recipe);
+      setMessages(prev =>
+        prev.map(m => (m.id === message.id ? { ...m, savedRecipeId: saved.id } : m))
+      );
+    } catch (error) {
+      console.error('[FloatingChatHead] saveRecipe failed', error);
+    } finally {
+      setSavingRecipeForId(null);
     }
   }
 
@@ -137,23 +166,44 @@ export function FloatingChatHead() {
         )}
 
         {messages.map(message => (
-          <div key={message.id} className={['flex', message.role === 'user' ? 'justify-end' : 'justify-start'].join(' ')}>
+          <div key={message.id} className={['flex flex-col', message.role === 'user' ? 'items-end' : 'items-start'].join(' ')}>
             <div className={[
               'max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed',
               message.role === 'user'
                 ? 'rounded-br-md bg-[#fff1df] text-[#453729] border border-[#f4d8b7]'
                 : 'rounded-bl-md bg-white border border-[#eadfce] text-[#2b2118]',
             ].join(' ')}>
-              <MessageContent content={message.content} />
+              {message.role === 'assistant' && !message.content && loading
+                ? <span className="text-[#9a9186]">…</span>
+                : <MessageContent content={message.content} />}
             </div>
+            {message.role === 'assistant' && message.parsedRecipe && (
+              <div className="mt-1.5 max-w-[85%]">
+                {message.savedRecipeId ? (
+                  <Link
+                    to={`/recipes/${message.savedRecipeId}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#d6ebda] bg-[#f2fbf4] px-2.5 py-1 text-xs font-semibold text-[#43a365] hover:bg-[#e6f7eb]"
+                  >
+                    <Check size={12} />
+                    Saved · open recipe
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveRecipe(message)}
+                    disabled={!activeProfile || savingRecipeForId === message.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#f2c8a0] bg-[#fff7ee] px-2.5 py-1 text-xs font-semibold text-[#a16b38] hover:bg-[#fff1df] disabled:cursor-not-allowed disabled:opacity-60"
+                    title={activeProfile ? 'Save this recipe to your list' : 'Add a dog profile first to save recipes'}
+                  >
+                    <BookmarkPlus size={12} />
+                    {savingRecipeForId === message.id ? 'Saving…' : 'Save to my recipes'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
 
-        {loading && (
-          <div className="rounded-2xl border border-[#eadfce] bg-white px-3 py-2 text-sm text-[#7e7369]">
-            Chef Doggo is thinking…
-          </div>
-        )}
         <div ref={bottomRef} />
       </div>
 

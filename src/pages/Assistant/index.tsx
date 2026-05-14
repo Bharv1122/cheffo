@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Send, BookmarkPlus, Check } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { MessageContent } from '../../components/chat/MessageContent';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useRecipes } from '../../hooks/useRecipes';
 import { useAuth } from '../../contexts/AuthContext';
 import { chatWithAssistant } from '../../utils/assistantChat';
+import { recipeFromChatJson } from '../../utils/chatRecipeConverter';
 import { generateId } from '../../utils/storage';
 import type { ChatMessage } from '../../types/assistant';
 
@@ -30,10 +32,12 @@ const STARTER_CHAT: ChatMessage[] = [
 export default function AssistantPage() {
   const { activeProfile } = useDogProfiles();
   const { user } = useAuth();
+  const { saveRecipe } = useRecipes();
   const chatStorageKey = `assistant-messages:${user?.id ?? 'guest'}`;
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>(chatStorageKey, STARTER_CHAT);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savingRecipeForId, setSavingRecipeForId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,38 +45,63 @@ export default function AssistantPage() {
   }, [messages, loading]);
 
   async function sendMessage(text: string) {
-    if (!text.trim() || loading) return;
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
 
     const userMessage: ChatMessage = {
       id: generateId(),
       role: 'user',
-      content: text.trim(),
+      content: trimmed,
+      timestamp: new Date().toISOString(),
+    };
+    const assistantId = generateId();
+    const assistantPlaceholder: ChatMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
       timestamp: new Date().toISOString(),
     };
 
     const history = messages;
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage, assistantPlaceholder]);
     setInput('');
     setLoading(true);
 
     try {
-      const response = await chatWithAssistant({
+      const result = await chatWithAssistant({
         history,
-        userMessage: text.trim(),
+        userMessage: trimmed,
         dogProfile: activeProfile,
+        onChunk: visible => {
+          setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: visible } : m)));
+        },
       });
 
-      setMessages(prev => [
-        ...prev,
-        {
-          id: generateId(),
-          role: 'assistant',
-          content: response,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId
+            ? { ...m, content: result.text, parsedRecipe: result.parsedRecipe ?? undefined }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveRecipe(message: ChatMessage) {
+    if (!message.parsedRecipe || !activeProfile || savingRecipeForId) return;
+    setSavingRecipeForId(message.id);
+    try {
+      const recipe = recipeFromChatJson(message.parsedRecipe, activeProfile);
+      const saved = await saveRecipe(recipe);
+      setMessages(prev =>
+        prev.map(m => (m.id === message.id ? { ...m, savedRecipeId: saved.id } : m))
+      );
+    } catch (error) {
+      console.error('[AssistantPage] saveRecipe failed', error);
+    } finally {
+      setSavingRecipeForId(null);
     }
   }
 
@@ -171,24 +200,47 @@ export default function AssistantPage() {
       <section className="mt-4 doggo-card flex h-[62vh] flex-col p-4">
         <div className="flex-1 space-y-3 overflow-y-auto pr-1">
           {messages.map(message => (
-            <div key={message.id} className={['flex', message.role === 'user' ? 'justify-end' : 'justify-start'].join(' ')}>
+            <div key={message.id} className={['flex flex-col', message.role === 'user' ? 'items-end' : 'items-start'].join(' ')}>
               <div className={[
                 'max-w-[78%] rounded-3xl px-4 py-3 text-sm leading-relaxed',
                 message.role === 'user'
                   ? 'rounded-br-md bg-[#fff1df] text-[#453729] border border-[#f4d8b7]'
                   : 'rounded-bl-md bg-white border border-[#eadfce] text-[#2b2118]',
               ].join(' ')}>
-                <MessageContent content={message.content} />
+                {message.role === 'assistant' && !message.content && loading
+                  ? <span className="text-[#9a9186]">…</span>
+                  : <MessageContent content={message.content} />}
                 <p className="mt-1 text-right text-xs text-[#9a9186]">
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
+              {message.role === 'assistant' && message.parsedRecipe && (
+                <div className="mt-1.5 max-w-[78%]">
+                  {message.savedRecipeId ? (
+                    <Link
+                      to={`/recipes/${message.savedRecipeId}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#d6ebda] bg-[#f2fbf4] px-3 py-1 text-xs font-semibold text-[#43a365] hover:bg-[#e6f7eb]"
+                    >
+                      <Check size={12} />
+                      Saved · open recipe
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveRecipe(message)}
+                      disabled={!activeProfile || savingRecipeForId === message.id}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#f2c8a0] bg-[#fff7ee] px-3 py-1 text-xs font-semibold text-[#a16b38] hover:bg-[#fff1df] disabled:cursor-not-allowed disabled:opacity-60"
+                      title={activeProfile ? 'Save this recipe to your list' : 'Add a dog profile first to save recipes'}
+                    >
+                      <BookmarkPlus size={12} />
+                      {savingRecipeForId === message.id ? 'Saving…' : 'Save to my recipes'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
 
-          {loading && (
-            <div className="rounded-2xl border border-[#eadfce] bg-white px-4 py-3 text-sm text-[#7e7369]">Chef Doggo is thinking…</div>
-          )}
           <div ref={bottomRef} />
         </div>
 

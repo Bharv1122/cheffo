@@ -1,5 +1,5 @@
 import type { DogProfile } from '../types/dog';
-import type { ChatMessage } from '../types/assistant';
+import type { ChatMessage, ParsedChatRecipe } from '../types/assistant';
 import { getFallbackAssistantResponse } from '../data/assistantResponses';
 
 const API_KEY = import.meta.env.VITE_LLM_API_KEY;
@@ -7,6 +7,9 @@ const MODEL = import.meta.env.VITE_LLM_TEXT_MODEL ?? 'gpt-4o-mini';
 const BASE_URL = import.meta.env.VITE_LLM_BASE_URL ?? 'https://routellm.abacus.ai/v1';
 // Trim long histories to control token usage. Keep the most recent N turns.
 const MAX_HISTORY_MESSAGES = 16;
+
+const RECIPE_BLOCK_START = '```recipe-json';
+const RECIPE_BLOCK_END = '```';
 
 const SYSTEM_PROMPT = `You are Chef Doggo, an expert canine nutrition assistant trusted by owners cooking fresh, homemade meals for their dogs. You combine three areas of expertise:
 
@@ -28,10 +31,31 @@ const SYSTEM_PROMPT = `You are Chef Doggo, an expert canine nutrition assistant 
 - Friendly but expert — like a vet who genuinely wants to help.
 - Use Markdown (lists, numbered steps, bold) when it improves clarity. Keep responses focused — usually under ~250 words unless the question requires depth.
 - Personalize using the dog profile when one is provided (name, breed, weight, conditions, allergies, medications).
-- If you're genuinely uncertain, say so — but offer the closest accurate answer you can.`;
+- If you're genuinely uncertain, say so — but offer the closest accurate answer you can.
+
+**Recipe output (when the user asks for a complete recipe):**
+After your natural-language answer, append a JSON block in this exact format so the app can save it to the user's recipe list:
+
+\`\`\`recipe-json
+{
+  "name": "Concise recipe name (max 60 chars)",
+  "description": "1–2 sentence summary",
+  "type": "full_meal",
+  "ingredients": [
+    {"name": "Chicken Breast", "grams": 200, "prepNote": "boneless, boiled and diced"},
+    {"name": "White Rice", "grams": 100, "prepNote": "cooked"}
+  ],
+  "instructions": ["Step 1...", "Step 2...", "Step 3..."]
+}
+\`\`\`
+
+- \`type\` must be one of: \`full_meal\`, \`batch_week\`, \`topper\`, \`treat\`, \`pantry\`.
+- \`grams\` should be ONE DAY of food for a typical 30-pound adult dog. The app scales to the actual dog's needs automatically.
+- Only emit this block when you're recommending an actual recipe — NOT for portion advice, ingredient questions, calculations, supplement guidance, or general tips. If it's not a recipe, do not include the block at all.`;
 
 interface OpenAIChatChoice {
   message?: { role?: string; content?: string };
+  delta?: { role?: string; content?: string };
 }
 
 interface OpenAIChatResponse {
@@ -64,8 +88,55 @@ function trimHistory(messages: readonly ChatMessage[]): ChatMessage[] {
   return messages.slice(messages.length - MAX_HISTORY_MESSAGES);
 }
 
-async function callLlm(
-  apiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
+function stripThoughtBlocks(text: string): string {
+  return text.replace(/<thought>[\s\S]*?<\/thought>\s*/g, '').trim();
+}
+
+// Find a ```recipe-json fenced block in the text and parse it. Returns the
+// parsed recipe (or null if none/invalid) and the cleaned text with the block
+// removed so it doesn't render to the user.
+function extractRecipeBlock(text: string): { cleanedText: string; parsedRecipe: ParsedChatRecipe | null } {
+  const startIdx = text.indexOf(RECIPE_BLOCK_START);
+  if (startIdx === -1) return { cleanedText: text, parsedRecipe: null };
+
+  const afterStart = startIdx + RECIPE_BLOCK_START.length;
+  const endIdx = text.indexOf(RECIPE_BLOCK_END, afterStart);
+  if (endIdx === -1) {
+    // Open fence, no close yet — strip the partial so the user doesn't see raw JSON.
+    return { cleanedText: text.slice(0, startIdx).trimEnd(), parsedRecipe: null };
+  }
+
+  const jsonStr = text.slice(afterStart, endIdx).trim();
+  const cleanedText = (text.slice(0, startIdx) + text.slice(endIdx + RECIPE_BLOCK_END.length)).trim();
+
+  try {
+    const parsed = JSON.parse(jsonStr) as ParsedChatRecipe;
+    if (
+      typeof parsed?.name === 'string' &&
+      Array.isArray(parsed?.ingredients) &&
+      parsed.ingredients.every(i => typeof i?.name === 'string' && typeof i?.grams === 'number') &&
+      Array.isArray(parsed?.instructions) &&
+      parsed.instructions.every(s => typeof s === 'string')
+    ) {
+      return { cleanedText, parsedRecipe: parsed };
+    }
+    return { cleanedText, parsedRecipe: null };
+  } catch {
+    return { cleanedText, parsedRecipe: null };
+  }
+}
+
+// Compute the "safe to display" prefix of the full streamed text. We stop
+// updating the visible content as soon as we see the recipe-json marker so the
+// user never sees raw JSON appearing in the chat bubble.
+function displayPrefix(fullText: string): string {
+  const idx = fullText.indexOf(RECIPE_BLOCK_START);
+  return idx === -1 ? fullText : fullText.slice(0, idx).trimEnd();
+}
+
+async function streamLlm(
+  apiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+  onChunk: (visibleText: string) => void
 ): Promise<string> {
   const response = await fetch(`${BASE_URL}/chat/completions`, {
     method: 'POST',
@@ -77,7 +148,8 @@ async function callLlm(
       model: MODEL,
       messages: apiMessages,
       temperature: 0.4,
-      max_tokens: 800,
+      max_tokens: 900,
+      stream: true,
     }),
   });
 
@@ -86,31 +158,70 @@ async function callLlm(
     throw new Error(`Chat completion failed (${response.status}): ${errorText}`);
   }
 
-  const data = (await response.json()) as OpenAIChatResponse;
-  const raw = data.choices?.[0]?.message?.content?.trim();
-  if (!raw) {
-    throw new Error('Chat completion response did not contain content');
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Chat completion response had no body to stream');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  let lastEmitted = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let lineEnd: number;
+    while ((lineEnd = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, lineEnd).trim();
+      buffer = buffer.slice(lineEnd + 1);
+      if (!line || !line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (payload === '[DONE]') continue;
+      try {
+        const event = JSON.parse(payload) as OpenAIChatResponse;
+        const delta = event.choices?.[0]?.delta?.content;
+        if (!delta) continue;
+        fullText += delta;
+        const visible = stripThoughtBlocks(displayPrefix(fullText));
+        if (visible !== lastEmitted) {
+          onChunk(visible);
+          lastEmitted = visible;
+        }
+      } catch {
+        // Ignore malformed SSE lines — some providers emit keep-alives.
+      }
+    }
   }
-  // Some models (e.g. Gemma) emit a `<thought>…</thought>` reasoning block
-  // before the final answer. Strip it so the chat shows only the answer.
-  const cleaned = raw.replace(/<thought>[\s\S]*?<\/thought>\s*/g, '').trim();
-  return cleaned || raw;
+
+  return fullText;
 }
 
 export interface ChatRequest {
   history: readonly ChatMessage[];
   userMessage: string;
   dogProfile?: DogProfile | null;
+  onChunk?: (visibleText: string) => void;
 }
 
-export async function chatWithAssistant({ history, userMessage, dogProfile }: ChatRequest): Promise<string> {
-  // Fall back to rule-based responses when no LLM key is configured (dev mode,
-  // or deploys without the env var set). Caller gets a usable answer either way.
+export interface ChatResponse {
+  text: string;
+  parsedRecipe: ParsedChatRecipe | null;
+}
+
+export async function chatWithAssistant({
+  history,
+  userMessage,
+  dogProfile,
+  onChunk,
+}: ChatRequest): Promise<ChatResponse> {
   if (!API_KEY) {
-    return getFallbackAssistantResponse(userMessage, {
+    const text = await getFallbackAssistantResponse(userMessage, {
       dogName: dogProfile?.name,
       dogWeightLbs: dogProfile?.weightLbs,
     });
+    onChunk?.(text);
+    return { text, parsedRecipe: null };
   }
 
   const systemContent = `${SYSTEM_PROMPT}\n\n---\n\n${buildDogContext(dogProfile ?? null)}`;
@@ -126,12 +237,20 @@ export async function chatWithAssistant({ history, userMessage, dogProfile }: Ch
   ];
 
   try {
-    return await callLlm(apiMessages);
+    const fullText = await streamLlm(apiMessages, chunk => onChunk?.(chunk));
+    const cleaned = stripThoughtBlocks(fullText);
+    const { cleanedText, parsedRecipe } = extractRecipeBlock(cleaned);
+    // Emit one final visible-text update so the chunk handler reflects the
+    // fully-cleaned content (recipe block stripped if present).
+    onChunk?.(cleanedText);
+    return { text: cleanedText, parsedRecipe };
   } catch (error) {
     console.error('[assistantChat] LLM call failed, using fallback', error);
-    return getFallbackAssistantResponse(userMessage, {
+    const text = await getFallbackAssistantResponse(userMessage, {
       dogName: dogProfile?.name,
       dogWeightLbs: dogProfile?.weightLbs,
     });
+    onChunk?.(text);
+    return { text, parsedRecipe: null };
   }
 }

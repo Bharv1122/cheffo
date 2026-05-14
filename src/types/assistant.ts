@@ -1,8 +1,24 @@
+// Recipe extracted from a chat response's ```recipe-json fenced block. Lives on
+// the ChatMessage so the UI can offer a "Save to my recipes" action.
+export interface ParsedChatRecipe {
+  name: string;
+  description: string;
+  type: 'full_meal' | 'batch_week' | 'topper' | 'treat' | 'pantry';
+  ingredients: Array<{
+    name: string;
+    grams: number;
+    prepNote?: string;
+  }>;
+  instructions: string[];
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  parsedRecipe?: ParsedChatRecipe;
+  savedRecipeId?: string;
 }
 
 export interface AssistantSession {
