@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, Heart, Plus } from 'lucide-react';
+import { Filter, Heart, Plus, Trash2 } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { useRecipes } from '../../hooks/useRecipes';
@@ -43,7 +43,7 @@ function matchesTab(recipe: Recipe, tab: RecipeTab): boolean {
 
 export default function RecipesPage() {
   const navigate = useNavigate();
-  const { recipes, toggleFavorite } = useRecipes();
+  const { recipes, toggleFavorite, deleteRecipe } = useRecipes();
   const { unitPreference } = useUnitPreference();
   const [activeTab, setActiveTab] = useState<RecipeTab>('all');
 
@@ -245,8 +245,24 @@ export default function RecipesPage() {
                       ].join(' ')}
                       onClick={() => void toggleFavorite(recipe.id)}
                       aria-label="Toggle recipe favorite"
+                      aria-pressed={recipe.isFavorite}
                     >
                       <Heart size={16} fill={recipe.isFavorite ? 'currentColor' : 'none'} />
+                    </button>
+                    <button
+                      className="grid h-10 w-10 place-items-center rounded-xl border border-[#eadfce] text-[#c5b8a8] transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                      onClick={async () => {
+                        if (!window.confirm(`Delete "${recipe.name}"? This can't be undone.`)) return;
+                        try {
+                          await deleteRecipe(recipe.id);
+                        } catch (err) {
+                          window.alert(err instanceof Error ? err.message : 'Could not delete recipe.');
+                        }
+                      }}
+                      aria-label={`Delete ${recipe.name}`}
+                      title={`Delete ${recipe.name}`}
+                    >
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </article>
