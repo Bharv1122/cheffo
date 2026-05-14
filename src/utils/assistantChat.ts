@@ -214,7 +214,7 @@ function parseIngredientLine(raw: string): ParsedChatRecipe['ingredients'][numbe
 
   // Strip the amount itself from the line — whatever's left is name + prep note.
   let rest = (line.slice(0, amountMatch.index) + line.slice(amountMatch.index! + amountMatch[0].length))
-    .replace(/[():,-]+/g, ' ')
+    .replace(/[():,—–-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (!rest) return null;
@@ -246,7 +246,7 @@ function classifyHeader(line: string): { name: string } | null {
   return { name: m[1].toLowerCase() };
 }
 
-function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
+export function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
   const lines = text.split(/\r?\n/);
 
   // Mark which section each line belongs to (or "" for pre-header content).
@@ -266,11 +266,18 @@ function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
   const isUsableLine = (i: number) => !SKIP_SECTIONS.has(sectionAtLine[i]);
 
   // Gather ingredients from every usable line that parses to an amount+name.
-  // Don't require an explicit "Ingredients" header — models often skip it.
+  // If the response has an explicit "Ingredients" section, parse only inside
+  // it — otherwise pre-section prose like "rescale them for Cooper's 45 lbs…"
+  // gets picked up as an ingredient because the line contains an amount+unit.
+  // If no Ingredients header exists (models sometimes skip it), fall back to
+  // parsing anywhere so we still catch headerless ingredient lists.
+  const ingredientSectionNames = new Set(['ingredients', 'ingredient']);
+  const hasIngredientsSection = sectionAtLine.some(s => ingredientSectionNames.has(s));
   const ingredients: ParsedChatRecipe['ingredients'] = [];
   for (let i = 0; i < lines.length; i++) {
     if (!isUsableLine(i)) continue;
     if (classifyHeader(lines[i])) continue; // skip the header line itself
+    if (hasIngredientsSection && !ingredientSectionNames.has(sectionAtLine[i])) continue;
     const parsed = parseIngredientLine(lines[i]);
     if (parsed) ingredients.push(parsed);
   }
