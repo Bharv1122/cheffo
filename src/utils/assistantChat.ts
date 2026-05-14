@@ -223,50 +223,80 @@ function parseIngredientLine(raw: string): ParsedChatRecipe['ingredients'][numbe
   return { name: rest, grams };
 }
 
+// Looser section detector — matches headers like "**Ingredients:**",
+// "## Ingredients", "🥩 Ingredients (one-day amounts):", "Instructions:" at the
+// start of a line, regardless of trailing parenthetical or emoji prefix.
+const SECTION_HEADER_LOOSE_RE = /^[\s>#*_•\-]*[^\w]*\b(ingredients?|instructions?|directions?|steps?|preparation|method|supplements?|notes?|tips?|storage|nutrition|disclaimers?|safety|substitutions?|tools?|equipment|shopping)\b[\s:*_()\-—]*/i;
+// Sections whose body should NOT be treated as ingredient lines.
+const SKIP_SECTIONS = new Set(['supplements', 'supplement', 'notes', 'note', 'tips', 'tip', 'storage', 'nutrition', 'disclaimer', 'disclaimers', 'safety', 'tools', 'equipment', 'shopping']);
+
+function classifyHeader(line: string): { name: string } | null {
+  const m = line.match(SECTION_HEADER_LOOSE_RE);
+  if (!m) return null;
+  return { name: m[1].toLowerCase() };
+}
+
 function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
   const lines = text.split(/\r?\n/);
 
-  // Locate section headers by line index.
-  type SectionRange = { name: string; start: number; end: number };
-  const sections: SectionRange[] = [];
+  // Mark which section each line belongs to (or "" for pre-header content).
+  // Lines under SKIP_SECTIONS are flagged so we don't pull supplements or
+  // storage notes in as ingredients/steps.
+  const sectionAtLine: string[] = new Array(lines.length).fill('');
+  let current = '';
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(SECTION_HEADER_RE);
-    if (m) sections.push({ name: m[1].toLowerCase(), start: i + 1, end: lines.length });
+    const header = classifyHeader(lines[i]);
+    if (header) {
+      current = header.name;
+      sectionAtLine[i] = current;
+    } else {
+      sectionAtLine[i] = current;
+    }
   }
-  for (let i = 0; i < sections.length - 1; i++) sections[i].end = sections[i + 1].start - 1;
+  const isUsableLine = (i: number) => !SKIP_SECTIONS.has(sectionAtLine[i]);
 
-  const ingredientsSection = sections.find(s => /^ingredient/.test(s.name));
-  if (!ingredientsSection) return null;
-
+  // Gather ingredients from every usable line that parses to an amount+name.
+  // Don't require an explicit "Ingredients" header — models often skip it.
   const ingredients: ParsedChatRecipe['ingredients'] = [];
-  for (let i = ingredientsSection.start; i < ingredientsSection.end; i++) {
+  for (let i = 0; i < lines.length; i++) {
+    if (!isUsableLine(i)) continue;
+    if (classifyHeader(lines[i])) continue; // skip the header line itself
     const parsed = parseIngredientLine(lines[i]);
     if (parsed) ingredients.push(parsed);
   }
-  if (ingredients.length < 2) return null;
-
-  const stepsSection = sections.find(s => /^(instructions?|directions?|steps?|preparation|method)$/.test(s.name));
-  const instructions: string[] = [];
-  if (stepsSection) {
-    for (let i = stepsSection.start; i < stepsSection.end; i++) {
-      const raw = lines[i].trim();
-      if (!raw) continue;
-      const stripped = raw
-        .replace(/^\s*\d+[.)]\s*/, '')
-        .replace(/^\s*[-*•]+\s*/, '')
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/__([^_]+)__/g, '$1')
-        .trim();
-      if (stripped.length > 4) instructions.push(stripped);
-    }
-  } else {
-    // Fall back to any numbered lines in the document.
-    for (const line of lines) {
-      const m = line.match(/^\s*\d+[.)]\s+(.+\S)\s*$/);
-      if (m) instructions.push(m[1].trim());
-    }
+  if (ingredients.length < 2) {
+    console.warn('[assistantChat] heuristic: only found', ingredients.length, 'ingredient(s). Source text:', text);
+    return null;
   }
-  if (instructions.length < 2) return null;
+
+  // Gather instructions: prefer numbered lines under an Instructions-like
+  // header, else any numbered/bulleted line in the document that isn't an
+  // ingredient line and isn't in a skip section.
+  const stepSectionNames = new Set(['instructions', 'instruction', 'directions', 'direction', 'steps', 'step', 'preparation', 'method']);
+  const instructions: string[] = [];
+
+  const hasStepSection = sectionAtLine.some(s => stepSectionNames.has(s));
+  for (let i = 0; i < lines.length; i++) {
+    if (!isUsableLine(i)) continue;
+    if (hasStepSection && !stepSectionNames.has(sectionAtLine[i])) continue;
+    const raw = lines[i].trim();
+    if (!raw || classifyHeader(raw)) continue;
+    const numbered = raw.match(/^\s*\d+[.)]\s+(.+)$/);
+    const bulleted = raw.match(/^\s*[-*•]\s+(.+)$/);
+    const body = numbered ? numbered[1] : bulleted ? bulleted[1] : null;
+    if (!body) continue;
+    const stripped = body
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .trim();
+    // Skip lines that already look like an ingredient (amount+unit at start).
+    if (INGREDIENT_AMOUNT_RE.test(stripped) && stripped.length < 80) continue;
+    if (stripped.length > 8) instructions.push(stripped);
+  }
+  if (instructions.length < 2) {
+    console.warn('[assistantChat] heuristic: found', ingredients.length, 'ingredient(s) but only', instructions.length, 'step(s). Source text:', text);
+    return null;
+  }
 
   // Pull a plausible name out of the first heading or bolded title line.
   let name = '';
