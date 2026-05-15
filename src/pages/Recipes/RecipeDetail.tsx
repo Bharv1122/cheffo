@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, Play, ShoppingBag, Timer, ShieldAlert, ShieldCheck, Package } from 'lucide-react';
+import { Heart, Play, ShoppingBag, Timer, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -515,6 +515,7 @@ export default function RecipeDetailPage() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Button icon={<Play size={15} />} onClick={() => navigate(`/cook/${recipe.id}`)}>Start Cooking</Button>
+              <Button variant="secondary" icon={<FileText size={15} />} onClick={() => navigate(`/vet-export/${recipe.id}`)}>Vet Review</Button>
               <Button variant="secondary" icon={<Timer size={15} />}>Start Voice Cooking</Button>
               <Button variant="secondary" icon={<ShoppingBag size={15} />}>View Full List</Button>
             </div>

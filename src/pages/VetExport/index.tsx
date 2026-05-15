@@ -1,12 +1,68 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Printer } from 'lucide-react';
+import { Check, Copy, Mail, Printer } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { formatRecipeType, formatCalories, formatDate, formatGrams, formatOz } from '../../utils/formatting';
+import type { DogProfile } from '../../types/dog';
+import type { Recipe } from '../../types/recipe';
+
+function buildVetEmailTemplate(recipe: Recipe, dog: DogProfile | null): string {
+  const dogSummary = dog
+    ? `${dog.name}, ${dog.breed}, ${dog.ageYears}y ${dog.ageMonths}mo, ${dog.weightLbs} lbs, ${dog.lifeStage}, ${dog.activityLevel} activity`
+    : 'Dog profile not attached';
+
+  const ingredients = recipe.ingredients
+    .map(ingredient => `- ${ingredient.name}: ${ingredient.amountGrams}g (${formatOz(ingredient.amountGrams)})`)
+    .join('\n');
+  const supplements = recipe.supplements.length
+    ? recipe.supplements.map(supplement => `- ${supplement.name}: ${supplement.estimatedAmount ?? 'vet to advise'} (${supplement.isRequired ? 'required' : 'optional'})`).join('\n')
+    : '- None listed';
+  const safetyNotes = recipe.safetyNotes.length
+    ? recipe.safetyNotes.map(note => `- ${note}`).join('\n')
+    : '- No extra safety notes listed';
+
+  return `Subject: Vet review requested for homemade dog food recipe — ${recipe.name}
+
+Hi Dr. __________,
+
+Could you please review this homemade dog food recipe and advise whether it is appropriate for my dog?
+
+Dog profile:
+${dogSummary}
+
+Recipe:
+${recipe.name}
+Type: ${formatRecipeType(recipe.type)}
+Description: ${recipe.description}
+
+Ingredients:
+${ingredients}
+
+Estimated portion plan:
+- Daily calories: ${formatCalories(recipe.nutrition.caloriesPerDay)}
+- Per meal: ${formatGrams(recipe.serving.gramsPerMeal)} / ${recipe.serving.cupsPerMeal} cups
+- Meals per day: ${recipe.serving.mealsPerDay}
+- Total daily food: ${formatGrams(recipe.serving.totalDailyGrams)}
+
+Supplements to review:
+${supplements}
+
+Safety notes:
+${safetyNotes}
+
+Questions:
+1. Is this recipe appropriate for my dog's age, breed, weight, and health status?
+2. Are any ingredients unsafe or worth limiting?
+3. What supplements and exact doses do you recommend?
+4. Should calories, portions, or feeding frequency be adjusted?
+5. How should I transition my dog onto this recipe?
+
+Thank you!`;
+}
 
 export default function VetExportPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +70,7 @@ export default function VetExportPage() {
   const { getProfile } = useDogProfiles();
   const recipe = getRecipe(id!);
   const dog = recipe ? getProfile(recipe.dogProfileId) : null;
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
 
   if (!recipe) {
     return (
@@ -27,6 +84,20 @@ export default function VetExportPage() {
   const ACTIVITY_LABELS: Record<string, string> = {
     low: 'Low', moderate: 'Moderate', active: 'Active', very_active: 'Very Active',
   };
+  const vetEmailTemplate = buildVetEmailTemplate(recipe, dog ?? null);
+  const emailSubject = `Vet review requested for homemade dog food recipe — ${recipe.name}`;
+  const emailBody = vetEmailTemplate.replace(/^Subject: .+\n\n/, '');
+  const mailtoHref = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+  async function copyVetEmailTemplate() {
+    try {
+      await navigator.clipboard.writeText(vetEmailTemplate);
+      setCopyStatus('copied');
+      window.setTimeout(() => setCopyStatus('idle'), 2000);
+    } catch {
+      setCopyStatus('error');
+    }
+  }
 
   return (
     <>
@@ -35,16 +106,42 @@ export default function VetExportPage() {
         backTo={`/recipes/${recipe.id}`}
         backLabel="Recipe"
         actions={
-          <Button size="sm" icon={<Printer size={15} />} onClick={() => window.print()} className="no-print">
-            Print
-          </Button>
+          <div className="no-print flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="secondary" icon={<Copy size={15} />} onClick={() => void copyVetEmailTemplate()}>
+              {copyStatus === 'copied' ? 'Copied' : 'Copy Email Template'}
+            </Button>
+            <a href={mailtoHref} className="inline-flex">
+              <Button size="sm" variant="secondary" icon={<Mail size={15} />}>
+                Email Vet
+              </Button>
+            </a>
+            <Button size="sm" icon={<Printer size={15} />} onClick={() => window.print()}>
+              Print
+            </Button>
+          </div>
         }
       />
       <PageWrapper>
         {/* Print hint */}
         <div className="no-print mb-4 rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
-          This page is formatted for printing or saving as PDF. Use your browser's Print function (Ctrl+P / Cmd+P) to print or save.
+          This page is formatted for printing, saving as PDF, or emailing to your vet. Use Print for paper/PDF, Email Vet to open your email app, or Copy Email Template to paste into any message.
+          {copyStatus === 'copied' && (
+            <p className="mt-2 flex items-center gap-1 font-semibold text-green-700"><Check size={14} /> Email template copied.</p>
+          )}
+          {copyStatus === 'error' && (
+            <p className="mt-2 font-semibold text-red-700">Could not copy automatically. Select and copy the template below.</p>
+          )}
         </div>
+
+        <section className="no-print mb-4 rounded-xl border border-[#E7E5E4] bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-bold text-[#1C1917] text-lg">Veterinary Review Email Template</h2>
+            <Button size="sm" variant="secondary" icon={<Copy size={14} />} onClick={() => void copyVetEmailTemplate()}>
+              {copyStatus === 'copied' ? 'Copied' : 'Copy Email Template'}
+            </Button>
+          </div>
+          <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-lg bg-[#FFFBF5] p-3 text-xs leading-relaxed text-[#3a302a]">{vetEmailTemplate}</pre>
+        </section>
 
         <div className="space-y-6">
           {/* Header */}

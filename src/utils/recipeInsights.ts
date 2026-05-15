@@ -1,6 +1,5 @@
 import { getIngredientById } from '../data/ingredients';
 import type { Recipe } from '../types/recipe';
-import { DEFAULT_RECIPE_IMAGE_URL } from './recipeImageGenerator';
 
 export type RecipePhotoKind = 'chicken' | 'beef' | 'fish' | 'veggie' | 'treats';
 export type CommonAllergen = 'chicken' | 'beef' | 'dairy' | 'wheat' | 'soy' | 'eggs';
@@ -8,50 +7,42 @@ export type CommonAllergen = 'chicken' | 'beef' | 'dairy' | 'wheat' | 'soy' | 'e
 interface RecipePhotoMeta {
   kind: RecipePhotoKind;
   label: string;
-  emoji: string;
   alt: string;
-  colors: {
-    start: string;
-    end: string;
-    accent: string;
-  };
+  src: string;
 }
 
-const PHOTO_META: Record<RecipePhotoKind, RecipePhotoMeta> = {
+// Real recipe photos used when a generated recipe does not already have its own imageUrl.
+// These replace the old SVG/emoji artwork with real food photo fallbacks.
+const REAL_RECIPE_PHOTOS: Record<RecipePhotoKind, RecipePhotoMeta> = {
   chicken: {
     kind: 'chicken',
     label: 'Chicken Recipe',
-    emoji: '🍗',
-    alt: 'Chicken-based homemade dog food bowl',
-    colors: { start: '#FDE68A', end: '#FB923C', accent: '#FFFBEB' },
+    alt: 'Real food photo of chicken, rice, and vegetables in a bowl',
+    src: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80',
   },
   beef: {
     kind: 'beef',
     label: 'Beef Recipe',
-    emoji: '🥩',
-    alt: 'Beef-based homemade dog food bowl',
-    colors: { start: '#FCA5A5', end: '#DC2626', accent: '#FEE2E2' },
+    alt: 'Real food photo of beef and vegetables in a prepared bowl',
+    src: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=1200&q=80',
   },
   fish: {
     kind: 'fish',
     label: 'Fish Recipe',
-    emoji: '🐟',
-    alt: 'Fish-based homemade dog food bowl',
-    colors: { start: '#93C5FD', end: '#1D4ED8', accent: '#DBEAFE' },
+    alt: 'Real food photo of salmon with vegetables',
+    src: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=1200&q=80',
   },
   veggie: {
     kind: 'veggie',
     label: 'Veggie Recipe',
-    emoji: '🥕',
-    alt: 'Vegetable-forward homemade dog food bowl',
-    colors: { start: '#86EFAC', end: '#15803D', accent: '#DCFCE7' },
+    alt: 'Real food photo of fresh vegetables in a bowl',
+    src: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
   },
   treats: {
     kind: 'treats',
     label: 'Treat Recipe',
-    emoji: '🦴',
-    alt: 'Homemade dog treats on a plate',
-    colors: { start: '#FDBA74', end: '#C2410C', accent: '#FFEDD5' },
+    alt: 'Real food photo of homemade baked treats on a tray',
+    src: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=1200&q=80',
   },
 };
 
@@ -69,35 +60,6 @@ const RECIPE_CLASSIFIER_RULES: Array<{ kind: RecipePhotoKind; pattern: RegExp }>
   { kind: 'chicken', pattern: /\b(chicken|turkey|egg)\b/ },
   { kind: 'fish', pattern: /\b(salmon|whitefish|sardine|cod|tilapia|pollock|haddock|fish(?![_\s-]?oil))\b/ },
 ];
-
-const PHOTO_CACHE = new Map<RecipePhotoKind, string>();
-
-function buildPhotoDataUri(meta: RecipePhotoMeta): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="${meta.alt}">
-    <defs>
-      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="${meta.colors.start}" />
-        <stop offset="100%" stop-color="${meta.colors.end}" />
-      </linearGradient>
-      <radialGradient id="shine" cx="0.25" cy="0.15" r="0.7">
-        <stop offset="0%" stop-color="${meta.colors.accent}" stop-opacity="0.95" />
-        <stop offset="100%" stop-color="${meta.colors.accent}" stop-opacity="0" />
-      </radialGradient>
-    </defs>
-
-    <rect width="1200" height="800" fill="url(#bg)" />
-    <rect width="1200" height="800" fill="url(#shine)" />
-
-    <ellipse cx="600" cy="620" rx="340" ry="120" fill="rgba(0,0,0,0.18)" />
-    <circle cx="600" cy="400" r="250" fill="rgba(255,255,255,0.9)" />
-    <circle cx="600" cy="400" r="185" fill="rgba(255,255,255,0.62)" />
-
-    <text x="600" y="438" text-anchor="middle" font-size="230">${meta.emoji}</text>
-    <text x="600" y="690" text-anchor="middle" fill="#ffffff" font-size="56" font-family="Arial, sans-serif" font-weight="700">${meta.label}</text>
-  </svg>`;
-
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
 
 function getRecipeClassifierText(recipe: Recipe): string {
   const rawValues = recipe.ingredients.flatMap(ingredient => {
@@ -121,7 +83,7 @@ function classifyPhotoKind(recipe: Recipe): RecipePhotoKind {
 
 export function getRecipePhoto(recipe: Recipe): { src: string; alt: string; kind: RecipePhotoKind; label: string } {
   const kind = classifyPhotoKind(recipe);
-  const meta = PHOTO_META[kind];
+  const meta = REAL_RECIPE_PHOTOS[kind];
 
   if (recipe.imageUrl) {
     return {
@@ -132,12 +94,8 @@ export function getRecipePhoto(recipe: Recipe): { src: string; alt: string; kind
     };
   }
 
-  if (!PHOTO_CACHE.has(kind)) {
-    PHOTO_CACHE.set(kind, buildPhotoDataUri(meta));
-  }
-
   return {
-    src: PHOTO_CACHE.get(kind) ?? DEFAULT_RECIPE_IMAGE_URL,
+    src: meta.src,
     alt: meta.alt,
     kind,
     label: meta.label,
