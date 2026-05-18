@@ -1,18 +1,17 @@
 import type { Recipe, RecipeIngredient, RecipeType } from '../types/recipe';
 
 const IMAGE_CACHE_STORAGE_KEY = 'chef-doggo:recipe-image-cache:v1';
-const IMAGE_MODEL = import.meta.env.VITE_LLM_IMAGE_MODEL ?? 'flux2';
-const IMAGE_API_KEY = import.meta.env.VITE_LLM_API_KEY;
-const LLM_BASE_URL = import.meta.env.VITE_LLM_BASE_URL ?? 'https://routellm.abacus.ai/v1';
+const IMAGE_MODEL = 'flux2';
 
-// Image generation uses Abacus.AI's RouteLLM image format (model "flux2",
-// `modalities` + `image_config` request fields). Other OpenAI-compatible
-// endpoints (Google's Gemini, OpenRouter, OpenAI direct, etc.) reject those
-// fields and return 400. When the base URL clearly isn't pointed at an
-// image-capable backend, skip the API call entirely and use the SVG fallback.
-function isImageCapableEndpoint(url: string): boolean {
-  return url.includes('abacus.ai') || url.includes('routellm');
-}
+// LLM calls go through the same-origin server proxy (api/llm.ts) — the key is
+// server-side only. Image generation uses the RouteLLM image format (model
+// "flux2", `modalities` + `image_config`); other backends (Gemini, OpenRouter,
+// OpenAI) reject those fields with a 400. The client can no longer see which
+// backend the proxy targets, so gate image calls on an explicit opt-in flag
+// instead of sniffing the base URL — leave it off unless the proxy's upstream
+// is image-capable.
+const LLM_PROXY_URL = '/api/llm';
+const IMAGE_GEN_ENABLED = import.meta.env.VITE_IMAGE_GEN_ENABLED === 'true';
 
 const memoryCache = new Map<string, string>();
 
@@ -124,15 +123,14 @@ export async function generateRecipeImage(recipe: Pick<Recipe, 'name' | 'type' |
     return fromStorage;
   }
 
-  if (!IMAGE_API_KEY || !isImageCapableEndpoint(LLM_BASE_URL)) {
+  if (!IMAGE_GEN_ENABLED) {
     return DEFAULT_RECIPE_IMAGE_URL;
   }
 
   try {
-    const response = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+    const response = await fetch(LLM_PROXY_URL, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${IMAGE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

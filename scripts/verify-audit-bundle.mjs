@@ -29,4 +29,19 @@ for (const marker of required) {
   }
 }
 
+// Security guard (CHE-5): the LLM provider key and endpoint must never reach
+// the client bundle — they now live only in the api/llm.ts server proxy. Fail
+// the build if a Google API key pattern or the upstream endpoint reappears in
+// any built asset.
+const distText = `${distIndex}\n${anyBundle}`;
+const securityViolations = [
+  { label: 'a Google API key', re: /AIza[0-9A-Za-z_-]{35}/ },
+  { label: 'the LLM endpoint (generativelanguage.googleapis.com)', re: /generativelanguage\.googleapis\.com/ },
+];
+for (const { label, re } of securityViolations) {
+  if (re.test(distText)) {
+    throw new Error(`Security: built client assets contain ${label} — the LLM key/endpoint must stay server-side (see CHE-5).`);
+  }
+}
+
 console.log(`Audit bundle markers present in ${scriptPath}: ${required.join(', ')}`);

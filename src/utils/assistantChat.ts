@@ -2,9 +2,10 @@ import type { DogProfile } from '../types/dog';
 import type { ChatMessage, ParsedChatRecipe } from '../types/assistant';
 import { getFallbackAssistantResponse } from '../data/assistantResponses';
 
-const API_KEY = import.meta.env.VITE_LLM_API_KEY;
-const MODEL = import.meta.env.VITE_LLM_TEXT_MODEL ?? 'gpt-4o-mini';
-const BASE_URL = import.meta.env.VITE_LLM_BASE_URL ?? 'https://routellm.abacus.ai/v1';
+// The LLM key lives only in the server-side proxy (api/llm.ts). The client
+// posts to the same-origin /api/llm endpoint — no key, no Authorization header.
+const LLM_PROXY_URL = '/api/llm';
+const MODEL = 'gemini-2.5-flash';
 // Trim long histories to control token usage. Keep the most recent N turns.
 const MAX_HISTORY_MESSAGES = 16;
 
@@ -406,10 +407,9 @@ async function streamLlm(
   apiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   onChunk: (visibleText: string) => void
 ): Promise<string> {
-  const response = await fetch(`${BASE_URL}/chat/completions`, {
+  const response = await fetch(LLM_PROXY_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -424,6 +424,13 @@ async function streamLlm(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Chat completion failed (${response.status}): ${errorText}`);
+  }
+
+  // The Vite dev server has no /api functions and answers /api/llm with the
+  // SPA's index.html. Treat a non-streaming HTML reply as "proxy unavailable"
+  // so the caller's canned fallback engages instead of an empty response.
+  if ((response.headers.get('content-type') ?? '').includes('text/html')) {
+    throw new Error('LLM proxy unavailable — run `vercel dev` for the live assistant');
   }
 
   const reader = response.body?.getReader();
@@ -483,15 +490,6 @@ export async function chatWithAssistant({
   dogProfile,
   onChunk,
 }: ChatRequest): Promise<ChatResponse> {
-  if (!API_KEY) {
-    const text = await getFallbackAssistantResponse(userMessage, {
-      dogName: dogProfile?.name,
-      dogWeightLbs: dogProfile?.weightLbs,
-    });
-    onChunk?.(text);
-    return { text, parsedRecipe: null };
-  }
-
   const systemContent = `${SYSTEM_PROMPT}\n\n---\n\n${buildDogContext(dogProfile ?? null)}`;
   const trimmed = trimHistory(history);
 
@@ -522,14 +520,11 @@ export async function chatWithAssistant({
 
 // Second-pass extraction: takes an assistant message that looks like a recipe
 // and asks the LLM to convert it to our structured JSON shape. Returns null if
-// the model produced unparseable output, the request timed out, or there's no
-// API key configured.
+// the model produced unparseable output or the request timed out.
 const EXTRACT_TIMEOUT_MS = 30_000;
 const EXTRACT_INPUT_MAX_CHARS = 4000;
 
 export async function extractRecipeFromText(recipeText: string): Promise<ParsedChatRecipe | null> {
-  if (!API_KEY) return null;
-
   // Cap input length so a runaway-long chat reply doesn't push the extract
   // call past the model's context or stall it for minutes.
   const trimmedInput = recipeText.length > EXTRACT_INPUT_MAX_CHARS
@@ -540,10 +535,9 @@ export async function extractRecipeFromText(recipeText: string): Promise<ParsedC
   const timeout = setTimeout(() => controller.abort(), EXTRACT_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
+    const response = await fetch(LLM_PROXY_URL, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
