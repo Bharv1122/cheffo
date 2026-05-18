@@ -544,7 +544,15 @@ export async function extractRecipeFromText(recipeText: string): Promise<ParsedC
           { role: 'user', content: trimmedInput },
         ],
         temperature: 0,
-        max_tokens: 800,
+        // gemini-2.5-flash spends 400-800 invisible reasoning tokens that
+        // count against max_tokens; with reasoning on, the 800-token cap was
+        // routinely exhausted before any JSON was emitted (finish_reason
+        // "length" -> truncated/empty output -> heuristic fallback). Extraction
+        // is a mechanical transform that needs no reasoning, so disable it and
+        // leave generous headroom for the JSON. (CHE-10)
+        reasoning_effort: 'none',
+        max_tokens: 2000,
+        response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
     });
