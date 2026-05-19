@@ -1,6 +1,6 @@
-# Chef Doggo
+# Cheffo Doggo
 
-Chef Doggo is a React + TypeScript + Vite app for creating homemade dog food recipes with profile-aware meal guidance.
+Cheffo Doggo is a React + TypeScript + Vite app for creating homemade dog food recipes with profile-aware meal guidance.
 
 ## Features added in this update
 

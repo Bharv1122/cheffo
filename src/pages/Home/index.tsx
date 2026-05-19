@@ -102,7 +102,7 @@ export default function HomePage() {
           </div>
           <div className="relative">
             <div className="absolute -inset-5 rounded-full bg-[#ffe6cf] blur-2xl" />
-            <img src="/chef-doggo-logo.webp" alt="Chef Doggo mascot" className="relative mx-auto h-64 w-64 object-contain" />
+            <img src="/chef-doggo-logo.webp" alt="Cheffo Doggo mascot" className="relative mx-auto h-64 w-64 object-contain" />
           </div>
         </div>
       </section>

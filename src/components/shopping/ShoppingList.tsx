@@ -93,7 +93,7 @@ export function ShoppingList({ items, recipeName }: Props) {
 
   const buildPlainTextExport = () => {
     const lines = [
-      `🐾 Chef Doggo Shopping List${recipeName ? ` — ${recipeName}` : ''}`,
+      `🐾 Cheffo Doggo Shopping List${recipeName ? ` — ${recipeName}` : ''}`,
       `Generated on ${new Date().toLocaleDateString()}`,
       '',
     ];
@@ -143,7 +143,7 @@ export function ShoppingList({ items, recipeName }: Props) {
 
   const downloadText = () => {
     const text = buildPlainTextExport();
-    const fileName = `${(recipeName ?? 'chef-doggo-shopping-list').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`;
+    const fileName = `${(recipeName ?? 'cheffo-doggo-shopping-list').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`;
 
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -186,7 +186,7 @@ export function ShoppingList({ items, recipeName }: Props) {
       <html>
       <head>
         <meta charset="utf-8" />
-        <title>Chef Doggo Shopping List</title>
+        <title>Cheffo Doggo Shopping List</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 24px; color: #1C1917; }
           h1 { margin-bottom: 4px; font-size: 24px; }
@@ -200,7 +200,7 @@ export function ShoppingList({ items, recipeName }: Props) {
         </style>
       </head>
       <body>
-        <h1>🐾 Chef Doggo Shopping List</h1>
+        <h1>🐾 Cheffo Doggo Shopping List</h1>
         <p class="subtitle">${recipeName ? `${escapeHtml(recipeName)} • ` : ''}${new Date().toLocaleDateString()}</p>
         ${groupedHtml}
       </body>

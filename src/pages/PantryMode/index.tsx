@@ -104,7 +104,7 @@ export default function PantryModePage() {
           </div>
           <div>
             <h2 className="font-bold text-[#1C1917]">Use What You Have</h2>
-            <p className="text-sm text-[#78716C] mt-0.5">Tell Chef Doggo what's in your fridge and pantry. Get a safe recipe idea using what you already have.</p>
+            <p className="text-sm text-[#78716C] mt-0.5">Tell Cheffo Doggo what's in your fridge and pantry. Get a safe recipe idea using what you already have.</p>
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export default function PantryModePage() {
           </Card>
 
           <Disclaimer variant="info" title="How Pantry Mode Works">
-            Chef Doggo will use your pantry ingredients to suggest a safe recipe or topper. If important nutritional components are missing (like calcium), you'll see a reminder. Pantry recipes may not be complete meals on their own.
+            Cheffo Doggo will use your pantry ingredients to suggest a safe recipe or topper. If important nutritional components are missing (like calcium), you'll see a reminder. Pantry recipes may not be complete meals on their own.
           </Disclaimer>
 
           <Button

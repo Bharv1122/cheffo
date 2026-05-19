@@ -343,9 +343,9 @@ export default function RecipeDetailPage() {
         <>
           <section className="doggo-card p-5">
             <div className="flex items-center gap-3">
-              <img src="/chef-doggo-logo.webp" alt="Chef Doggo mascot" className="h-16 w-16 rounded-2xl border border-[#eadfce] bg-[#fff4ea] object-contain p-1" />
+              <img src="/chef-doggo-logo.webp" alt="Cheffo Doggo mascot" className="h-16 w-16 rounded-2xl border border-[#eadfce] bg-[#fff4ea] object-contain p-1" />
               <div>
-                <h3 className="text-[1.4rem] font-semibold">Chef Doggo's Tip 🐾</h3>
+                <h3 className="text-[1.4rem] font-semibold">Cheffo Doggo's Tip 🐾</h3>
                 <p className="mt-1 text-sm text-[#7e7369]">
                   Keep portions consistent: {recipe.serving.cupsPerMeal.toFixed(1)} cup per meal × {recipe.serving.mealsPerDay} meals/day.
                 </p>
@@ -596,7 +596,7 @@ export default function RecipeDetailPage() {
             ))}
           </div>
           <p className="mt-3 text-xs text-[#8b8378]">
-            Tap an ingredient for swap options — Chef Doggo keeps the portion the same and re-checks safety for this dog.
+            Tap an ingredient for swap options — Cheffo Doggo keeps the portion the same and re-checks safety for this dog.
           </p>
         </article>
 

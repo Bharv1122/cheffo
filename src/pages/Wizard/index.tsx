@@ -80,7 +80,7 @@ export default function WizardPage() {
           <div className="flex flex-col items-center text-center gap-6">
             <Logo size="xl" showText={false} />
             <div>
-              <h2 className="text-2xl font-bold text-[#1C1917]">Welcome to Chef Doggo! 🐾</h2>
+              <h2 className="text-2xl font-bold text-[#1C1917]">Welcome to Cheffo Doggo! 🐾</h2>
               <p className="text-[#78716C] mt-2 leading-relaxed">
                 Let's build your first homemade dog food recipe. This wizard takes about 2 minutes and creates a safe, personalized recipe for your dog.
               </p>
@@ -91,7 +91,7 @@ export default function WizardPage() {
                 '✅ Safety-checked ingredients',
                 '✅ Shopping list included',
                 '✅ Storage instructions',
-                '🐾 Built with love by Chef Doggo',
+                '🐾 Built with love by Cheffo Doggo',
               ].map(item => (
                 <div key={item} className="bg-[#FDF6E9] rounded-xl p-3 text-sm text-[#1C1917]">{item}</div>
               ))}
@@ -162,7 +162,7 @@ export default function WizardPage() {
               <Logo size="lg" showText={false} className="mx-auto justify-center" />
               <h2 className="text-xl font-bold text-[#1C1917] mt-4">Ready to cook!</h2>
               <p className="text-sm text-[#78716C] mt-1">
-                Chef Doggo will build a safe, personalized recipe for <strong>{effectiveDog?.name ?? 'your dog'}</strong>.
+                Cheffo Doggo will build a safe, personalized recipe for <strong>{effectiveDog?.name ?? 'your dog'}</strong>.
               </p>
             </div>
 

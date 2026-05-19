@@ -110,7 +110,7 @@ export default function RecipesPage() {
               <span>🧡 Made with love and real ingredients</span>
             </div>
           </div>
-          <img src="/chef-doggo-logo.webp" alt="Chef Doggo mascot" className="mx-auto h-60 w-60 object-contain" />
+          <img src="/chef-doggo-logo.webp" alt="Cheffo Doggo mascot" className="mx-auto h-60 w-60 object-contain" />
         </div>
       </section>
 

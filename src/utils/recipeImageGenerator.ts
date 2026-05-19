@@ -16,7 +16,7 @@ const IMAGE_GEN_ENABLED = import.meta.env.VITE_IMAGE_GEN_ENABLED === 'true';
 const memoryCache = new Map<string, string>();
 
 function buildFallbackImageDataUri(): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Chef Doggo default dog food image">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Cheffo Doggo default dog food image">
     <defs>
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#FFF4E5" />
@@ -33,7 +33,7 @@ function buildFallbackImageDataUri(): string {
     <circle cx="600" cy="410" r="210" fill="#FFFFFF"/>
     <circle cx="600" cy="410" r="160" fill="#FFE8CF"/>
     <text x="600" y="460" font-size="180" text-anchor="middle">🥣</text>
-    <text x="600" y="685" fill="#A35A16" font-size="48" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700">Chef Doggo Recipe</text>
+    <text x="600" y="685" fill="#A35A16" font-size="48" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700">Cheffo Doggo Recipe</text>
   </svg>`;
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;

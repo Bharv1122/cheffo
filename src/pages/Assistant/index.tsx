@@ -17,7 +17,7 @@ const STARTER_CHAT: ChatMessage[] = [
   {
     id: 's1',
     role: 'user',
-    content: 'Hi Chef Doggo! How much homemade food should I feed my 25 lb, 2-year-old dog?',
+    content: 'Hi Cheffo Doggo! How much homemade food should I feed my 25 lb, 2-year-old dog?',
     timestamp: new Date().toISOString(),
   },
   {
@@ -30,7 +30,7 @@ const STARTER_CHAT: ChatMessage[] = [
 ];
 
 const EXTRACT_FAIL_MESSAGE =
-  "Couldn't extract a clean recipe. Try asking Chef Doggo to list ingredients with amounts in grams.";
+  "Couldn't extract a clean recipe. Try asking Cheffo Doggo to list ingredients with amounts in grams.";
 
 export default function AssistantPage() {
   const { activeProfile } = useDogProfiles();
@@ -96,7 +96,7 @@ export default function AssistantPage() {
 
   function handleClearConversation() {
     if (messages.length === 0) return;
-    const confirmed = window.confirm('Clear all messages with Chef Doggo? Saved recipes are unaffected — only this conversation will be cleared.');
+    const confirmed = window.confirm('Clear all messages with Cheffo Doggo? Saved recipes are unaffected — only this conversation will be cleared.');
     if (!confirmed) return;
     setMessages([]);
     setSaveError(null);
@@ -225,14 +225,14 @@ export default function AssistantPage() {
       <section className="doggo-soft-card p-7">
         <div className="grid items-center gap-6 lg:grid-cols-[1.2fr_280px]">
           <div>
-            <h1 className="doggo-section-title">Ask Chef Doggo 🐾</h1>
+            <h1 className="doggo-section-title">Ask Cheffo Doggo 🐾</h1>
             <p className="mt-2 text-[1.2rem] text-[#7f7469]">Your AI assistant for homemade dog food questions, personalized for your pup.</p>
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#d6ebda] bg-[#f2fbf4] px-4 py-2 text-sm font-semibold text-[#4f8f64]">
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#43a365]" />
               AI Assistant · Always here to help
             </div>
           </div>
-          <img src="/chef-doggo-logo.webp" alt="Chef Doggo mascot" className="mx-auto h-48 w-48 object-contain" />
+          <img src="/chef-doggo-logo.webp" alt="Cheffo Doggo mascot" className="mx-auto h-48 w-48 object-contain" />
         </div>
       </section>
 
@@ -331,7 +331,7 @@ export default function AssistantPage() {
                   sendMessage(input);
                 }
               }}
-              placeholder="Ask Chef Doggo anything about homemade dog food..."
+              placeholder="Ask Cheffo Doggo anything about homemade dog food..."
               className="doggo-input flex-1 border-none"
             />
             <Button icon={<Send size={15} />} onClick={() => sendMessage(input)} disabled={!input.trim() || loading} />

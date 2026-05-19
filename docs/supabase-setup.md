@@ -1,4 +1,4 @@
-# Supabase Setup for Chef Doggo
+# Supabase Setup for Cheffo Doggo
 
 This guide configures:
 - Email/password auth (login, signup, password reset)

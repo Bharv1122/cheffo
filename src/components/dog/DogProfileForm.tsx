@@ -153,7 +153,7 @@ export function DogProfileForm({ initial, onSave, onCancel, loading }: Props) {
 
       {/* Picky eater */}
       <section>
-        <Toggle checked={form.pickyEater} onChange={v => set('pickyEater', v)} label="Picky eater" hint="Chef Doggo will favor strongly-appealing ingredients" />
+        <Toggle checked={form.pickyEater} onChange={v => set('pickyEater', v)} label="Picky eater" hint="Cheffo Doggo will favor strongly-appealing ingredients" />
       </section>
 
       {/* Allergies */}

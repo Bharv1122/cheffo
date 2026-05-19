@@ -37,7 +37,7 @@ export default function TreatsPage() {
 
   async function handleViewTreatRecipe(templateId: string, name: string) {
     if (!activeProfile) {
-      window.alert('Add a dog profile first so Chef Doggo can personalize treat recipes.');
+      window.alert('Add a dog profile first so Cheffo Doggo can personalize treat recipes.');
       navigate('/profiles/new');
       return;
     }
@@ -112,14 +112,14 @@ export default function TreatsPage() {
               <span>✅ Vet-informed</span>
             </div>
           </div>
-          <img src="/chef-doggo-logo.webp" alt="Chef Doggo mascot" className="mx-auto h-56 w-56 object-contain" />
+          <img src="/chef-doggo-logo.webp" alt="Cheffo Doggo mascot" className="mx-auto h-56 w-56 object-contain" />
         </div>
       </section>
 
       {profiles.length === 0 && (
         <section className="mt-4 rounded-2xl border border-dashed border-[#f2c8a0] bg-[#fffaf4] p-5 text-center">
           <h2 className="text-lg font-semibold text-[#2b2118]">Add a dog to unlock personalized treats</h2>
-          <p className="mt-1 text-sm text-[#7f7469]">Chef Doggo tailors treat portions and safety notes to your pup's profile.</p>
+          <p className="mt-1 text-sm text-[#7f7469]">Cheffo Doggo tailors treat portions and safety notes to your pup's profile.</p>
           <Button className="mt-3" onClick={() => navigate('/profiles/new')}>Add Dog Profile</Button>
         </section>
       )}

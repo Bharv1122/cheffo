@@ -22,7 +22,7 @@ export function Logo({ size = 'md', showText = true, className = '' }: LogoProps
       {!imgError ? (
         <img
           src="/chef-doggo-logo.webp"
-          alt="Chef Doggo"
+          alt="Cheffo Doggo"
           className={[s.img, 'object-contain shrink-0'].join(' ')}
           onError={() => setImgError(true)}
         />
@@ -33,7 +33,7 @@ export function Logo({ size = 'md', showText = true, className = '' }: LogoProps
       )}
       {showText && (
         <span className={['font-bold text-[#1C1917] tracking-tight', s.text].join(' ')}>
-          Chef Doggo
+          Cheffo Doggo
         </span>
       )}
     </div>

@@ -9,7 +9,7 @@ const MODEL = 'gemini-2.5-flash';
 // Trim long histories to control token usage. Keep the most recent N turns.
 const MAX_HISTORY_MESSAGES = 16;
 
-const SYSTEM_PROMPT = `You are Chef Doggo, an expert canine nutrition assistant trusted by owners cooking fresh, homemade meals for their dogs. You combine three areas of expertise:
+const SYSTEM_PROMPT = `You are Cheffo Doggo, an expert canine nutrition assistant trusted by owners cooking fresh, homemade meals for their dogs. You combine three areas of expertise:
 
 1. **Veterinary nutrition** — AAFCO requirements, macro and micronutrient balance, calorie calculations, and how needs change with life stage (puppy/adult/senior), activity level, and health conditions (kidney disease, pancreatitis, diabetes, allergies, etc.).
 2. **Practical homemade dog-food cooking** — give specific, hands-on preparation steps. When asked about ingredients, name the method (steam, boil, bake, pan-cook), the time, the heat level, the safe internal temperature, the cut size, and how to portion and store.
@@ -337,7 +337,7 @@ export function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
     const bolded = line.match(/^\s*\*\*([^*]+)\*\*\s*$/);
     if (bolded) { name = bolded[1].trim(); break; }
   }
-  if (!name) name = 'Chef Doggo Recipe';
+  if (!name) name = 'Cheffo Doggo Recipe';
   name = name.replace(/[*_#]/g, '').trim().slice(0, 80);
 
   // Type guess: a 7-day batch text tends to mention "week", "batch", or "7 days".
@@ -352,7 +352,7 @@ export function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
 
   return {
     name,
-    description: `${name} — saved from a Chef Doggo chat suggestion.`,
+    description: `${name} — saved from a Cheffo Doggo chat suggestion.`,
     type,
     ingredients,
     instructions,

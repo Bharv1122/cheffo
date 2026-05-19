@@ -44,7 +44,7 @@ export default function LoginPage() {
       subtitle="Log in to continue building safe, personalized meals for your pup."
       footer={
         <p>
-          New to Chef Doggo?{' '}
+          New to Cheffo Doggo?{' '}
           <Link to="/signup" className="font-semibold text-[#f97316] hover:text-[#ea6a0c]">
             Create your account
           </Link>

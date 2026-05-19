@@ -70,7 +70,7 @@ export function checkSingleIngredient(name: string, dog?: DogProfile): SafetyRes
 
 // The general vet disclaimer appended to all full-meal recipes
 export const GENERAL_VET_DISCLAIMER =
-  'Chef Doggo provides general educational guidance about homemade dog food. It is not a substitute for veterinary advice. Please consult a licensed veterinarian or veterinary nutritionist before making major changes to your dog\'s diet, especially for puppies, seniors, pregnant or nursing dogs, and dogs with medical conditions or on prescription food. Diet changes should be made gradually over 7–10 days.';
+  'Cheffo Doggo provides general educational guidance about homemade dog food. It is not a substitute for veterinary advice. Please consult a licensed veterinarian or veterinary nutritionist before making major changes to your dog\'s diet, especially for puppies, seniors, pregnant or nursing dogs, and dogs with medical conditions or on prescription food. Diet changes should be made gradually over 7–10 days.';
 
 export const SUPPLEMENT_SAFETY_NOTE =
   'Homemade dog food usually needs supplementation to be nutritionally complete. The supplement estimates in this recipe are educational starting points only. Final supplement types, amounts, and products should be confirmed with a licensed veterinarian or veterinary nutritionist.';

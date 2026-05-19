@@ -220,11 +220,11 @@ export default function DogProfilesPage() {
       )}
 
       <section className="mt-4 doggo-soft-card grid items-center gap-3 p-4 sm:grid-cols-[220px_1fr_340px]">
-        <img src="/chef-doggo-logo.webp" alt="Chef Doggo mascot" className="mx-auto h-40 w-40 object-contain" />
+        <img src="/chef-doggo-logo.webp" alt="Cheffo Doggo mascot" className="mx-auto h-40 w-40 object-contain" />
         <div>
-          <h3 className="text-[1.4rem] font-semibold">Chef Doggo is here for you!</h3>
+          <h3 className="text-[1.4rem] font-semibold">Cheffo Doggo is here for you!</h3>
           <p className="mt-1 text-sm text-[#7f7469]">Every dog is unique, and I'm here to help you create meals that are safe, balanced, and made with love.</p>
-          <Button variant="secondary" size="sm" className="mt-2" onClick={() => navigate('/assistant')}>Ask Chef Doggo</Button>
+          <Button variant="secondary" size="sm" className="mt-2" onClick={() => navigate('/assistant')}>Ask Cheffo Doggo</Button>
         </div>
         <div className="rounded-2xl border border-[#d6ebda] bg-[#f2fbf4] p-4 text-sm text-[#4d8b62]">
           <p className="font-semibold">Safety first, always ✅</p>

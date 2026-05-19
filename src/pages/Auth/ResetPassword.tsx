@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
       title={isRecoveryMode ? 'Set a new password' : 'Reset your password'}
       subtitle={
         isRecoveryMode
-          ? 'Almost done! Choose a new password to secure your Chef Doggo account.'
+          ? 'Almost done! Choose a new password to secure your Cheffo Doggo account.'
           : 'Enter your account email and we will send you a secure reset link.'
       }
       footer={

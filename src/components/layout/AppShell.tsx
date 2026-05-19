@@ -185,7 +185,7 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
           <div className="mt-6 rounded-3xl border border-[#d6ebda] bg-[#f2fbf4] p-4 text-sm text-[#4f8f64]">
             <p className="font-semibold">Always consult your veterinarian</p>
             <p className="mt-2 text-xs leading-relaxed text-[#63846d]">
-              Chef Doggo provides educational guidance only. For medical conditions, consult a licensed vet.
+              Cheffo Doggo provides educational guidance only. For medical conditions, consult a licensed vet.
             </p>
             <button className="mt-3 text-xs font-semibold text-[#2f8e56]">Learn more →</button>
           </div>
@@ -196,7 +196,7 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
         {rightRail && <aside className="hidden min-w-0 space-y-4 xl:block">{rightRail}</aside>}
       </div>
 
-      {/* Floating Chef Doggo chat head — hidden on the dedicated Assistant
+      {/* Floating Cheffo Doggo chat head — hidden on the dedicated Assistant
           page since that page IS the full-screen chat. */}
       {active !== 'assistant' && <FloatingChatHead />}
     </div>

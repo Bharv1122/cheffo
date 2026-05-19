@@ -8,7 +8,7 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isSupabaseConfigured) {
   console.warn(
-    '[Chef Doggo] Supabase env vars are missing. Falling back to localStorage mode. ' +
+    '[Cheffo Doggo] Supabase env vars are missing. Falling back to localStorage mode. ' +
       'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable cloud auth/data sync.'
   );
 }

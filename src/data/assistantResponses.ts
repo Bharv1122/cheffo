@@ -80,7 +80,7 @@ const RESPONSES: Record<AssistantIntent, string[]> = {
     'Reheating tip: always thaw frozen portions in the fridge overnight, never in the microwave (uneven heating can create hot spots and degrade nutrients). Serve at room temperature or slightly warm — dogs generally prefer it that way!',
   ],
   general: [
-    'Hi there! I\'m Chef Doggo, your homemade dog food assistant. I can help you with recipes, portion sizes, ingredient substitutions, supplement guidance, batch cooking, treat ideas, and food safety. What can I help you with today?',
+    'Hi there! I\'m Cheffo Doggo, your homemade dog food assistant. I can help you with recipes, portion sizes, ingredient substitutions, supplement guidance, batch cooking, treat ideas, and food safety. What can I help you with today?',
     'Happy to help! Whether you have questions about ingredients, cooking methods, portions, supplements, or just need some recipe inspiration — I\'m here. What\'s on your mind?',
     'Great question! I\'m still learning the best way to answer that one. In the meantime, I can help with recipes, portions, substitutions, treat ideas, batch cooking, and safety checks. What would be most helpful?',
   ],

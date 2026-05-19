@@ -19,7 +19,7 @@ const QUICK_PROMPTS = [
 ];
 
 const EXTRACT_FAIL_MESSAGE =
-  "Couldn't extract a clean recipe. Try asking Chef Doggo to list ingredients with amounts in grams.";
+  "Couldn't extract a clean recipe. Try asking Cheffo Doggo to list ingredients with amounts in grams.";
 
 export function FloatingChatHead() {
   const { user } = useAuth();
@@ -88,7 +88,7 @@ export function FloatingChatHead() {
 
   function handleClearConversation() {
     if (messages.length === 0) return;
-    const confirmed = window.confirm('Clear all messages with Chef Doggo? Saved recipes are unaffected — only this conversation will be cleared.');
+    const confirmed = window.confirm('Clear all messages with Cheffo Doggo? Saved recipes are unaffected — only this conversation will be cleared.');
     if (!confirmed) return;
     setMessages([]);
     setSaveError(null);
@@ -143,7 +143,7 @@ export function FloatingChatHead() {
         type="button"
         onClick={() => setIsOpen(true)}
         className="fixed bottom-4 right-4 z-40 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#f97316] shadow-lg shadow-[#f97316]/30 transition-transform hover:scale-105 sm:bottom-6 sm:right-6"
-        aria-label="Open Chef Doggo chat"
+        aria-label="Open Cheffo Doggo chat"
       >
         <img
           src="/chef-doggo-logo.webp"
@@ -162,13 +162,13 @@ export function FloatingChatHead() {
     <div
       className="fixed bottom-4 right-4 z-40 flex h-[min(560px,calc(100vh-2rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border border-[#eadfce] bg-[#fffbf5] shadow-2xl sm:bottom-6 sm:right-6"
       role="dialog"
-      aria-label="Chef Doggo chat"
+      aria-label="Cheffo Doggo chat"
     >
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-[#eadfce] bg-white px-4 py-3">
         <img src="/chef-doggo-logo.webp" alt="" className="h-10 w-10 rounded-full border border-[#eadfce] object-contain" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[#2b2118]">Chef Doggo</p>
+          <p className="truncate text-sm font-semibold text-[#2b2118]">Cheffo Doggo</p>
           <p className="flex items-center gap-1.5 text-xs text-[#4f8f64]">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#43a365]" />
             Vet · nutrition · supplements
@@ -198,7 +198,7 @@ export function FloatingChatHead() {
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {messages.length === 0 && (
           <div className="rounded-2xl border border-[#eadfce] bg-white px-3 py-3 text-sm leading-relaxed text-[#3a302a]">
-            <p>Hi! I'm Chef Doggo — your homemade dog food assistant.{activeProfile?.name ? ` I see you have a profile for ${activeProfile.name}.` : ''} What can I help you with?</p>
+            <p>Hi! I'm Cheffo Doggo — your homemade dog food assistant.{activeProfile?.name ? ` I see you have a profile for ${activeProfile.name}.` : ''} What can I help you with?</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {QUICK_PROMPTS.map(prompt => (
                 <button
@@ -279,7 +279,7 @@ export function FloatingChatHead() {
                 sendMessage(input);
               }
             }}
-            placeholder="Ask Chef Doggo…"
+            placeholder="Ask Cheffo Doggo…"
             className="flex-1 rounded-full border border-[#eadfce] bg-[#fffbf5] px-3 py-2 text-sm focus:border-[#f97316] focus:outline-none"
           />
           <Button

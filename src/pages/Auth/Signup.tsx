@@ -49,13 +49,13 @@ export default function SignupPage() {
     if (needsEmailVerification) {
       setMessage('Account created! Please check your email to verify your account before logging in.');
     } else {
-      setMessage('Account created! You can now start using Chef Doggo.');
+      setMessage('Account created! You can now start using Cheffo Doggo.');
     }
   }
 
   return (
     <AuthLayout
-      title="Create your Chef Doggo account"
+      title="Create your Cheffo Doggo account"
       subtitle="Save your dogs, sync recipes across devices, and keep everything in one secure place."
       footer={
         <p>

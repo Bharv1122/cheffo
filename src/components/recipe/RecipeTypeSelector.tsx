@@ -21,7 +21,7 @@ const OPTIONS: Option[] = [
     type: 'batch_week',
     icon: <CalendarDays size={24} />,
     label: 'Cook Once, Feed All Week',
-    description: 'Make a 7-day batch. Chef Doggo handles the math, containers, and freezing plan.',
+    description: 'Make a 7-day batch. Cheffo Doggo handles the math, containers, and freezing plan.',
     badge: '⭐ Headline Feature',
   },
   {
@@ -34,7 +34,7 @@ const OPTIONS: Option[] = [
     type: 'pantry',
     icon: <ShoppingBag size={24} />,
     label: 'Pantry Mode',
-    description: 'Tell Chef Doggo what you have on hand and get a safe recipe idea.',
+    description: 'Tell Cheffo Doggo what you have on hand and get a safe recipe idea.',
   },
   {
     type: 'treat',

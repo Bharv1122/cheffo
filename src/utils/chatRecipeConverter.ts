@@ -1,4 +1,4 @@
-// Convert a `ParsedChatRecipe` (extracted from a Chef Doggo chat response) into
+// Convert a `ParsedChatRecipe` (extracted from a Cheffo Doggo chat response) into
 // a full `Recipe` shaped object that fits cleanly into the user's saved recipe
 // list and works with the existing batch-toggle / detail page rendering.
 
@@ -106,7 +106,7 @@ export function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProf
     id: generateId(),
     dogProfileId: dogProfile.id,
     name: parsed.name.slice(0, 80),
-    description: parsed.description || `${parsed.name} — saved from a Chef Doggo chat suggestion.`,
+    description: parsed.description || `${parsed.name} — saved from a Cheffo Doggo chat suggestion.`,
     type: recipeType,
     ingredients,
     instructions,

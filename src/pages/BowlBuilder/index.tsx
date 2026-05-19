@@ -52,7 +52,7 @@ export default function BowlBuilderPage() {
         <div className="mb-4">
           <h2 className="text-lg font-bold text-[#1C1917]">Build Your Bowl</h2>
           <p className="text-sm text-[#78716C] mt-1">
-            Pick a recipe type and Chef Doggo chooses balanced, dog-safe ingredients and builds the full recipe — portions, shopping list, and steps.
+            Pick a recipe type and Cheffo Doggo chooses balanced, dog-safe ingredients and builds the full recipe — portions, shopping list, and steps.
           </p>
         </div>
 
@@ -77,7 +77,7 @@ export default function BowlBuilderPage() {
 
           {recipeType === 'batch_week' && (
             <p className="rounded-lg bg-[#fff7ee] border border-[#f2c8a0] px-3 py-2 text-xs text-[#a16b38]">
-              📦 Batch recipes feed your dog for <strong>7 days</strong>. Chef Doggo will scale everything to a full week.
+              📦 Batch recipes feed your dog for <strong>7 days</strong>. Cheffo Doggo will scale everything to a full week.
             </p>
           )}
 

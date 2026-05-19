@@ -36,7 +36,7 @@ export function ChefDoggoCheck({ recipe, errors = [], warnings = [] }: Props) {
           ? <CheckCircle2 size={20} className="text-green-600" />
           : <XCircle size={20} className="text-red-600" />}
         <h3 className={['font-semibold text-sm', allClear ? 'text-green-800' : 'text-red-800'].join(' ')}>
-          Chef Doggo Check {allClear ? '— All Clear! 🐾' : '— Issues Found'}
+          Cheffo Doggo Check {allClear ? '— All Clear! 🐾' : '— Issues Found'}
         </h3>
       </div>
 
