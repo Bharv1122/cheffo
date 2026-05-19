@@ -212,9 +212,18 @@ function parseIngredientLine(raw: string): ParsedChatRecipe['ingredients'][numbe
   const grams = coerceGrams(`${qty} ${unit}`);
   if (!grams) return null;
 
-  // Strip the amount itself from the line — whatever's left is name + prep note.
-  let rest = (line.slice(0, amountMatch.index) + line.slice(amountMatch.index! + amountMatch[0].length))
-    .replace(/[():,—–-]+/g, ' ')
+  // Strip the amount itself; whatever's left is the name (plus a prep note).
+  const withoutAmount = line.slice(0, amountMatch.index) + line.slice(amountMatch.index! + amountMatch[0].length);
+
+  // Pull a parenthetical ("(peeled, cubed)") out as a prep note instead of
+  // mangling its contents into the ingredient name.
+  const parenMatch = withoutAmount.match(/\(([^)]*)\)/);
+  const prepNote = parenMatch?.[1].trim() || undefined;
+
+  let rest = withoutAmount
+    .replace(/\([^)]*\)/g, ' ')   // drop parenthetical groups, content and all
+    .replace(/\s[—–-]+\s/g, ' ')  // drop "name — amount" style separators
+    .replace(/[():,]+/g, ' ')     // tidy any stray brackets / punctuation
     .replace(/\s+/g, ' ')
     .trim();
   if (!rest) return null;
@@ -230,7 +239,7 @@ function parseIngredientLine(raw: string): ParsedChatRecipe['ingredients'][numbe
   rest = rest.replace(/^(?:of|the|a|an)\s+/i, '').trim();
   if (rest.length < 2) return null;
 
-  return { name: rest, grams };
+  return { name: rest, grams, prepNote };
 }
 
 // Looser section detector — matches headers like "**Ingredients:**",
