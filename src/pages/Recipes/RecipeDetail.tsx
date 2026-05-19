@@ -428,7 +428,7 @@ export default function RecipeDetailPage() {
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 text-red-600" size={20} />
             <div>
-              <h2 className="text-base font-semibold text-red-800">Allergen Warning — Do Not Feed Yet</h2>
+              <h2 className="text-base font-semibold text-red-800">Safety Warning — Do Not Feed Yet</h2>
               <p className="mt-1 text-sm text-red-700">
                 {allergenSafety?.warning ?? 'This recipe may contain ingredients listed in this dog\'s allergies or foods-to-avoid profile.'}
               </p>
@@ -448,7 +448,7 @@ export default function RecipeDetailPage() {
         <section className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-3">
           <p className="flex items-center gap-2 text-sm font-semibold text-green-800">
             <ShieldCheck size={16} />
-            Allergen-checked for this dog
+            Safety-checked for this dog
           </p>
           {allergenSafety.checkedTerms.length > 0 && (
             <p className="mt-1 text-xs text-green-700">
