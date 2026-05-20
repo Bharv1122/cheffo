@@ -11,6 +11,12 @@ export type ActivityLevel = 'low' | 'moderate' | 'active' | 'very_active';
 export type TexturePreference = 'soft' | 'chunky' | 'brothy' | 'dry_topper';
 export type ParentSkillLevel = 'beginner' | 'some_experience' | 'very_comfortable';
 export type RecipeType = 'topper' | 'full_meal' | 'batch_week' | 'pantry' | 'treat';
+export type ApprovalStatus =
+  | 'pending'
+  | 'approved'
+  | 'approved_with_notes'
+  | 'declined'
+  | 'expired';
 
 export type Database = {
   public: {
@@ -108,6 +114,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      approvals: {
+        Row: {
+          id: string;
+          user_id: string;
+          recipe_id: string;
+          dog_profile_id: string;
+          recipe_snapshot: Json;
+          nutrition_envelope: Json;
+          vet_email: string;
+          vet_name: string | null;
+          vet_practice: string | null;
+          vet_state: string | null;
+          vet_signature_confirmed: boolean;
+          status: ApprovalStatus;
+          notes: string | null;
+          token_hash: string;
+          token_expires_at: string;
+          submitted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          recipe_id: string;
+          dog_profile_id: string;
+          recipe_snapshot: Json;
+          nutrition_envelope: Json;
+          vet_email: string;
+          vet_name?: string | null;
+          vet_practice?: string | null;
+          vet_state?: string | null;
+          vet_signature_confirmed?: boolean;
+          status?: ApprovalStatus;
+          notes?: string | null;
+          token_hash: string;
+          token_expires_at: string;
+          submitted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          recipe_id?: string;
+          dog_profile_id?: string;
+          recipe_snapshot?: Json;
+          nutrition_envelope?: Json;
+          vet_email?: string;
+          vet_name?: string | null;
+          vet_practice?: string | null;
+          vet_state?: string | null;
+          vet_signature_confirmed?: boolean;
+          status?: ApprovalStatus;
+          notes?: string | null;
+          token_hash?: string;
+          token_expires_at?: string;
+          submitted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       saved_recipes: {
         Row: {
           id: string;
@@ -172,3 +241,7 @@ export type UserPreferenceInsert = Database['public']['Tables']['user_preference
 
 export type SavedRecipeRow = Database['public']['Tables']['saved_recipes']['Row'];
 export type SavedRecipeInsert = Database['public']['Tables']['saved_recipes']['Insert'];
+
+export type ApprovalRow = Database['public']['Tables']['approvals']['Row'];
+export type ApprovalInsert = Database['public']['Tables']['approvals']['Insert'];
+export type ApprovalUpdate = Database['public']['Tables']['approvals']['Update'];

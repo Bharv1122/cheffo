@@ -21,6 +21,7 @@ const Calculator = lazy(() => import('./pages/Calculator'));
 const Assistant = lazy(() => import('./pages/Assistant'));
 const CookingMode = lazy(() => import('./pages/CookingMode'));
 const VetExport = lazy(() => import('./pages/VetExport'));
+const VetApprove = lazy(() => import('./pages/VetApprove'));
 
 function LoadingFallback() {
   return (
@@ -33,8 +34,8 @@ function LoadingFallback() {
   );
 }
 
-const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/'];
-const AUTH_PATHS = ['/login', '/signup', '/reset-password'];
+const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/', '/vet-approve/'];
+const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/vet-approve/'];
 
 function AppLayout() {
   const location = useLocation();
@@ -52,6 +53,7 @@ function AppLayout() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/vet-approve/:token" element={<VetApprove />} />
 
           <Route
             path="/"

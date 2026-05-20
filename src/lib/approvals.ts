@@ -1,0 +1,147 @@
+// Client-side helpers for the distributed vet-approval flow (CHE-21).
+//
+// The user-side reads (list approvals for a recipe) hit Supabase directly so
+// RLS scopes them automatically. Writes and the public vet form go through
+// /api/approvals/* — those routes use the service-role key server-side.
+
+import { isSupabaseConfigured, supabase } from './supabase';
+import type { ApprovalRow, ApprovalStatus } from '../types/database';
+
+export interface ApprovalSummary {
+  id: string;
+  status: ApprovalStatus;
+  vetEmail: string;
+  vetName: string | null;
+  vetPractice: string | null;
+  vetState: string | null;
+  notes: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+}
+
+function toApprovalSummary(row: ApprovalRow): ApprovalSummary {
+  return {
+    id: row.id,
+    status: row.status,
+    vetEmail: row.vet_email,
+    vetName: row.vet_name,
+    vetPractice: row.vet_practice,
+    vetState: row.vet_state,
+    notes: row.notes,
+    submittedAt: row.submitted_at,
+    createdAt: row.created_at,
+  };
+}
+
+export async function listApprovalsForRecipe(recipeId: string): Promise<ApprovalSummary[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from('approvals')
+    .select('*')
+    .eq('recipe_id', recipeId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toApprovalSummary);
+}
+
+export interface RequestApprovalResult {
+  status: 'pending' | 'auto_inherited';
+  approvalId?: string;
+  approvalLink?: string;
+  inheritedFromApprovalId?: string;
+  approvedBy?: { name: string | null; practice: string | null; state: string | null };
+  submittedAt?: string;
+  email?: { sent: boolean; reason?: string };
+}
+
+export async function requestVetApproval(args: { recipeId: string; vetEmail: string }): Promise<RequestApprovalResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Vet approval requires Supabase to be configured');
+  }
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData?.session) {
+    throw new Error('You must be signed in to request a vet approval');
+  }
+  const accessToken = sessionData.session.access_token;
+
+  const response = await fetch('/api/approvals/request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(args),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((body as { error?: string }).error ?? `Request failed (${response.status})`);
+  }
+  return body as RequestApprovalResult;
+}
+
+export interface PublicApprovalView {
+  approval: {
+    id: string;
+    status: ApprovalStatus;
+    submittedAt: string | null;
+    notes: string | null;
+    vetName: string | null;
+    vetPractice: string | null;
+    vetState: string | null;
+    tokenExpired: boolean;
+  };
+  dog: {
+    name: string;
+    breed: string;
+    age_years: number;
+    age_months: number;
+    weight_lbs: number;
+    life_stage: string;
+    activity_level: string;
+    allergies: string[];
+    medications: string[];
+    avoid_foods: string[];
+  } | null;
+  recipe: unknown;
+  vetPrefill: { name: string | null; practice: string | null; state: string | null } | null;
+}
+
+export async function fetchApprovalByToken(token: string): Promise<PublicApprovalView> {
+  const response = await fetch(`/api/approvals/by-token?token=${encodeURIComponent(token)}`, {
+    headers: { Accept: 'application/json' },
+  });
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    // In `vite dev`, /api/* falls through to the SPA index.html with status
+    // 200 — guard against returning that HTML as a "successful" response.
+    throw new Error('Approval API is not available in this environment.');
+  }
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((body as { error?: string }).error ?? `Request failed (${response.status})`);
+  }
+  if (!body || typeof body !== 'object' || !('approval' in body)) {
+    throw new Error('Approval API returned an unexpected response.');
+  }
+  return body as PublicApprovalView;
+}
+
+export interface SubmitApprovalArgs {
+  token: string;
+  decision: 'approve' | 'approve_with_notes' | 'decline';
+  notes?: string;
+  vetName: string;
+  vetPractice?: string;
+  vetState?: string;
+  signatureConfirmed: boolean;
+}
+
+export async function submitVetApproval(args: SubmitApprovalArgs): Promise<{ status: ApprovalStatus }> {
+  const response = await fetch('/api/approvals/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((body as { error?: string }).error ?? `Request failed (${response.status})`);
+  }
+  return body as { status: ApprovalStatus };
+}

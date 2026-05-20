@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { IngredientCard } from '../../components/ingredients/IngredientCard';
 import { SupplementChecklist } from '../../components/supplements/SupplementChecklist';
+import { VetApprovalSection } from '../../components/recipe/VetApprovalSection';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
@@ -549,6 +550,8 @@ export default function RecipeDetailPage() {
           </div>
         </section>
       )}
+
+      <VetApprovalSection recipeId={recipe.id} />
 
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
         <article className="doggo-card p-5">
