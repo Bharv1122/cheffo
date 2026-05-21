@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, Heart, Plus, Trash2 } from 'lucide-react';
+import { Heart, Plus, Trash2 } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { useRecipes } from '../../hooks/useRecipes';
@@ -8,8 +8,6 @@ import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
 import { formatIngredientByPreference } from '../../utils/calculator';
 import { getRecipePhoto } from '../../utils/recipeInsights';
 import type { Recipe } from '../../types/recipe';
-
-const FILTERS = ['Life Stage', 'Protein', 'Prep Time', 'Budget', 'Picky Eater', 'Batch Cook'];
 
 type RecipeTab = 'all' | 'full_meal' | 'topper' | 'treat' | 'pantry' | 'favorites';
 
@@ -21,6 +19,21 @@ const TABS: Array<{ key: RecipeTab; label: string }> = [
   { key: 'pantry', label: 'Pantry Mode' },
   { key: 'favorites', label: 'Favorites' },
 ];
+
+function byMostRecent(a: Recipe, b: Recipe): number {
+  return (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt);
+}
+
+function toFeaturedCard(recipe: Recipe) {
+  return {
+    id: recipe.id,
+    name: recipe.name,
+    badge: recipe.isFavorite ? 'Favorite' : recipe.type === 'batch_week' ? 'Batch Friendly' : 'Fresh',
+    cal: `${recipe.nutrition.caloriesPerServing} kcal/cup`,
+    time: `${recipe.instructions.reduce((sum, step) => sum + (step.durationMinutes ?? 5), 0)} min`,
+    photo: getRecipePhoto(recipe),
+  };
+}
 
 function matchesTab(recipe: Recipe, tab: RecipeTab): boolean {
   switch (tab) {
@@ -52,20 +65,18 @@ export default function RecipesPage() {
     [activeTab, recipes]
   );
 
-  const featuredRecipes = useMemo(() => {
-    const source = [...recipes]
-      .sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt))
-      .slice(0, 3);
+  // Sidebar "Popular This Week" stays global — it's a showcase, not part of
+  // the category view.
+  const popularRecipes = useMemo(
+    () => [...recipes].sort(byMostRecent).slice(0, 3).map(toFeaturedCard),
+    [recipes]
+  );
 
-    return source.map(recipe => ({
-      id: recipe.id,
-      name: recipe.name,
-      badge: recipe.isFavorite ? 'Favorite' : recipe.type === 'batch_week' ? 'Batch Friendly' : 'Fresh',
-      cal: `${recipe.nutrition.caloriesPerServing} kcal/cup`,
-      time: `${recipe.instructions.reduce((sum, step) => sum + (step.durationMinutes ?? 5), 0)} min`,
-      photo: getRecipePhoto(recipe),
-    }));
-  }, [recipes]);
+  // In-page "Featured Recipes" tracks the active category tab.
+  const featuredRecipes = useMemo(
+    () => [...filteredRecipes].sort(byMostRecent).slice(0, 3).map(toFeaturedCard),
+    [filteredRecipes]
+  );
 
   return (
     <AppShell
@@ -84,7 +95,7 @@ export default function RecipesPage() {
           <section className="doggo-card p-5">
             <h4 className="text-[1.25rem] font-semibold">Popular This Week</h4>
             <div className="mt-3 space-y-3 text-sm">
-              {featuredRecipes.length > 0 ? featuredRecipes.map((item, idx) => (
+              {popularRecipes.length > 0 ? popularRecipes.map((item, idx) => (
                 <button
                   key={item.id}
                   className="flex w-full items-center gap-3 rounded-xl border border-[#eadfce] bg-white p-3 text-left hover:bg-[#fff8ef]"
@@ -130,17 +141,6 @@ export default function RecipesPage() {
               {tab.label}
             </button>
           ))}
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-[#eadfce] bg-[#fff9f0] p-3">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#7b7065]">
-            <Filter size={15} /> Filters
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            {FILTERS.map(filter => (
-              <button key={filter} className="rounded-xl border border-[#eadfce] bg-white px-3 py-2 text-left text-sm text-[#6f6459]">{filter}</button>
-            ))}
-          </div>
         </div>
 
         <div className="mt-5 rounded-2xl border border-[#eadfce] bg-white p-4">
