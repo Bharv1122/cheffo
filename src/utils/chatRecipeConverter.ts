@@ -13,6 +13,7 @@ import type {
   ShoppingListItem,
 } from '../types/recipe';
 import { calcBatch, calcServing, gramsToCups, groceryLabel } from './calculator';
+import { generateRecipeImage } from './recipeImageGenerator';
 import { buildSafetyNotes } from './recipeGenerator';
 import { GENERAL_VET_DISCLAIMER, validateIngredients } from './safetyValidator';
 import { generateId } from './storage';
@@ -61,7 +62,7 @@ export function validateChatRecipe(parsed: ParsedChatRecipe, dog: DogProfile): s
   return validateIngredients(parsed.ingredients.map(ing => ing.name), dog).errors;
 }
 
-export function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProfile): Recipe {
+export async function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProfile): Promise<Recipe> {
   const serving = calcServing(dogProfile);
   const targetDailyGrams = serving.totalDailyGrams || REFERENCE_DAILY_GRAMS;
 
@@ -101,6 +102,7 @@ export function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProf
   }));
 
   const recipeType: RecipeType = parsed.type;
+  const recipeName = parsed.name.slice(0, 80);
   const nowIso = new Date().toISOString();
 
   // Parity with the template-recipe path: run the deterministic validator and
@@ -109,10 +111,16 @@ export function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProf
   const safety = validateIngredients(parsed.ingredients.map(ing => ing.name), dogProfile);
   const safetyNotes = buildSafetyNotes(recipeType, dogProfile, safety.warnings);
 
+  // Generate a recipe-specific photo, same as the template path. Null (image
+  // gen disabled or failed) leaves imageUrl unset so the card/detail/vet
+  // surfaces fall back to a stock photo. (CHE-84)
+  const imageUrl =
+    (await generateRecipeImage({ name: recipeName, type: recipeType, ingredients })) ?? undefined;
+
   return {
     id: generateId(),
     dogProfileId: dogProfile.id,
-    name: parsed.name.slice(0, 80),
+    name: recipeName,
     description: parsed.description || `${parsed.name} — saved from a Cheffo Doggo chat suggestion.`,
     type: recipeType,
     ingredients,
@@ -137,6 +145,7 @@ export function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProf
     vetDisclaimer: GENERAL_VET_DISCLAIMER,
     isFavorite: false,
     scaleFactor: 1,
+    imageUrl,
     createdAt: nowIso,
     updatedAt: nowIso,
   };

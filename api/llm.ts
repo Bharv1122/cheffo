@@ -88,13 +88,18 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('[llm] rate-limit check threw, allowing request:', rateError);
   }
 
-  // 3. Forward to the upstream provider.
+  // 3. Forward to the upstream provider. An `?type=image` request goes to the
+  // OpenAI-compatible /images/generations endpoint; everything else is a chat
+  // completion. Same host, same key — only the path differs.
   const body = await req.text();
   if (body.length > MAX_BODY_CHARS) return jsonError(413, 'Request body too large');
 
+  const isImageRequest = new URL(req.url).searchParams.get('type') === 'image';
+  const upstreamPath = isImageRequest ? '/images/generations' : '/chat/completions';
+
   let upstream: Response;
   try {
-    upstream = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
+    upstream = await fetch(`${baseUrl.replace(/\/+$/, '')}${upstreamPath}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

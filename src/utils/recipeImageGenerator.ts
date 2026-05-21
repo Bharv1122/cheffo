@@ -2,17 +2,23 @@ import type { Recipe, RecipeIngredient, RecipeType } from '../types/recipe';
 import { supabase } from '../lib/supabase';
 
 const IMAGE_CACHE_STORAGE_KEY = 'chef-doggo:recipe-image-cache:v1';
-const IMAGE_MODEL = 'flux2';
 
-// LLM calls go through the same-origin server proxy (api/llm.ts) — the key is
-// server-side only. Image generation uses the RouteLLM image format (model
-// "flux2", `modalities` + `image_config`); other backends (Gemini, OpenRouter,
-// OpenAI) reject those fields with a 400. The client can no longer see which
-// backend the proxy targets, so gate image calls on an explicit opt-in flag
-// instead of sniffing the base URL — leave it off unless the proxy's upstream
-// is image-capable.
-const LLM_PROXY_URL = '/api/llm';
-const IMAGE_GEN_ENABLED = import.meta.env.VITE_IMAGE_GEN_ENABLED === 'true';
+// Image generation goes through the same-origin server proxy (api/llm.ts) — the
+// provider key is server-side only. The `?type=image` query routes the proxy to
+// the OpenAI-compatible /images/generations endpoint; the body is the OpenAI
+// image-gen shape and the response carries base64 image bytes.
+const IMAGE_PROXY_URL = '/api/llm?type=image';
+const IMAGE_MODEL = 'gemini-2.5-flash-image';
+
+// Kill switch. Image generation is on by default now that the proxy upstream is
+// image-capable; set VITE_IMAGE_GEN_ENABLED=false to disable it (e.g. to cut
+// paid image costs). Disabled => recipes fall back to a stock photo.
+const IMAGE_GEN_ENABLED = import.meta.env.VITE_IMAGE_GEN_ENABLED !== 'false';
+
+// Generated images are re-encoded to JPEG at this width before being stored, so
+// the data URI stays small enough to persist inside the recipe record.
+const STORED_IMAGE_MAX_WIDTH = 768;
+const STORED_IMAGE_JPEG_QUALITY = 0.82;
 
 const memoryCache = new Map<string, string>();
 
@@ -92,25 +98,53 @@ function buildPrompt(recipeName: string, recipeType: RecipeType, ingredients: Re
   return `High-quality photo of ${recipeName} dog food in a ceramic dog bowl with ${ingredientPhrase}, realistic, appetizing, professional food photography, warm lighting`;
 }
 
-function extractImageUrl(responseJson: unknown): string | null {
-  const data = responseJson as {
-    choices?: Array<{
-      message?: {
-        images?: Array<{
-          image_url?: { url?: string };
-        }>;
-      };
-    }>;
-  };
+// The OpenAI-compat /images/generations response carries base64 image bytes at
+// data[].b64_json. Wrap the first one as a PNG data URI.
+function extractB64Image(responseJson: unknown): string | null {
+  const data = responseJson as { data?: Array<{ b64_json?: string }> };
+  const b64 = data.data?.[0]?.b64_json;
+  return b64 ? `data:image/png;base64,${b64}` : null;
+}
 
-  return data.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
+// Re-encode a generated PNG data URI to a smaller JPEG so it can be persisted
+// inside the recipe record without bloating storage. Falls back to the original
+// data URI if a canvas isn't available or the image can't be decoded.
+function downscaleToJpeg(dataUri: string): Promise<string> {
+  if (typeof document === 'undefined') return Promise.resolve(dataUri);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, STORED_IMAGE_MAX_WIDTH / (img.width || STORED_IMAGE_MAX_WIDTH));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx || canvas.width === 0 || canvas.height === 0) {
+        resolve(dataUri);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      try {
+        resolve(canvas.toDataURL('image/jpeg', STORED_IMAGE_JPEG_QUALITY));
+      } catch {
+        resolve(dataUri);
+      }
+    };
+    img.onerror = () => resolve(dataUri);
+    img.src = dataUri;
+  });
 }
 
 export function getRecipeImagePrompt(recipe: Pick<Recipe, 'name' | 'type' | 'ingredients'>): string {
   return buildPrompt(recipe.name, recipe.type, recipe.ingredients);
 }
 
-export async function generateRecipeImage(recipe: Pick<Recipe, 'name' | 'type' | 'ingredients'>): Promise<string> {
+// Generate a recipe-specific food photo. Returns a small JPEG data URI on
+// success, or null when image generation is disabled or fails — callers should
+// leave `imageUrl` unset on null so the recipe falls back to a stock photo.
+export async function generateRecipeImage(
+  recipe: Pick<Recipe, 'name' | 'type' | 'ingredients'>
+): Promise<string | null> {
   const prompt = getRecipeImagePrompt(recipe);
   const cacheKey = simpleHash(prompt);
 
@@ -124,9 +158,7 @@ export async function generateRecipeImage(recipe: Pick<Recipe, 'name' | 'type' |
     return fromStorage;
   }
 
-  if (!IMAGE_GEN_ENABLED) {
-    return DEFAULT_RECIPE_IMAGE_URL;
-  }
+  if (!IMAGE_GEN_ENABLED) return null;
 
   try {
     // The /api/llm proxy is auth-gated (CHE-14) — attach the user's token.
@@ -136,18 +168,14 @@ export async function generateRecipeImage(recipe: Pick<Recipe, 'name' | 'type' |
       const token = data.session?.access_token;
       if (token) headers.Authorization = `Bearer ${token}`;
     }
-    const response = await fetch(LLM_PROXY_URL, {
+    const response = await fetch(IMAGE_PROXY_URL, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         model: IMAGE_MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        modalities: ['image'],
-        image_config: {
-          num_images: 1,
-          aspect_ratio: 'landscape_4_3',
-          rewrite_prompt: true,
-        },
+        prompt,
+        response_format: 'b64_json',
+        n: 1,
       }),
     });
 
@@ -156,18 +184,17 @@ export async function generateRecipeImage(recipe: Pick<Recipe, 'name' | 'type' |
       throw new Error(`Image generation failed (${response.status}): ${errorText}`);
     }
 
-    const responseJson = await response.json();
-    const imageUrl = extractImageUrl(responseJson);
-
-    if (!imageUrl) {
-      throw new Error('Image generation response did not contain an image URL');
+    const rawImage = extractB64Image(await response.json());
+    if (!rawImage) {
+      throw new Error('Image generation response did not contain image data');
     }
 
-    memoryCache.set(cacheKey, imageUrl);
-    setStorageCache({ ...cached, [cacheKey]: imageUrl });
-    return imageUrl;
+    const storedImage = await downscaleToJpeg(rawImage);
+    memoryCache.set(cacheKey, storedImage);
+    setStorageCache({ ...cached, [cacheKey]: storedImage });
+    return storedImage;
   } catch (error) {
-    console.error('[RecipeImage] Falling back to default image', error);
-    return DEFAULT_RECIPE_IMAGE_URL;
+    console.error('[RecipeImage] image generation failed — using stock photo fallback', error);
+    return null;
   }
 }

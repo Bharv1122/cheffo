@@ -130,7 +130,7 @@ export default function AssistantPage() {
       }
 
       setSavingRecipeForId(message.id);
-      const recipe = recipeFromChatJson(parsed, activeProfile);
+      const recipe = await recipeFromChatJson(parsed, activeProfile);
       const saved = await saveRecipe(recipe);
       setMessages(prev =>
         prev.map(m => (m.id === message.id ? { ...m, parsedRecipe: parsed, savedRecipeId: saved.id } : m))

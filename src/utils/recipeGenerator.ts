@@ -284,7 +284,7 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     updatedAt: now,
   };
 
-  const imageUrl = await generateRecipeImage(baseRecipe);
+  const imageUrl = (await generateRecipeImage(baseRecipe)) ?? undefined;
   return {
     ...baseRecipe,
     imageUrl,
