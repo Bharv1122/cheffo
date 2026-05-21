@@ -248,7 +248,7 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
   const storage = buildStorage(recipeType);
 
   // 9. Safety notes
-  const safetyNotes = buildSafetyNotes(recipeType, template, dog, safety.warnings);
+  const safetyNotes = buildSafetyNotes(recipeType, dog, safety.warnings);
 
   // 10. Transition guide (full meals only)
   const transitionGuide = recipeType === 'full_meal' ? TRANSITION_GUIDE : undefined;
@@ -911,9 +911,10 @@ function buildStorage(recipeType: RecipeType) {
 }
 
 // ── Safety notes builder ───────────────────────────────────────────────────────
-function buildSafetyNotes(
+// Exported so the chat-recipe converter can produce the same safety-note set as
+// template-generated recipes (CHE-81).
+export function buildSafetyNotes(
   recipeType: RecipeType,
-  template: RecipeTemplate,
   dog: DogProfile,
   existingWarnings: string[]
 ): string[] {

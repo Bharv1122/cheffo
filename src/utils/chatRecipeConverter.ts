@@ -13,6 +13,7 @@ import type {
   ShoppingListItem,
 } from '../types/recipe';
 import { calcBatch, calcServing, gramsToCups, groceryLabel } from './calculator';
+import { buildSafetyNotes } from './recipeGenerator';
 import { GENERAL_VET_DISCLAIMER, validateIngredients } from './safetyValidator';
 import { generateId } from './storage';
 
@@ -102,6 +103,12 @@ export function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProf
   const recipeType: RecipeType = parsed.type;
   const nowIso = new Date().toISOString();
 
+  // Parity with the template-recipe path: run the deterministic validator and
+  // build the same safety-note set (validator warnings + standard notes), so a
+  // chat-saved recipe isn't left with an empty safetyNotes list. (CHE-81)
+  const safety = validateIngredients(parsed.ingredients.map(ing => ing.name), dogProfile);
+  const safetyNotes = buildSafetyNotes(recipeType, dogProfile, safety.warnings);
+
   return {
     id: generateId(),
     dogProfileId: dogProfile.id,
@@ -126,7 +133,7 @@ export function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: DogProf
       portioningNotes: 'Portion into airtight containers before refrigerating or freezing.',
     },
     shoppingList,
-    safetyNotes: [],
+    safetyNotes,
     vetDisclaimer: GENERAL_VET_DISCLAIMER,
     isFavorite: false,
     scaleFactor: 1,
