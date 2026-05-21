@@ -72,12 +72,6 @@ export default function RecipesPage() {
     [recipes]
   );
 
-  // In-page "Featured Recipes" tracks the active category tab.
-  const featuredRecipes = useMemo(
-    () => [...filteredRecipes].sort(byMostRecent).slice(0, 3).map(toFeaturedCard),
-    [filteredRecipes]
-  );
-
   return (
     <AppShell
       active="recipes"
@@ -143,46 +137,7 @@ export default function RecipesPage() {
           ))}
         </div>
 
-        <div className="mt-5 rounded-2xl border border-[#eadfce] bg-white p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[1.4rem] font-semibold">Featured Recipes</h2>
-            <button className="text-sm font-semibold text-[#f97316]" onClick={() => setActiveTab('all')}>View all recipes →</button>
-          </div>
-          {featuredRecipes.length > 0 ? (
-            <div className="grid gap-3 md:grid-cols-3">
-              {featuredRecipes.map(item => (
-                <button
-                  key={item.id}
-                  className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm"
-                  onClick={() => navigate(`/recipes/${item.id}`)}
-                >
-                  <div className="h-40 overflow-hidden rounded-xl border border-[#eadfce] bg-[#fff0de]">
-                    <img
-                      src={item.photo.src}
-                      alt={item.photo.alt}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="font-semibold leading-tight">{item.name}</p>
-                    <span className="rounded-full bg-[#fff3e4] px-2 py-0.5 text-xs font-semibold text-[#f97316]">{item.badge}</span>
-                  </div>
-                  <p className="mt-2 text-xs text-[#8b8378]">{item.cal} • {item.time}</p>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-[#f2c8a0] bg-[#fffaf4] p-5 text-center">
-              <p className="text-sm text-[#7f7469]">No featured recipes yet. Create one to get started.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="mt-4 doggo-card p-5">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mt-4 mb-3 flex items-center justify-between">
           <h2 className="text-[1.4rem] font-semibold">{activeTab === 'favorites' ? 'Favorite Recipes' : 'Your Recipes'} ({filteredRecipes.length})</h2>
           <Button size="sm" icon={<Plus size={15} />} onClick={() => navigate('/wizard')}>Start New Recipe</Button>
         </div>
