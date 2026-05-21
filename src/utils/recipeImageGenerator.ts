@@ -1,4 +1,5 @@
 import type { Recipe, RecipeIngredient, RecipeType } from '../types/recipe';
+import { supabase } from '../lib/supabase';
 
 const IMAGE_CACHE_STORAGE_KEY = 'chef-doggo:recipe-image-cache:v1';
 const IMAGE_MODEL = 'flux2';
@@ -128,11 +129,16 @@ export async function generateRecipeImage(recipe: Pick<Recipe, 'name' | 'type' |
   }
 
   try {
+    // The /api/llm proxy is auth-gated (CHE-14) — attach the user's token.
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (supabase) {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) headers.Authorization = `Bearer ${token}`;
+    }
     const response = await fetch(LLM_PROXY_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         model: IMAGE_MODEL,
         messages: [{ role: 'user', content: prompt }],

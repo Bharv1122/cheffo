@@ -1,11 +1,25 @@
 import type { DogProfile } from '../types/dog';
 import type { ChatMessage, ParsedChatRecipe } from '../types/assistant';
 import { getFallbackAssistantResponse } from '../data/assistantResponses';
+import { supabase } from '../lib/supabase';
 
 // The LLM key lives only in the server-side proxy (api/llm.ts). The client
-// posts to the same-origin /api/llm endpoint — no key, no Authorization header.
+// posts to the same-origin /api/llm endpoint — no provider key. The proxy is
+// auth-gated (CHE-14), so we attach the signed-in user's Supabase access token.
 const LLM_PROXY_URL = '/api/llm';
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-flash-lite-latest';
+
+// Build the request headers for an /api/llm call, including the Supabase
+// access token so the auth-gated proxy accepts the request.
+async function buildLlmHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
 // Trim long histories to control token usage. Keep the most recent N turns.
 const MAX_HISTORY_MESSAGES = 16;
 
@@ -409,9 +423,7 @@ async function streamLlm(
 ): Promise<string> {
   const response = await fetch(LLM_PROXY_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: await buildLlmHeaders(),
     body: JSON.stringify({
       model: MODEL,
       messages: apiMessages,
@@ -537,9 +549,7 @@ export async function extractRecipeFromText(recipeText: string): Promise<ParsedC
   try {
     const response = await fetch(LLM_PROXY_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: await buildLlmHeaders(),
       body: JSON.stringify({
         model: MODEL,
         messages: [
@@ -547,11 +557,11 @@ export async function extractRecipeFromText(recipeText: string): Promise<ParsedC
           { role: 'user', content: trimmedInput },
         ],
         temperature: 0,
-        // gemini-2.5-flash spends 400-800 invisible reasoning tokens that
-        // count against max_tokens; with reasoning on, the 800-token cap was
-        // routinely exhausted before any JSON was emitted (finish_reason
-        // "length" -> truncated/empty output -> heuristic fallback). Extraction
-        // is a mechanical transform that needs no reasoning, so disable it and
+        // Gemini Flash models spend invisible reasoning tokens that count
+        // against max_tokens; with reasoning on, the cap was routinely
+        // exhausted before any JSON was emitted (finish_reason "length" ->
+        // truncated/empty output -> heuristic fallback). Extraction is a
+        // mechanical transform that needs no reasoning, so disable it and
         // leave generous headroom for the JSON. (CHE-10)
         reasoning_effort: 'none',
         max_tokens: 2000,

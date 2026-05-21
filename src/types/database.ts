@@ -221,7 +221,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      check_and_increment_llm_usage: {
+        Args: { p_user_id: string; p_daily_limit: number };
+        Returns: { allowed: boolean; current_count: number }[];
+      };
     };
     Enums: {
       [_ in never]: never;
