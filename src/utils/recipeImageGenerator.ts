@@ -75,27 +75,32 @@ function simpleHash(value: string): string {
   return Math.abs(hash).toString(36);
 }
 
-function toIngredientPhrase(ingredients: RecipeIngredient[]): string {
-  const names = ingredients
-    .map(ingredient => ingredient.name.trim().toLowerCase())
-    .filter(Boolean)
-    .slice(0, 5);
-
-  if (names.length === 0) return 'dog-safe whole food ingredients';
+function joinNames(names: string[]): string {
+  if (names.length === 0) return '';
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
-
   return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 }
 
-function buildPrompt(recipeName: string, recipeType: RecipeType, ingredients: RecipeIngredient[]): string {
-  const ingredientPhrase = toIngredientPhrase(ingredients);
+// Build a tightly-constrained image prompt. AI image models drift toward
+// glamorous human food — garnishes, herb sprigs, plating — when asked for
+// "appetizing professional food photography", and they freely swap the
+// protein. So the prompt leads with the recipe's actual protein and
+// explicitly rules out human-meal styling. (CHE-84)
+function buildPrompt(recipeType: RecipeType, ingredients: RecipeIngredient[]): string {
+  const names = ingredients.map(i => i.name.trim().toLowerCase()).filter(Boolean);
+  const protein = ingredients.find(i => i.category === 'protein');
+  const proteinName = protein?.name.trim().toLowerCase() ?? null;
 
   if (recipeType === 'treat') {
-    return `High-quality photo of homemade ${recipeName} dog treats with ${ingredientPhrase}, bite-sized, golden brown, on a clean white plate, realistic, appetizing, professional food photography, warm lighting`;
+    const phrase = joinNames(names.slice(0, 5)) || 'dog-safe whole-food ingredients';
+    return `A realistic, plain overhead photo of homemade dog treats made with ${phrase}. Small, simple, home-baked treats on a plain plate. Plain home baking — no icing, no decoration, no garnish, no sprinkles. This is pet food, not a human dessert. Natural, even lighting.`;
   }
 
-  return `High-quality photo of ${recipeName} dog food in a ceramic dog bowl with ${ingredientPhrase}, realistic, appetizing, professional food photography, warm lighting`;
+  const others = names.filter(name => name !== proteinName).slice(0, 4);
+  const proteinPart = proteinName ? `plain cooked ${proteinName}` : 'plain cooked meat';
+  const mixPart = others.length ? ` mixed with ${joinNames(others)}` : '';
+  return `A realistic, plain overhead photo of homemade dog food in a plain stainless steel pet bowl on a kitchen counter. The food is ${proteinPart}${mixPart}, all chopped small and stirred together. It looks like simple, unseasoned, home-cooked pet food — not a fancy meal. No garnish, no fresh herb sprigs, no basil, no bread, no breadsticks, no cheese, no sauce drizzle. This is dog food, not a human restaurant dish. Natural, even lighting.`;
 }
 
 // The OpenAI-compat /images/generations response carries base64 image bytes at
@@ -135,8 +140,8 @@ function downscaleToJpeg(dataUri: string): Promise<string> {
   });
 }
 
-export function getRecipeImagePrompt(recipe: Pick<Recipe, 'name' | 'type' | 'ingredients'>): string {
-  return buildPrompt(recipe.name, recipe.type, recipe.ingredients);
+export function getRecipeImagePrompt(recipe: Pick<Recipe, 'type' | 'ingredients'>): string {
+  return buildPrompt(recipe.type, recipe.ingredients);
 }
 
 // Generate a recipe-specific food photo. Returns a small JPEG data URI on
