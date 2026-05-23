@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, Mail, Send, ShieldAlert, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CheckCircle2, FileText, Mail, Send, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import {
@@ -209,6 +210,18 @@ export function VetApprovalSection({ recipeId }: Props) {
           </div>
         </div>
       )}
+
+      {/* Fallback path for vets who prefer paper / their own email client.
+          Moved here from the recipe header. (CHE-124) */}
+      <div className="mt-4 border-t border-[#eadfce] pt-3 text-xs text-[#7f7469]">
+        <Link
+          to={`/vet-export/${recipeId}`}
+          className="inline-flex items-center gap-1.5 text-[#f97316] hover:underline"
+        >
+          <FileText size={13} />
+          Print a vet-review PDF instead →
+        </Link>
+      </div>
     </section>
   );
 }

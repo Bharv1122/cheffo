@@ -9,6 +9,7 @@ import { SupplementChecklist } from '../../components/supplements/SupplementChec
 import { VetApprovalSection } from '../../components/recipe/VetApprovalSection';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
+import { useApprovals } from '../../hooks/useApprovals';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
 import { getIngredientById } from '../../data/ingredients';
 import {
@@ -184,6 +185,7 @@ export default function RecipeDetailPage() {
   const { getRecipe, toggleFavorite, updateRecipe } = useRecipes();
   const { getProfile } = useDogProfiles();
   const { unitPreference, setUnitPreference } = useUnitPreference();
+  const { primaryApprovalForRecipe } = useApprovals();
 
   const recipe = id ? getRecipe(id) : undefined;
   const dogProfile = recipe ? getProfile(recipe.dogProfileId) : undefined;
@@ -455,6 +457,24 @@ export default function RecipeDetailPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-[2.4rem] leading-tight font-semibold text-[#2b2118]">{recipe.name}</h1>
+                {/* Prominent vet-approval badge — appears when the recipe has
+                    an approved / approved_with_notes approval. (CHE-124) */}
+                {(() => {
+                  const approval = primaryApprovalForRecipe(recipe.id);
+                  if (!approval) return null;
+                  const vetLabel = approval.vetName
+                    ? `Dr. ${approval.vetName} DVM`
+                    : approval.vetEmail;
+                  return (
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#bfe7cb] bg-[#e9f7ee] px-3 py-1 text-sm font-semibold text-[#235d38]">
+                      <ShieldCheck size={16} />
+                      <span>Approved by {vetLabel}</span>
+                      {approval.status === 'approved_with_notes' && (
+                        <span className="text-xs font-normal opacity-80">· with notes</span>
+                      )}
+                    </div>
+                  );
+                })()}
                 <p className="mt-2 text-[1.05rem] leading-relaxed text-[#7d7268]">{recipe.description}</p>
               </div>
               <button

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calculator,
@@ -15,8 +15,12 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useRecipes } from '../../hooks/useRecipes';
+import { useApprovals } from '../../hooks/useApprovals';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRecipePhoto } from '../../utils/recipeInsights';
+import { storageGet, storageSet } from '../../utils/storage';
+
+const APPROVALS_LAST_SEEN_KEY = 'approvals-last-seen';
 
 const QUICK_ACTIONS = [
   { label: 'Full Meals', desc: 'Create complete balanced homemade recipes', icon: <ChefHat size={18} />, to: '/bowl-builder', color: 'bg-[#fff0de] text-[#f97316]' },
@@ -36,6 +40,20 @@ export default function HomePage() {
   const userName = user?.email?.split('@')[0] ?? 'there';
   // Gate "first recipe" copy on whether they have any. (CHE-117)
   const hasRecipes = recipes.length > 0;
+
+  // In-app banner for approvals received since the user's last visit. The
+  // "last seen" timestamp lives in localStorage so dismissing it persists
+  // across navigations without a round-trip. (CHE-124)
+  const { approvalsSince } = useApprovals();
+  const [lastSeenIso, setLastSeenIso] = useState<string | null>(
+    () => storageGet<string | null>(APPROVALS_LAST_SEEN_KEY) ?? null
+  );
+  const newApprovals = approvalsSince(lastSeenIso);
+  const dismissApprovalsBanner = useCallback(() => {
+    const now = new Date().toISOString();
+    storageSet(APPROVALS_LAST_SEEN_KEY, now);
+    setLastSeenIso(now);
+  }, []);
 
   const recentRecipes = recipes.slice(-3).reverse().map(recipe => ({
     id: recipe.id,
@@ -83,6 +101,53 @@ export default function HomePage() {
         </>
       }
     >
+      {newApprovals.length > 0 && (
+        <section className="rounded-2xl border border-[#bfe7cb] bg-[#e9f7ee] p-4 text-[#235d38] mb-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2 min-w-0">
+              <ShieldCheck size={20} className="mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-semibold">
+                  {newApprovals.length === 1
+                    ? `${newApprovals[0].vetName ? `Dr. ${newApprovals[0].vetName} DVM` : 'Your vet'} approved a recipe`
+                    : `${newApprovals.length} new vet approvals`}
+                </p>
+                <ul className="mt-1 space-y-1 text-sm">
+                  {newApprovals.slice(0, 4).map((approval) => {
+                    const matchedRecipe = recipes.find((r) => r.id === approval.recipeId);
+                    return (
+                      <li key={approval.id}>
+                        <button
+                          type="button"
+                          className="text-left underline-offset-2 hover:underline"
+                          onClick={() => {
+                            dismissApprovalsBanner();
+                            navigate(`/recipes/${approval.recipeId}`);
+                          }}
+                        >
+                          {matchedRecipe?.name ?? 'Recipe'}{' '}
+                          {approval.status === 'approved_with_notes' && (
+                            <span className="opacity-75">(with notes)</span>
+                          )}{' '}
+                          → open
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="text-xs underline opacity-80 hover:opacity-100"
+              onClick={dismissApprovalsBanner}
+            >
+              Dismiss
+            </button>
+          </div>
+        </section>
+      )}
+
       <section className="doggo-soft-card overflow-hidden p-7">
         <div className="grid items-center gap-6 lg:grid-cols-[1fr_320px]">
           <div>

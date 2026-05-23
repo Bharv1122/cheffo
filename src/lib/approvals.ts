@@ -14,6 +14,7 @@ export interface VetSupplementDose {
 
 export interface ApprovalSummary {
   id: string;
+  recipeId: string;
   status: ApprovalStatus;
   vetEmail: string;
   vetName: string | null;
@@ -41,6 +42,7 @@ function parseSupplementDoses(value: unknown): VetSupplementDose[] | null {
 function toApprovalSummary(row: ApprovalRow): ApprovalSummary {
   return {
     id: row.id,
+    recipeId: row.recipe_id,
     status: row.status,
     vetEmail: row.vet_email,
     vetName: row.vet_name,
@@ -60,6 +62,19 @@ export async function listApprovalsForRecipe(recipeId: string): Promise<Approval
     .select('*')
     .eq('recipe_id', recipeId)
     .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toApprovalSummary);
+}
+
+// Fetch every approval belonging to the current user. RLS scopes the result
+// to the signed-in user's rows. Used by useApprovals() so the Recipes tab,
+// Recipe Detail badge, and Home banner share a single fetch. (CHE-124)
+export async function listAllUserApprovals(): Promise<ApprovalSummary[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from('approvals')
+    .select('*')
+    .order('submitted_at', { ascending: false, nullsFirst: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(toApprovalSummary);
 }

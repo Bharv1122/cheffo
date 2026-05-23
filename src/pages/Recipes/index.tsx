@@ -4,12 +4,13 @@ import { Heart, Plus, Trash2 } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { useRecipes } from '../../hooks/useRecipes';
+import { useApprovals } from '../../hooks/useApprovals';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
 import { formatIngredientByPreference } from '../../utils/calculator';
 import { getRecipePhoto } from '../../utils/recipeInsights';
 import type { Recipe } from '../../types/recipe';
 
-type RecipeTab = 'all' | 'full_meal' | 'topper' | 'treat' | 'pantry' | 'favorites';
+type RecipeTab = 'all' | 'full_meal' | 'topper' | 'treat' | 'pantry' | 'favorites' | 'vet_approved';
 
 const TABS: Array<{ key: RecipeTab; label: string }> = [
   { key: 'all', label: 'All Recipes' },
@@ -18,6 +19,7 @@ const TABS: Array<{ key: RecipeTab; label: string }> = [
   { key: 'treat', label: 'Treats' },
   { key: 'pantry', label: 'Pantry Mode' },
   { key: 'favorites', label: 'Favorites' },
+  { key: 'vet_approved', label: 'Vet Approved' },
 ];
 
 function byMostRecent(a: Recipe, b: Recipe): number {
@@ -57,12 +59,15 @@ function matchesTab(recipe: Recipe, tab: RecipeTab): boolean {
 export default function RecipesPage() {
   const navigate = useNavigate();
   const { recipes, toggleFavorite, deleteRecipe } = useRecipes();
+  const { isApproved } = useApprovals();
   const { unitPreference } = useUnitPreference();
   const [activeTab, setActiveTab] = useState<RecipeTab>('all');
 
   const filteredRecipes = useMemo(
-    () => recipes.filter(recipe => matchesTab(recipe, activeTab)),
-    [activeTab, recipes]
+    () => recipes.filter(recipe =>
+      activeTab === 'vet_approved' ? isApproved(recipe.id) : matchesTab(recipe, activeTab)
+    ),
+    [activeTab, recipes, isApproved]
   );
 
   // Sidebar "Popular This Week" stays global — it's a showcase, not part of
