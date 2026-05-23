@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, Heart, Play, ShoppingBag, Timer, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
+import { ChevronDown, Heart, ShoppingBag, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -495,11 +495,6 @@ export default function RecipeDetailPage() {
               <div className="rounded-2xl bg-[#edf4ff] p-3 text-sm"><p className="font-semibold">Batch Yield</p><p className="text-[#7f7469]">{batchLabel}</p></div>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button icon={<Play size={15} />} onClick={() => navigate(`/cook/${recipe.id}`)}>Start Cooking</Button>
-              <Button variant="secondary" icon={<Timer size={15} />}>Start Voice Cooking</Button>
-              <Button variant="secondary" icon={<ShoppingBag size={15} />}>View Full List</Button>
-            </div>
           </div>
         </div>
       </section>
@@ -623,6 +618,14 @@ export default function RecipeDetailPage() {
                 </span>
                 <ChevronDown size={14} className="opacity-70" aria-hidden="true" />
                 <span className="sr-only"> — change</span>
+              </button>
+              <button
+                type="button"
+                title="View the full grocery shopping list for this recipe"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#f97316] bg-white px-3 py-1.5 text-xs font-semibold text-[#a16b38] shadow-sm transition-colors hover:bg-[#fff1df] focus:outline-none focus:ring-2 focus:ring-[#f97316]/40 sm:text-sm"
+              >
+                <ShoppingBag size={14} />
+                <span>View full list</span>
               </button>
             </div>
           </div>

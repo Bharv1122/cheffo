@@ -5,7 +5,6 @@ import {
   CalendarDays,
   ChefHat,
   MessageCircle,
-  Mic,
   Package,
   ShieldCheck,
   Sparkles,
@@ -157,7 +156,7 @@ export default function HomePage() {
               <div className="rounded-2xl bg-white/75 p-3">
                 <UtensilsCrossed className="text-[#f97316]" size={18} />
                 <p className="mt-1 text-sm font-semibold">Made for real life</p>
-                <p className="text-xs text-[#867c71]">Budget, pantry, voice & weekly plans</p>
+                <p className="text-xs text-[#867c71]">Budget, pantry & weekly plans</p>
               </div>
             </div>
           </div>
@@ -188,20 +187,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="mt-3 rounded-2xl border border-[#eadfce] bg-[#fff9f0] p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#ffe6cf] text-[#f97316]">
-                <Mic size={18} />
-              </span>
-              <div>
-                <p className="font-semibold">Voice Cooking</p>
-                <p className="text-sm text-[#8b8378]">Hands-free, step-by-step cooking mode</p>
-              </div>
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => navigate('/recipes')}>Start Voice Cooking</Button>
-          </div>
-        </div>
       </section>
 
       <section className="mt-5 grid gap-4 lg:grid-cols-2">
