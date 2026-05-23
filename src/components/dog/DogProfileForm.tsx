@@ -165,6 +165,7 @@ export function DogProfileForm({ initial, onSave, onCancel, loading }: Props) {
             onChange={e => setAllergyInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag('allergies', allergyInput, () => setAllergyInput('')); }}}
             placeholder="Type and press Enter (e.g. chicken)"
+            aria-label="Add an allergy"
             className="flex-1 rounded-xl border border-[#E7E5E4] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]"
           />
           <Button type="button" variant="secondary" size="sm" onClick={() => addTag('allergies', allergyInput, () => setAllergyInput(''))}>Add</Button>
@@ -174,7 +175,7 @@ export function DogProfileForm({ initial, onSave, onCancel, loading }: Props) {
             {form.allergies.map(a => (
               <span key={a} className="inline-flex items-center gap-1 bg-red-100 text-red-700 rounded-full px-3 py-1 text-sm">
                 {a}
-                <button type="button" onClick={() => removeTag('allergies', a)} className="hover:text-red-900 ml-1">×</button>
+                <button type="button" onClick={() => removeTag('allergies', a)} aria-label={`Remove allergy ${a}`} className="hover:text-red-900 ml-1">×</button>
               </span>
             ))}
           </div>
@@ -191,6 +192,7 @@ export function DogProfileForm({ initial, onSave, onCancel, loading }: Props) {
             onChange={e => setMedicationInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag('medications', medicationInput, () => setMedicationInput('')); }}}
             placeholder="Type and press Enter (e.g. Rimadyl)"
+            aria-label="Add a medication"
             className="flex-1 rounded-xl border border-[#E7E5E4] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]"
           />
           <Button type="button" variant="secondary" size="sm" onClick={() => addTag('medications', medicationInput, () => setMedicationInput(''))}>Add</Button>
@@ -200,7 +202,7 @@ export function DogProfileForm({ initial, onSave, onCancel, loading }: Props) {
             {form.medications.map(m => (
               <span key={m} className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm">
                 {m}
-                <button type="button" onClick={() => removeTag('medications', m)} className="hover:text-blue-900 ml-1">×</button>
+                <button type="button" onClick={() => removeTag('medications', m)} aria-label={`Remove medication ${m}`} className="hover:text-blue-900 ml-1">×</button>
               </span>
             ))}
           </div>
@@ -217,6 +219,7 @@ export function DogProfileForm({ initial, onSave, onCancel, loading }: Props) {
             onChange={e => setAvoidInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag('avoidFoods', avoidInput, () => setAvoidInput('')); }}}
             placeholder="Type and press Enter (e.g. beef)"
+            aria-label="Add a food to avoid"
             className="flex-1 rounded-xl border border-[#E7E5E4] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]"
           />
           <Button type="button" variant="secondary" size="sm" onClick={() => addTag('avoidFoods', avoidInput, () => setAvoidInput(''))}>Add</Button>
@@ -226,7 +229,7 @@ export function DogProfileForm({ initial, onSave, onCancel, loading }: Props) {
             {form.avoidFoods.map(a => (
               <span key={a} className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 rounded-full px-3 py-1 text-sm">
                 {a}
-                <button type="button" onClick={() => removeTag('avoidFoods', a)} className="hover:text-amber-900 ml-1">×</button>
+                <button type="button" onClick={() => removeTag('avoidFoods', a)} aria-label={`Remove avoid-food ${a}`} className="hover:text-amber-900 ml-1">×</button>
               </span>
             ))}
           </div>

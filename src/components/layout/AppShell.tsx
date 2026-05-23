@@ -73,8 +73,12 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
             <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/bowl-builder')} className="max-md:hidden">
               Start New Bowl
             </Button>
-            <button className="hidden h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-white text-[#7f7469] md:grid">
-              <Bell size={18} />
+            <button
+              type="button"
+              aria-label="Notifications"
+              className="hidden h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-white text-[#7f7469] md:grid"
+            >
+              <Bell size={18} aria-hidden="true" />
             </button>
             <div className="flex items-center gap-2 rounded-full border border-[#eadfce] bg-white px-2 py-1.5">
               <img src="/cheffo-doggo-logo.png" alt="User" className="h-9 w-9 rounded-full object-cover" />
