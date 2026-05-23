@@ -55,7 +55,7 @@ export function SupplementChecklist({ supplements, suggestions, dogName }: Props
                 {s.estimatedAmount && (
                   <p className="text-xs text-[#78716C] mt-1 italic">{s.estimatedAmount}</p>
                 )}
-                {suggestion?.suggestion && (
+                {suggestion?.suggestion && (suggestion.byFormula || checked.has(s.name)) && (
                   <p className="text-xs text-[#2f7d4a] mt-1">
                     <span className="font-semibold">Suggested for {dogName ?? 'your dog'}: </span>
                     {suggestion.suggestion}
