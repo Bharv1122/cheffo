@@ -106,7 +106,7 @@ function DogProfileBlock({
               </button>
               <button
                 className="rounded-xl border border-[#eadfce] px-2 py-2 text-sm text-[#6f6459] hover:bg-[#fff8ef]"
-                onClick={() => navigate('/wizard')}
+                onClick={() => navigate('/bowl-builder')}
               >
                 Create Recipe
               </button>

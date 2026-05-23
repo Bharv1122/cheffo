@@ -8,7 +8,6 @@ const Signup = lazy(() => import('./pages/Auth/Signup'));
 const ResetPassword = lazy(() => import('./pages/Auth/ResetPassword'));
 
 const Home = lazy(() => import('./pages/Home'));
-const Wizard = lazy(() => import('./pages/Wizard'));
 const DogProfiles = lazy(() => import('./pages/DogProfiles'));
 const NewProfile = lazy(() => import('./pages/DogProfiles/NewProfile'));
 const EditProfile = lazy(() => import('./pages/DogProfiles/EditProfile'));
@@ -60,14 +59,6 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <Home />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/wizard"
-            element={
-              <ProtectedRoute>
-                <Wizard />
               </ProtectedRoute>
             }
           />

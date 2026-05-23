@@ -70,7 +70,7 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
           </Link>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/wizard')} className="max-md:hidden">
+            <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/bowl-builder')} className="max-md:hidden">
               Start New Bowl
             </Button>
             <button className="hidden h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-white text-[#7f7469] md:grid">
@@ -140,7 +140,7 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
               ))}
             </div>
 
-            <Button className="mt-4 w-full" size="sm" icon={<Plus size={16} />} onClick={() => handleMobileNavigate('/wizard')}>
+            <Button className="mt-4 w-full" size="sm" icon={<Plus size={16} />} onClick={() => handleMobileNavigate('/bowl-builder')}>
               Start New Bowl
             </Button>
             {isSupabaseEnabled && (

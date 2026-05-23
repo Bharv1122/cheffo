@@ -212,7 +212,7 @@ export default function RecipeDetailPage() {
           <p className="mt-2 text-[#7f7469]">This recipe may have been deleted or is no longer available.</p>
           <div className="mt-4 flex justify-center gap-2">
             <Button variant="secondary" onClick={() => navigate('/recipes')}>Back to Recipes</Button>
-            <Button onClick={() => navigate('/wizard')}>Create New Recipe</Button>
+            <Button onClick={() => navigate('/bowl-builder')}>Create New Recipe</Button>
           </div>
         </section>
       </AppShell>

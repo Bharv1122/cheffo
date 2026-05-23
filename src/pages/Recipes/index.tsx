@@ -144,7 +144,7 @@ export default function RecipesPage() {
 
         <div className="mt-4 mb-3 flex items-center justify-between">
           <h2 className="text-[1.4rem] font-semibold">{activeTab === 'favorites' ? 'Favorite Recipes' : 'Your Recipes'} ({filteredRecipes.length})</h2>
-          <Button size="sm" icon={<Plus size={15} />} onClick={() => navigate('/wizard')}>Start New Recipe</Button>
+          <Button size="sm" icon={<Plus size={15} />} onClick={() => navigate('/bowl-builder')}>Start New Recipe</Button>
         </div>
 
         {filteredRecipes.length === 0 ? (
@@ -155,7 +155,7 @@ export default function RecipesPage() {
                 ? 'Favorite a recipe from its card or detail page to see it here.'
                 : 'Create your first recipe and it will appear here.'}
             </p>
-            <Button size="sm" className="mt-3" onClick={() => navigate('/wizard')}>Create Recipe</Button>
+            <Button size="sm" className="mt-3" onClick={() => navigate('/bowl-builder')}>Create Recipe</Button>
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

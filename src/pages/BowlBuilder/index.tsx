@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChefHat } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
@@ -16,7 +16,7 @@ import type { RecipeType } from '../../types/recipe';
 export default function BowlBuilderPage() {
   const navigate = useNavigate();
   const { saveRecipe } = useRecipes();
-  const { activeProfile, profiles } = useDogProfiles();
+  const { activeProfile, profiles, loading: profilesLoading } = useDogProfiles();
 
   const [recipeType, setRecipeType] = useState<RecipeType>('full_meal');
   const [dogId, setDogId] = useState(activeProfile?.id ?? '');
@@ -24,6 +24,14 @@ export default function BowlBuilderPage() {
   const [error, setError] = useState('');
 
   const dog = profiles.find(p => p.id === dogId) ?? activeProfile;
+
+  // First-run onboarding: if the user has no dog profiles yet, bounce them to
+  // profile creation. Replaces the wizard's first-step handholding. (CHE-125)
+  useEffect(() => {
+    if (!profilesLoading && profiles.length === 0) {
+      navigate('/profiles/new', { replace: true });
+    }
+  }, [profilesLoading, profiles.length, navigate]);
 
   async function handleGenerate() {
     if (!dog) { setError('Please add a dog profile first.'); return; }
