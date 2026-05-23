@@ -66,23 +66,23 @@ export function calcServing(dog: DogProfile, kcalPerGram = 1.1): ServingInfo {
 }
 
 // ── Batch info ────────────────────────────────────────────────────────────────
-export function calcBatch(serving: ServingInfo, duration: BatchDuration): BatchInfo {
-  const days = duration === '1day' ? 1 : duration === '3day' ? 3 : 7;
+// Accepts either the BatchDuration enum (legacy callers) or an arbitrary day
+// count (Recipe Detail's custom batch input). Generalizes the previous
+// 7-day-only fridge/freezer split. (CHE-batch-custom)
+export function calcBatch(serving: ServingInfo, durationOrDays: BatchDuration | number): BatchInfo {
+  const days = typeof durationOrDays === 'number'
+    ? Math.max(1, Math.min(60, Math.round(durationOrDays)))
+    : durationOrDays === '1day' ? 1 : durationOrDays === '3day' ? 3 : 7;
+
   const totalYieldGrams = serving.totalDailyGrams * days;
   const totalMeals = serving.mealsPerDay * days;
   const numberOfContainers = days;
 
-  let fridgeMeals: number;
-  let freezerMeals: number;
-
-  if (days <= 3) {
-    fridgeMeals = totalMeals;
-    freezerMeals = 0;
-  } else {
-    // 7-day batch: keep 3 days fridge, freeze 4 days
-    fridgeMeals = serving.mealsPerDay * 3;
-    freezerMeals = serving.mealsPerDay * 4;
-  }
+  // Keep up to 3 days in the fridge; freeze the rest.
+  const fridgeDays = Math.min(3, days);
+  const freezerDays = Math.max(0, days - 3);
+  const fridgeMeals = serving.mealsPerDay * fridgeDays;
+  const freezerMeals = serving.mealsPerDay * freezerDays;
 
   return {
     totalYieldGrams,
@@ -90,7 +90,7 @@ export function calcBatch(serving: ServingInfo, duration: BatchDuration): BatchI
     numberOfContainers,
     fridgeMeals,
     freezerMeals,
-    usedFor: duration,
+    usedFor: `${days}day`,
   };
 }
 

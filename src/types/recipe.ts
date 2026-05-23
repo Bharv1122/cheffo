@@ -44,7 +44,10 @@ export interface BatchInfo {
   numberOfContainers: number;
   fridgeMeals: number;
   freezerMeals: number;
-  usedFor: BatchDuration;
+  // String form like "1day" / "3day" / "7day" / "5day" — widened from
+  // BatchDuration to allow arbitrary day counts from the custom batch input
+  // on Recipe Detail. Standard values still round-trip cleanly. (CHE-batch)
+  usedFor: string;
 }
 
 export interface StorageInfo {

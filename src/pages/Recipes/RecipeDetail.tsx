@@ -22,13 +22,13 @@ import {
 } from '../../utils/calculator';
 import { checkSingleIngredient } from '../../utils/safetyValidator';
 import { getRecipePhoto } from '../../utils/recipeInsights';
-import type { BatchDuration, Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
+import type { Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
 
-const BATCH_DURATION_OPTIONS: Array<{ value: BatchDuration; label: string; days: number }> = [
-  { value: '1day', label: '1 day', days: 1 },
-  { value: '3day', label: '3 days', days: 3 },
-  { value: '7day', label: '7 days', days: 7 },
-];
+// Quick-select chips for the batch modal. The numeric input below lets the
+// vet/user pick any other day count from 1–60. (CHE-batch-custom)
+const BATCH_QUICK_DAYS: number[] = [1, 3, 5, 7, 14];
+const BATCH_MIN_DAYS = 1;
+const BATCH_MAX_DAYS = 60;
 
 // AAFCO adult maintenance minimums on a calorie basis (calories from macro / total).
 // Puppies (and pregnant/lactating) need higher protein + fat; we surface a note
@@ -187,7 +187,11 @@ export default function RecipeDetailPage() {
   const recipe = id ? getRecipe(id) : undefined;
   const dogProfile = recipe ? getProfile(recipe.dogProfileId) : undefined;
   const [isBatchOpen, setIsBatchOpen] = useState(false);
-  const [batchDuration, setBatchDuration] = useState<BatchDuration>('1day');
+  // Batch size as an arbitrary day count. Quick-select chips set common
+  // values (1/3/5/7/14); the numeric input below lets users pick anything in
+  // [BATCH_MIN_DAYS, BATCH_MAX_DAYS]. Display-only — saved recipe data isn't
+  // mutated. (CHE-batch-custom)
+  const [batchDays, setBatchDays] = useState<number>(1);
   const [swapError, setSwapError] = useState<string | null>(null);
   const [swapSuccess, setSwapSuccess] = useState<string | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
@@ -279,10 +283,9 @@ export default function RecipeDetailPage() {
   // scales ingredient quantities + shopping list amounts on the fly without
   // mutating the saved recipe (the underlying recipe.ingredients are
   // untouched; we derive scaled copies for display).
-  const selectedBatch = calcBatch(recipe.serving, batchDuration);
+  const selectedBatch = calcBatch(recipe.serving, batchDays);
   const selectedBatchCups = Math.round((selectedBatch.totalYieldGrams / 240) * 10) / 10;
-  const selectedBatchDays =
-    BATCH_DURATION_OPTIONS.find(option => option.value === batchDuration)?.days ?? 1;
+  const selectedBatchDays = batchDays;
   const scaleFactor = recipe.batch.totalYieldGrams > 0
     ? selectedBatch.totalYieldGrams / recipe.batch.totalYieldGrams
     : 1;
@@ -654,28 +657,48 @@ export default function RecipeDetailPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8b8378]">Batch size</p>
           <div
             role="radiogroup"
-            aria-label="Batch duration"
+            aria-label="Batch size — quick select"
             className="mt-2 inline-flex rounded-xl border border-[#eadfce] bg-[#fffaf2] p-1"
           >
-            {BATCH_DURATION_OPTIONS.map(option => {
-              const active = batchDuration === option.value;
+            {BATCH_QUICK_DAYS.map(d => {
+              const active = batchDays === d;
               return (
                 <button
-                  key={option.value}
+                  key={d}
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  onClick={() => setBatchDuration(option.value)}
+                  onClick={() => setBatchDays(d)}
                   className={[
                     'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
                     active ? 'bg-[#f97316] text-white shadow-sm' : 'text-[#8a7f73] hover:text-[#f97316]',
                   ].join(' ')}
                 >
-                  {option.label}
+                  {d} day{d === 1 ? '' : 's'}
                 </button>
               );
             })}
           </div>
+
+          <label className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[#6f6459]">
+            <span>Or pick any number of days:</span>
+            <input
+              type="number"
+              min={BATCH_MIN_DAYS}
+              max={BATCH_MAX_DAYS}
+              step={1}
+              value={batchDays}
+              onChange={(event) => {
+                const raw = parseInt(event.target.value, 10);
+                if (!Number.isFinite(raw)) return;
+                const clamped = Math.max(BATCH_MIN_DAYS, Math.min(BATCH_MAX_DAYS, Math.round(raw)));
+                setBatchDays(clamped);
+              }}
+              className="w-20 rounded-lg border border-[#eadfce] bg-white px-2 py-1 text-center text-sm font-semibold text-[#2b2118] focus:border-[#f97316] focus:outline-none focus:ring-1 focus:ring-[#f97316]"
+              aria-label="Custom number of days"
+            />
+            <span className="text-xs text-[#8b8378]">(1–{BATCH_MAX_DAYS})</span>
+          </label>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
