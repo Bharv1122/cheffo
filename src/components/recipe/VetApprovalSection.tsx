@@ -133,6 +133,18 @@ export function VetApprovalSection({ recipeId }: Props) {
                   )}
                 </div>
                 {approval.notes && <p className="mt-1 text-xs italic">"{approval.notes}"</p>}
+                {approval.supplementDoses && approval.supplementDoses.length > 0 && (
+                  <div className="mt-2 text-xs">
+                    <div className="font-semibold mb-0.5">Vet's recommended supplement doses:</div>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      {approval.supplementDoses.map((dose) => (
+                        <li key={dose.supplementName}>
+                          <span className="opacity-80">{dose.supplementName}:</span> {dose.doseText}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </li>
             );
           })}

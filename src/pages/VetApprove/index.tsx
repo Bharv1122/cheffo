@@ -9,6 +9,7 @@ import {
   type PublicApprovalView,
 } from '../../lib/approvals';
 import type { Recipe } from '../../types/recipe';
+import { computeSuggestedDoses } from '../../utils/supplementDosing';
 
 type Decision = 'approve' | 'approve_with_notes' | 'decline';
 
@@ -94,6 +95,7 @@ export default function VetApprovePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [doses, setDoses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +128,28 @@ export default function VetApprovePage() {
   const canEdit =
     view?.approval?.status === 'pending' && !view.approval.tokenExpired && !submitted;
 
+  // Per-dog suggested supplement doses (CHE-116). Pre-fills the editable dose
+  // inputs so the vet just signs off — or types over — instead of computing
+  // mg/lb × dog weight × food per day for every supplement.
+  const dogWeightLbs = view?.dog?.weight_lbs ?? 0;
+  const suggestions = useMemo(() => {
+    if (!recipe) return [];
+    return computeSuggestedDoses({ recipe, dogWeightLbs });
+  }, [recipe, dogWeightLbs]);
+
+  useEffect(() => {
+    if (suggestions.length === 0) return;
+    setDoses((prev) => {
+      const next = { ...prev };
+      for (const s of suggestions) {
+        if (next[s.supplementName] === undefined) {
+          next[s.supplementName] = s.suggestion ?? '';
+        }
+      }
+      return next;
+    });
+  }, [suggestions]);
+
   const onSubmit = useCallback(async () => {
     if (!decision || !canEdit) return;
     setSubmitError(null);
@@ -143,6 +167,15 @@ export default function VetApprovePage() {
     }
     setSubmitting(true);
     try {
+      // Package the vet's per-supplement doses for an approval (skipped on
+      // decline). Entries with no value (vet cleared the field) are filtered
+      // out server-side too. (CHE-116)
+      const supplementDoses = decision === 'decline'
+        ? undefined
+        : recipe?.supplements
+            .map((s) => ({ supplementName: s.name, doseText: (doses[s.name] ?? '').trim() }))
+            .filter((d) => d.doseText.length > 0);
+
       await submitVetApproval({
         token,
         decision,
@@ -151,6 +184,7 @@ export default function VetApprovePage() {
         vetPractice: vetPractice.trim() || undefined,
         vetState: vetState.trim() || undefined,
         signatureConfirmed: true,
+        supplementDoses,
       });
       setSubmitted(true);
     } catch (error) {
@@ -158,7 +192,7 @@ export default function VetApprovePage() {
     } finally {
       setSubmitting(false);
     }
-  }, [decision, canEdit, vetName, signatureConfirmed, notes, vetPractice, vetState, token]);
+  }, [decision, canEdit, vetName, signatureConfirmed, notes, vetPractice, vetState, token, recipe, doses]);
 
   if (loading) {
     return (
@@ -240,19 +274,64 @@ export default function VetApprovePage() {
               </ul>
             </details>
             {recipe.supplements.length > 0 && (
-              <details className="text-sm">
-                <summary className="cursor-pointer font-semibold text-[#2B2118]">Supplements</summary>
-                <ul className="mt-2 space-y-1 text-[#2B2118]">
-                  {recipe.supplements.map(supplement => (
-                    <li key={supplement.name} className="flex justify-between gap-2">
-                      <span>
-                        {supplement.name} {supplement.isRequired ? '(required)' : '(optional)'}
-                      </span>
-                      <span className="text-[#78716C]">{supplement.estimatedAmount ?? '—'}</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
+              canEdit ? (
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[#2B2118]">Supplements — your recommended doses</h3>
+                    <p className="text-xs text-[#9C7B52] mt-0.5">
+                      We pre-computed a suggested dose for {dog?.name ?? 'this dog'} based on weight and daily food. Accept it, edit it, or clear the field to skip.
+                    </p>
+                  </div>
+                  {recipe.supplements.map((supplement) => {
+                    const suggestion = suggestions.find((s) => s.supplementName === supplement.name);
+                    return (
+                      <div key={supplement.name} className="rounded-xl border border-[#EADFCE] bg-[#FFFBF5] p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-[#2B2118]">{supplement.name}</span>
+                          <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white border border-[#EADFCE] text-[#7C5018]">
+                            {supplement.isRequired ? 'Required' : 'Optional'}
+                          </span>
+                        </div>
+                        {supplement.estimatedAmount && (
+                          <p className="text-xs text-[#78716C]">{supplement.estimatedAmount}</p>
+                        )}
+                        {suggestion?.suggestion && (
+                          <p className="text-xs">
+                            <span className="font-semibold text-[#2f7d4a]">Suggested for {dog?.name ?? 'this dog'}: </span>
+                            <span className="text-[#2f7d4a]">{suggestion.suggestion}</span>
+                            {suggestion.rationale && (
+                              <span className="text-[#9C7B52]"> · {suggestion.rationale}</span>
+                            )}
+                          </p>
+                        )}
+                        <Input
+                          label="Your recommended dose"
+                          value={doses[supplement.name] ?? ''}
+                          onChange={(event) =>
+                            setDoses((prev) => ({ ...prev, [supplement.name]: event.target.value }))
+                          }
+                          placeholder={suggestion?.suggestion ?? 'Per product label'}
+                          maxLength={200}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <details className="text-sm">
+                  <summary className="cursor-pointer font-semibold text-[#2B2118]">Supplements</summary>
+                  <ul className="mt-2 space-y-1 text-[#2B2118]">
+                    {recipe.supplements.map((supplement) => (
+                      <li key={supplement.name} className="flex justify-between gap-2">
+                        <span>
+                          {supplement.name} {supplement.isRequired ? '(required)' : '(optional)'}
+                        </span>
+                        <span className="text-[#78716C]">{supplement.estimatedAmount ?? '—'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )
             )}
             {recipe.safetyNotes.length > 0 && (
               <details className="text-sm">

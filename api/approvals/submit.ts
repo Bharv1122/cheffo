@@ -5,9 +5,14 @@
 
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
 import { hashToken } from '../_lib/approvalToken';
-import type { ApprovalStatus } from '../../src/types/database';
+import type { ApprovalStatus, Json } from '../../src/types/database';
 
 export const config = { runtime: 'edge' };
+
+interface SupplementDoseInput {
+  supplementName?: unknown;
+  doseText?: unknown;
+}
 
 interface SubmitBody {
   token?: string;
@@ -17,9 +22,29 @@ interface SubmitBody {
   vetPractice?: string;
   vetState?: string;
   signatureConfirmed?: boolean;
+  supplementDoses?: SupplementDoseInput[];
 }
 
 const MAX_NOTES_CHARS = 500;
+const MAX_DOSE_TEXT_CHARS = 200;
+const MAX_DOSE_ENTRIES = 20;
+
+// Filter the vet's supplement-dose entries to a safe, normalized list. Drops
+// entries with no name or no text (vet left it blank), trims, and caps each
+// field's length. Returns null when nothing usable was sent. (CHE-116)
+function normalizeSupplementDoses(input: unknown): Json | null {
+  if (!Array.isArray(input)) return null;
+  const cleaned: Array<{ supplementName: string; doseText: string }> = [];
+  for (const entry of input.slice(0, MAX_DOSE_ENTRIES)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as SupplementDoseInput;
+    const name = typeof e.supplementName === 'string' ? e.supplementName.trim() : '';
+    const dose = typeof e.doseText === 'string' ? e.doseText.trim().slice(0, MAX_DOSE_TEXT_CHARS) : '';
+    if (!name || !dose) continue;
+    cleaned.push({ supplementName: name, doseText: dose });
+  }
+  return cleaned.length > 0 ? (cleaned as unknown as Json) : null;
+}
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -67,6 +92,10 @@ export default async function handler(req: Request): Promise<Response> {
     return jsonResponse(400, { error: 'Notes are required when approving with notes' });
   }
 
+  // Vet's per-supplement doses are only meaningful on approvals — skip them on
+  // declines (the vet isn't recommending the recipe, so a dose is moot).
+  const supplementDoses = status === 'declined' ? null : normalizeSupplementDoses(body.supplementDoses);
+
   const tokenHashHex = await hashToken(token);
   const admin = getSupabaseAdmin();
   const { data: approval, error: lookupError } = await admin
@@ -92,6 +121,7 @@ export default async function handler(req: Request): Promise<Response> {
       vet_practice: body.vetPractice?.trim() ?? null,
       vet_state: body.vetState?.trim() ?? null,
       vet_signature_confirmed: true,
+      supplement_doses: supplementDoses,
       submitted_at: new Date().toISOString(),
     })
     .eq('id', approval.id);

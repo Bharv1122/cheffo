@@ -7,6 +7,11 @@
 import { isSupabaseConfigured, supabase } from './supabase';
 import type { ApprovalRow, ApprovalStatus } from '../types/database';
 
+export interface VetSupplementDose {
+  supplementName: string;
+  doseText: string;
+}
+
 export interface ApprovalSummary {
   id: string;
   status: ApprovalStatus;
@@ -15,8 +20,22 @@ export interface ApprovalSummary {
   vetPractice: string | null;
   vetState: string | null;
   notes: string | null;
+  supplementDoses: VetSupplementDose[] | null;
   submittedAt: string | null;
   createdAt: string;
+}
+
+function parseSupplementDoses(value: unknown): VetSupplementDose[] | null {
+  if (!Array.isArray(value)) return null;
+  const cleaned: VetSupplementDose[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    const name = typeof e.supplementName === 'string' ? e.supplementName.trim() : '';
+    const dose = typeof e.doseText === 'string' ? e.doseText.trim() : '';
+    if (name && dose) cleaned.push({ supplementName: name, doseText: dose });
+  }
+  return cleaned.length > 0 ? cleaned : null;
 }
 
 function toApprovalSummary(row: ApprovalRow): ApprovalSummary {
@@ -28,6 +47,7 @@ function toApprovalSummary(row: ApprovalRow): ApprovalSummary {
     vetPractice: row.vet_practice,
     vetState: row.vet_state,
     notes: row.notes,
+    supplementDoses: parseSupplementDoses(row.supplement_doses),
     submittedAt: row.submitted_at,
     createdAt: row.created_at,
   };
@@ -131,6 +151,7 @@ export interface SubmitApprovalArgs {
   vetPractice?: string;
   vetState?: string;
   signatureConfirmed: boolean;
+  supplementDoses?: VetSupplementDose[];
 }
 
 export async function submitVetApproval(args: SubmitApprovalArgs): Promise<{ status: ApprovalStatus }> {

@@ -129,6 +129,7 @@ export type Database = {
           vet_signature_confirmed: boolean;
           status: ApprovalStatus;
           notes: string | null;
+          supplement_doses: Json | null;
           token_hash: string;
           token_expires_at: string;
           submitted_at: string | null;
@@ -149,6 +150,7 @@ export type Database = {
           vet_signature_confirmed?: boolean;
           status?: ApprovalStatus;
           notes?: string | null;
+          supplement_doses?: Json | null;
           token_hash: string;
           token_expires_at: string;
           submitted_at?: string | null;
@@ -169,6 +171,7 @@ export type Database = {
           vet_signature_confirmed?: boolean;
           status?: ApprovalStatus;
           notes?: string | null;
+          supplement_doses?: Json | null;
           token_hash?: string;
           token_expires_at?: string;
           submitted_at?: string | null;
