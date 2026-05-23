@@ -136,7 +136,11 @@ export default function PantryModePage() {
             )}
 
             {ingredients.length === 0 ? (
-              <p className="text-sm text-[#A8A29E] text-center py-6">Add ingredients to get started</p>
+              <div className="rounded-2xl border border-dashed border-[#f2c8a0] bg-[#fffaf4] p-6 text-center">
+                <div className="text-3xl">🥕</div>
+                <p className="mt-2 font-semibold text-[#2b2118]">Add what's in your kitchen</p>
+                <p className="mt-1 text-sm text-[#8b8378]">Type or pick ingredients above (chicken, rice, sweet potato…) and Chef will build a safe recipe around them.</p>
+              </div>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {ingredients.map(ing => (

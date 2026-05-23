@@ -370,7 +370,13 @@ export default function RecipeDetailPage() {
           <section className="doggo-card p-5">
             <div className="flex items-center justify-between">
               <h4 className="text-[1.25rem] font-semibold">Shopping List</h4>
-              <button className="text-sm font-semibold text-[#f97316]">Add All to List</button>
+              <button
+                type="button"
+                onClick={() => setIsShoppingOpen(true)}
+                className="text-sm font-semibold text-[#f97316] hover:underline"
+              >
+                Open full list →
+              </button>
             </div>
             <ul className="mt-3 space-y-2 text-sm text-[#6f6459]">
               {shoppingItems.map(item => (

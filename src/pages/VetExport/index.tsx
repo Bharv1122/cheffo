@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Check, Copy, Mail, Printer } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
@@ -66,6 +66,7 @@ Thank you!`;
 
 export default function VetExportPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { getRecipe } = useRecipes();
   const { getProfile } = useDogProfiles();
   const recipe = getRecipe(id!);
@@ -76,7 +77,16 @@ export default function VetExportPage() {
     return (
       <>
         <Header title="Vet Export" backTo="/recipes" />
-        <PageWrapper><p className="text-[#78716C] text-sm">Recipe not found.</p></PageWrapper>
+        <PageWrapper>
+          <section className="doggo-card p-8 text-center">
+            <h1 className="text-2xl font-semibold text-[#2b2118]">Recipe not found</h1>
+            <p className="mt-2 text-[#7f7469]">We couldn't find this recipe to export. It may have been deleted, or the link is from a different account.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Button variant="secondary" onClick={() => navigate('/recipes')}>Back to Recipes</Button>
+              <Button onClick={() => navigate('/bowl-builder')}>Create New Recipe</Button>
+            </div>
+          </section>
+        </PageWrapper>
       </>
     );
   }

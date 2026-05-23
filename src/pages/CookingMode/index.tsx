@@ -75,9 +75,26 @@ export default function CookingModePage() {
 
   if (!recipe) {
     return (
-      <div className="min-h-screen bg-[#1C1917] flex flex-col items-center justify-center gap-4 p-6 text-white">
-        <p>Recipe not found.</p>
-        <button onClick={() => navigate('/recipes')} className="underline text-[#F97316]">Back to Recipes</button>
+      <div className="min-h-screen bg-[#1C1917] flex items-center justify-center p-6 text-white">
+        <div className="max-w-md rounded-3xl border border-[#3F3937] bg-[#262422] p-8 text-center">
+          <div className="text-4xl">🍳</div>
+          <h1 className="mt-2 text-2xl font-semibold">Recipe not found</h1>
+          <p className="mt-2 text-sm text-[#A8A29E]">This recipe may have been deleted, or the link is from a different account.</p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => navigate('/recipes')}
+              className="rounded-xl border border-[#3F3937] bg-[#1C1917] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2A2624]"
+            >
+              Back to Recipes
+            </button>
+            <button
+              onClick={() => navigate('/bowl-builder')}
+              className="rounded-xl bg-[#F97316] px-4 py-2 text-sm font-semibold text-white hover:bg-[#ea6a10]"
+            >
+              Create New Recipe
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

@@ -147,29 +147,38 @@ export default function TreatsPage() {
 
         <p className="mt-3 text-sm text-[#8f857a]">Showing {visibleTreats.length} recipes</p>
 
-        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {visibleTreats.map(treat => (
-            <article key={`${treat.category}-${treat.name}`} className="rounded-2xl border border-[#eadfce] bg-white p-3">
-              <div className="grid h-36 place-items-center rounded-xl bg-[#fff4ea] text-4xl">🍪</div>
-              <p className="mt-2 text-lg font-semibold leading-tight">{treat.name}</p>
-              <p className="mt-1 line-clamp-2 text-sm text-[#7f7469]">{treat.desc}</p>
-              <p className="mt-2 text-xs text-[#8f857a]">⏱ {treat.time} &nbsp; • &nbsp; 🌟 {treat.level}</p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {treat.tags.map(tag => (
-                  <span key={tag} className="rounded-full bg-[#f6efe4] px-2 py-0.5 text-xs font-semibold text-[#8f7d69]">{tag}</span>
-                ))}
-              </div>
-              <Button
-                size="sm"
-                className="mt-3 w-full"
-                loading={loadingTreat === treat.name}
-                onClick={() => void handleViewTreatRecipe(treat.templateId, treat.name)}
-              >
-                View Recipe
-              </Button>
-            </article>
-          ))}
-        </div>
+        {visibleTreats.length === 0 ? (
+          <div className="mt-3 rounded-2xl border border-dashed border-[#f2c8a0] bg-[#fffaf4] p-6 text-center">
+            <div className="text-4xl">🍪</div>
+            <h3 className="mt-2 text-lg font-semibold text-[#2b2118]">No treats in this category yet</h3>
+            <p className="mt-1 text-sm text-[#8b8378]">Try another tab — or ask Chef for a custom treat idea.</p>
+            <Button size="sm" className="mt-3" onClick={() => navigate('/assistant')}>Ask Chef</Button>
+          </div>
+        ) : (
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {visibleTreats.map(treat => (
+              <article key={`${treat.category}-${treat.name}`} className="rounded-2xl border border-[#eadfce] bg-white p-3">
+                <div className="grid h-36 place-items-center rounded-xl bg-[#fff4ea] text-4xl">🍪</div>
+                <p className="mt-2 text-lg font-semibold leading-tight">{treat.name}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-[#7f7469]">{treat.desc}</p>
+                <p className="mt-2 text-xs text-[#8f857a]">⏱ {treat.time} &nbsp; • &nbsp; 🌟 {treat.level}</p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {treat.tags.map(tag => (
+                    <span key={tag} className="rounded-full bg-[#f6efe4] px-2 py-0.5 text-xs font-semibold text-[#8f7d69]">{tag}</span>
+                  ))}
+                </div>
+                <Button
+                  size="sm"
+                  className="mt-3 w-full"
+                  loading={loadingTreat === treat.name}
+                  onClick={() => void handleViewTreatRecipe(treat.templateId, treat.name)}
+                >
+                  View Recipe
+                </Button>
+              </article>
+            ))}
+          </div>
+        )}
 
         <button className="mt-5 w-full rounded-2xl border border-dashed border-[#f2c8a0] py-3 text-sm font-semibold text-[#f97316]">+ Load more tasty treats</button>
       </section>
