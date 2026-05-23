@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, Heart, ShoppingBag, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
+import { ChevronDown, Heart, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -24,6 +24,7 @@ import {
 import { checkSingleIngredient } from '../../utils/safetyValidator';
 import { getRecipePhoto } from '../../utils/recipeInsights';
 import { computeSuggestedDoses } from '../../utils/supplementDosing';
+import { buildInstacartSearchUrl } from '../../utils/affiliate';
 import type { Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
 
 // Quick-select chips for the batch modal. The numeric input below lets the
@@ -190,6 +191,7 @@ export default function RecipeDetailPage() {
   const recipe = id ? getRecipe(id) : undefined;
   const dogProfile = recipe ? getProfile(recipe.dogProfileId) : undefined;
   const [isBatchOpen, setIsBatchOpen] = useState(false);
+  const [isShoppingOpen, setIsShoppingOpen] = useState(false);
   // Batch size as an arbitrary day count. Quick-select chips set common
   // values (1/3/5/7/14); the numeric input below lets users pick anything in
   // [BATCH_MIN_DAYS, BATCH_MAX_DAYS]. Display-only — saved recipe data isn't
@@ -316,7 +318,7 @@ export default function RecipeDetailPage() {
   const hasAllergenWarning = allergenSafety?.allergenFree === false || derivedMatchedIngredients.length > 0;
   const recipePhoto = getRecipePhoto(recipe);
 
-  const shoppingItems = (recipe.shoppingList.length ? recipe.shoppingList : recipe.ingredients.map(ingredient => ({
+  const shoppingListItems = (recipe.shoppingList.length ? recipe.shoppingList : recipe.ingredients.map(ingredient => ({
     name: ingredient.name,
     displayAmount: ingredient.groceryFriendlyAmount,
     category: 'pantry' as const,
@@ -331,8 +333,13 @@ export default function RecipeDetailPage() {
     const effectiveItem = isScaled && fallbackIngredient
       ? { ...item, displayAmount: fallback, displayAmountMetric: undefined, displayAmountVolume: undefined }
       : item;
-    return formatShoppingItem(effectiveItem, fallback, showMetric);
+    return {
+      name: item.name,
+      label: formatShoppingItem(effectiveItem, fallback, showMetric),
+      category: item.category,
+    };
   });
+  const shoppingItems = shoppingListItems.map(item => item.label);
 
   const prepTime = recipe.instructions.find(s => s.stepNumber === 1)?.durationMinutes ?? 15;
   const cookTime = recipe.instructions.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0) || 35;
@@ -621,7 +628,9 @@ export default function RecipeDetailPage() {
               </button>
               <button
                 type="button"
-                title="View the full grocery shopping list for this recipe"
+                onClick={() => setIsShoppingOpen(true)}
+                aria-haspopup="dialog"
+                title="View the full grocery shopping list — find each ingredient on Instacart"
                 className="inline-flex items-center gap-1.5 rounded-xl border border-[#f97316] bg-white px-3 py-1.5 text-xs font-semibold text-[#a16b38] shadow-sm transition-colors hover:bg-[#fff1df] focus:outline-none focus:ring-2 focus:ring-[#f97316]/40 sm:text-sm"
               >
                 <ShoppingBag size={14} />
@@ -777,6 +786,62 @@ export default function RecipeDetailPage() {
             <strong>Thawing:</strong> {recipe.storage.thawInstructions}
           </p>
         </div>
+      </Modal>
+
+      <Modal
+        open={isShoppingOpen}
+        onClose={() => setIsShoppingOpen(false)}
+        title="Shopping List"
+        size="lg"
+        footer={(
+          <div className="flex justify-end">
+            <Button onClick={() => setIsShoppingOpen(false)}>Close</Button>
+          </div>
+        )}
+      >
+        <p className="text-sm text-[#6f6459]">
+          Amounts match your current batch size ({selectedBatchDays} day{selectedBatchDays === 1 ? '' : 's'}, ~{selectedBatchCups} cups).
+          Tap <strong>Find on Instacart</strong> next to any ingredient to search for it — opens in a new tab.
+        </p>
+
+        <ul className="mt-4 space-y-2">
+          {shoppingListItems.map((item, idx) => (
+            <li
+              key={`${item.name}-${idx}`}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#eadfce] bg-white px-3 py-2 text-sm"
+            >
+              <span className="min-w-0 flex-1 text-[#3a302a]">
+                {/* Most shopping-list labels already include the ingredient
+                    name (e.g. "½ lb Eggs"), but some (supplements with dosing
+                    notes) only show the amount — prefix the name when it's
+                    missing so each row is legible. */}
+                {item.label.toLowerCase().includes(item.name.toLowerCase())
+                  ? item.label
+                  : `${item.name} — ${item.label}`}
+              </span>
+              {item.category !== 'equipment' ? (
+                <a
+                  href={buildInstacartSearchUrl(item.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#43b02a] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#3a9b25] focus:outline-none focus:ring-2 focus:ring-[#43b02a]/40"
+                >
+                  <ShoppingCart size={12} />
+                  <span>Find on Instacart</span>
+                  <ExternalLink size={10} className="opacity-80" aria-hidden="true" />
+                </a>
+              ) : (
+                <span className="shrink-0 rounded-full bg-[#f4eddf] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a39689]">
+                  Equipment
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-4 text-xs leading-relaxed text-[#7f7469]">
+          Instacart delivers from Whole Foods, Costco, Aldi, Sprouts, and many local stores. Equipment items aren't grocery, so we don't link those.
+        </p>
       </Modal>
     </AppShell>
   );
