@@ -142,9 +142,9 @@ export default function RecipesPage() {
           ))}
         </div>
 
-        <div className="mt-4 mb-3 flex items-center justify-between">
+        <div className="mt-4 mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-[1.4rem] font-semibold">{activeTab === 'favorites' ? 'Favorite Recipes' : 'Your Recipes'} ({filteredRecipes.length})</h2>
-          <Button size="sm" icon={<Plus size={15} />} onClick={() => navigate('/bowl-builder')}>Start New Recipe</Button>
+          <Button size="sm" icon={<Plus size={15} />} onClick={() => navigate('/bowl-builder')} className="whitespace-nowrap">Start New Recipe</Button>
         </div>
 
         {filteredRecipes.length === 0 ? (

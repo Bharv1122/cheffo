@@ -479,12 +479,14 @@ export default function RecipeDetailPage() {
                     ? `Dr. ${approval.vetName} DVM`
                     : approval.vetEmail;
                   return (
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#bfe7cb] bg-[#e9f7ee] px-3 py-1 text-sm font-semibold text-[#235d38]">
-                      <ShieldCheck size={16} />
-                      <span>Approved by {vetLabel}</span>
-                      {approval.status === 'approved_with_notes' && (
-                        <span className="text-xs font-normal opacity-80">· with notes</span>
-                      )}
+                    <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-[#bfe7cb] bg-[#e9f7ee] px-3 py-1 text-sm font-semibold text-[#235d38]">
+                      <ShieldCheck size={16} className="shrink-0" />
+                      <span className="truncate">
+                        Approved by {vetLabel}
+                        {approval.status === 'approved_with_notes' && (
+                          <span className="ml-1 font-normal opacity-80">· with notes</span>
+                        )}
+                      </span>
                     </div>
                   );
                 })()}
@@ -606,7 +608,7 @@ export default function RecipeDetailPage() {
                   ].join(' ')}
                   onClick={() => setUnitPreference('us_volume')}
                 >
-                  US Volume (cups/tsp/tbsp)
+                  US Volume<span className="hidden sm:inline"> (cups/tsp/tbsp)</span>
                 </button>
                 <button
                   className={[
@@ -615,7 +617,7 @@ export default function RecipeDetailPage() {
                   ].join(' ')}
                   onClick={() => setUnitPreference('metric')}
                 >
-                  Metric (grams/ml)
+                  Metric<span className="hidden sm:inline"> (grams/ml)</span>
                 </button>
               </div>
               <button

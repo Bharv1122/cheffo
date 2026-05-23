@@ -178,13 +178,13 @@ export default function DogProfilesPage() {
 
   return (
     <AppShell active="dogs">
-      <section className="mb-4 flex items-center justify-between">
+      <section className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="doggo-section-title">My Dogs ❤️</h1>
           <p className="mt-1 text-[1.1rem] text-[#7e7369]">Manage your dog profiles, nutrition goals, and favorite recipes all in one place.</p>
         </div>
         {profiles.length > 0 && (
-          <Button icon={<Plus size={15} />} onClick={() => navigate('/profiles/new')}>Add Another Dog</Button>
+          <Button icon={<Plus size={15} />} onClick={() => navigate('/profiles/new')} className="whitespace-nowrap">Add Another Dog</Button>
         )}
       </section>
 
