@@ -32,16 +32,18 @@ export default function TreatsPage() {
   const { saveRecipe } = useRecipes();
   const [activeTab, setActiveTab] = useState<TreatTab>('training');
   const [loadingTreat, setLoadingTreat] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const visibleTreats = useMemo(() => TREATS.filter(treat => treat.category === activeTab), [activeTab]);
 
   async function handleViewTreatRecipe(templateId: string, name: string) {
     if (!activeProfile) {
-      window.alert('Add a dog profile first so Cheffo Doggo can personalize treat recipes.');
+      setError('Add a dog profile first so Cheffo Doggo can personalize treat recipes.');
       navigate('/profiles/new');
       return;
     }
 
+    setError(null);
     try {
       setLoadingTreat(name);
       const generated = await generateRecipe({
@@ -51,9 +53,9 @@ export default function TreatsPage() {
       });
       const saved = await saveRecipe(generated);
       navigate(`/recipes/${saved.id}`);
-    } catch (error) {
-      console.error('Failed to generate treat recipe', error);
-      window.alert('Unable to open this treat recipe right now. Please try again.');
+    } catch (e) {
+      console.error('Failed to generate treat recipe', e);
+      setError('Unable to open this treat recipe right now. Please try again.');
     } finally {
       setLoadingTreat(null);
     }
@@ -121,6 +123,12 @@ export default function TreatsPage() {
           <h2 className="text-lg font-semibold text-[#2b2118]">Add a dog to unlock personalized treats</h2>
           <p className="mt-1 text-sm text-[#7f7469]">Cheffo Doggo tailors treat portions and safety notes to your pup's profile.</p>
           <Button className="mt-3" onClick={() => navigate('/profiles/new')}>Add Dog Profile</Button>
+        </section>
+      )}
+
+      {error && (
+        <section className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {error}
         </section>
       )}
 

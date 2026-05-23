@@ -89,6 +89,21 @@ export default function AssistantPage() {
             : m
         )
       );
+    } catch (error) {
+      console.error('[AssistantPage] chat send failed', error);
+      // Replace the empty placeholder with a visible error message so the
+      // user isn't stuck staring at a blank bubble. The user can retry by
+      // re-sending the same prompt.
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId
+            ? {
+                ...m,
+                content: "⚠️ Sorry, I couldn't reach Cheffo Doggo just now. Check your connection and try again.",
+              }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
     }
