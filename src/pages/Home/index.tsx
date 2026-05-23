@@ -34,6 +34,8 @@ export default function HomePage() {
   const { user } = useAuth();
 
   const userName = user?.email?.split('@')[0] ?? 'there';
+  // Gate "first recipe" copy on whether they have any. (CHE-117)
+  const hasRecipes = recipes.length > 0;
 
   const recentRecipes = recipes.slice(-3).reverse().map(recipe => ({
     id: recipe.id,
@@ -49,8 +51,12 @@ export default function HomePage() {
       rightRail={
         <>
           <section className="doggo-card p-5">
-            <h3 className="text-[1.8rem] font-semibold text-[#2b2118]">First Bowl Wizard</h3>
-            <p className="mt-2 text-sm text-[#8b8378]">Create your dog's first homemade recipe in 4 simple steps.</p>
+            <h3 className="text-[1.8rem] font-semibold text-[#2b2118]">{hasRecipes ? 'Recipe Wizard' : 'First Bowl Wizard'}</h3>
+            <p className="mt-2 text-sm text-[#8b8378]">
+              {hasRecipes
+                ? 'Build a new homemade recipe in 4 simple steps.'
+                : 'Create your dog\'s first homemade recipe in 4 simple steps.'}
+            </p>
             <div className="mt-4 space-y-3 text-sm">
               {['Welcome', 'Your Dog', 'Recipe Type', 'Your Recipe'].map((step, i) => (
                 <div key={step} className="flex items-center justify-between rounded-xl border border-[#eadfce] bg-white px-3 py-2">

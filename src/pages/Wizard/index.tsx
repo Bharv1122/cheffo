@@ -23,7 +23,7 @@ type WizardDog = Omit<DogProfile, 'id' | 'createdAt' | 'updatedAt'>;
 export default function WizardPage() {
   const navigate = useNavigate();
   const { createProfile, activeProfile, profiles } = useDogProfiles();
-  const { saveRecipe } = useRecipes();
+  const { saveRecipe, recipes } = useRecipes();
 
   const [step, setStep] = useState(0);
   const [dog, setDog] = useState<WizardDog | null>(null);
@@ -33,6 +33,8 @@ export default function WizardPage() {
 
   // If they already have profiles, start at step 1 (skip dog creation)
   const hasProfiles = profiles.length > 0;
+  // Gate "first recipe" copy on whether they actually have any. (CHE-117)
+  const hasRecipes = recipes.length > 0;
   const effectiveDog = dog ?? (activeProfile ? { ...activeProfile } : null);
 
   function next() { setStep(s => s + 1); }
@@ -69,7 +71,7 @@ export default function WizardPage() {
 
   return (
     <>
-      <Header title="First Bowl Wizard" backTo="/" />
+      <Header title={hasRecipes ? 'Recipe Wizard' : 'First Bowl Wizard'} backTo="/" />
       <PageWrapper>
         <div className="mb-6">
           <StepProgress currentStep={step} totalSteps={STEPS.length} stepLabels={STEP_LABELS} />
@@ -80,9 +82,13 @@ export default function WizardPage() {
           <div className="flex flex-col items-center text-center gap-6">
             <Logo size="xl" showText={false} />
             <div>
-              <h2 className="text-2xl font-bold text-[#1C1917]">Welcome to Cheffo Doggo! 🐾</h2>
+              <h2 className="text-2xl font-bold text-[#1C1917]">
+                {hasRecipes ? 'Welcome back! 🐾' : 'Welcome to Cheffo Doggo! 🐾'}
+              </h2>
               <p className="text-[#78716C] mt-2 leading-relaxed">
-                Let's build your first homemade dog food recipe. This wizard takes about 2 minutes and creates a safe, personalized recipe for your dog.
+                {hasRecipes
+                  ? 'Let\'s build a new homemade dog food recipe. This wizard takes about 2 minutes and creates a safe, personalized recipe for your dog.'
+                  : 'Let\'s build your first homemade dog food recipe. This wizard takes about 2 minutes and creates a safe, personalized recipe for your dog.'}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-3 w-full text-left">
@@ -192,7 +198,11 @@ export default function WizardPage() {
             <div className="flex gap-3">
               <Button variant="secondary" icon={<ArrowLeft size={16} />} onClick={prev}>Back</Button>
               <Button fullWidth size="lg" icon={<ChefHat size={18} />} loading={loading} onClick={handleGenerate}>
-                {loading ? 'Building your recipe & image…' : 'Generate My First Recipe!'}
+                {loading
+                  ? 'Building your recipe & image…'
+                  : hasRecipes
+                  ? 'Generate Recipe'
+                  : 'Generate My First Recipe!'}
               </Button>
             </div>
           </div>
