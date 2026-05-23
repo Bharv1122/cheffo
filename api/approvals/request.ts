@@ -24,6 +24,11 @@ declare const process: { env: Record<string, string | undefined> };
 interface RequestBody {
   recipeId?: string;
   vetEmail?: string;
+  // Optional: subset of supplement names to include in the snapshot the vet
+  // sees. Undefined / empty / unknown values default to "send all supplements"
+  // (existing behavior). Required supplements (isRequired: true) are always
+  // included regardless of what's listed. (CHE-127)
+  supplementNames?: unknown;
 }
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -107,7 +112,27 @@ export default async function handler(req: Request): Promise<Response> {
   if (recipeError || !recipeRow) return jsonResponse(404, { error: 'Recipe not found' });
 
   const recipe = recipeRow.recipe_data as unknown as Recipe;
-  const envelope = buildEnvelope(recipe);
+
+  // Filter supplements to the user's chosen subset (plus required ones, which
+  // are always included). If supplementNames is missing/invalid we leave the
+  // recipe alone — backwards compatible with older clients. (CHE-127)
+  const includedNames = Array.isArray(body.supplementNames)
+    ? new Set(
+        body.supplementNames
+          .filter((n): n is string => typeof n === 'string')
+          .map((n) => n.toLowerCase())
+      )
+    : null;
+  const filteredRecipeForSnapshot: Recipe =
+    includedNames && recipe.supplements && recipe.supplements.length > 0
+      ? {
+          ...recipe,
+          supplements: recipe.supplements.filter(
+            (s) => s.isRequired || includedNames.has(s.name.toLowerCase())
+          ),
+        }
+      : recipe;
+  const envelope = buildEnvelope(filteredRecipeForSnapshot);
 
   const admin = getSupabaseAdmin();
   const { data: priorApprovals } = await admin
@@ -144,7 +169,7 @@ export default async function handler(req: Request): Promise<Response> {
       user_id: userId,
       recipe_id: recipeRow.id,
       dog_profile_id: recipeRow.dog_profile_id,
-      recipe_snapshot: recipe as unknown as Json,
+      recipe_snapshot: filteredRecipeForSnapshot as unknown as Json,
       nutrition_envelope: envelope as unknown as Json,
       vet_email: vetEmail,
       token_hash: tokenHashHex,

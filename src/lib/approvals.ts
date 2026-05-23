@@ -105,7 +105,14 @@ export interface RequestApprovalResult {
   email?: { sent: boolean; reason?: string };
 }
 
-export async function requestVetApproval(args: { recipeId: string; vetEmail: string }): Promise<RequestApprovalResult> {
+export async function requestVetApproval(args: {
+  recipeId: string;
+  vetEmail: string;
+  // Names of supplements the user wants the vet to review. Omit to send all.
+  // Required supplements (calcium, omega-3) are server-side-enforced regardless
+  // of what's in this list. (CHE-127)
+  supplementNames?: string[];
+}): Promise<RequestApprovalResult> {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Vet approval requires Supabase to be configured');
   }

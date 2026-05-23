@@ -10,9 +10,14 @@ import {
   type RequestApprovalResult,
 } from '../../lib/approvals';
 import { isSupabaseConfigured } from '../../lib/supabase';
+import type { SupplementItem } from '../../types/recipe';
 
 interface Props {
   recipeId: string;
+  // Supplements on this recipe — surfaced as an opt-in picker in the
+  // request form so the user only sends the ones they care about
+  // reviewing. Required supplements are always included. (CHE-127)
+  supplements?: SupplementItem[];
 }
 
 function describeApproval(approval: ApprovalSummary): { tone: 'good' | 'warn' | 'bad' | 'neutral'; line: string } {
@@ -32,16 +37,41 @@ function describeApproval(approval: ApprovalSummary): { tone: 'good' | 'warn' | 
   return { tone: 'neutral', line: `Awaiting review from ${approval.vetEmail}` };
 }
 
-export function VetApprovalSection({ recipeId }: Props) {
+export function VetApprovalSection({ recipeId, supplements }: Props) {
   const [approvals, setApprovals] = useState<ApprovalSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [vetEmail, setVetEmail] = useState('');
+  // Names of optional supplements the user wants included in the vet's
+  // review. Required ones are always included server-side. Defaults to all
+  // optional supplements checked. (CHE-127)
+  const [includedOptionalNames, setIncludedOptionalNames] = useState<Set<string>>(
+    () => new Set((supplements ?? []).filter((s) => !s.isRequired).map((s) => s.name))
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<RequestApprovalResult | null>(null);
+
+  // Re-sync the default picker selection when the recipe's supplement list
+  // changes underneath us (e.g. a vet edit replaced the supplements).
+  useEffect(() => {
+    setIncludedOptionalNames(
+      new Set((supplements ?? []).filter((s) => !s.isRequired).map((s) => s.name))
+    );
+  }, [supplements]);
+
+  const requiredSupplements = (supplements ?? []).filter((s) => s.isRequired);
+  const optionalSupplements = (supplements ?? []).filter((s) => !s.isRequired);
+  const toggleOptional = (name: string) => {
+    setIncludedOptionalNames((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   const refresh = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -72,7 +102,20 @@ export function VetApprovalSection({ recipeId }: Props) {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const result = await requestVetApproval({ recipeId, vetEmail: vetEmail.trim() });
+      // Send the picked optional names + every required name. The server
+      // re-enforces the required set, but being explicit keeps the snapshot
+      // unambiguous if the server-side rule ever changes. (CHE-127)
+      const supplementNames = supplements
+        ? [
+            ...requiredSupplements.map((s) => s.name),
+            ...optionalSupplements.filter((s) => includedOptionalNames.has(s.name)).map((s) => s.name),
+          ]
+        : undefined;
+      const result = await requestVetApproval({
+        recipeId,
+        vetEmail: vetEmail.trim(),
+        supplementNames,
+      });
       setLastResult(result);
       setVetEmail('');
       setRequestOpen(false);
@@ -82,7 +125,7 @@ export function VetApprovalSection({ recipeId }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [vetEmail, recipeId, refresh]);
+  }, [vetEmail, recipeId, refresh, supplements, requiredSupplements, optionalSupplements, includedOptionalNames]);
 
   if (!isSupabaseConfigured) {
     return null;
@@ -201,6 +244,45 @@ export function VetApprovalSection({ recipeId }: Props) {
 
       {requestOpen && (
         <div className="mt-4 space-y-3 rounded-2xl border border-[#eadfce] bg-white p-4">
+          {optionalSupplements.length > 0 && (
+            <fieldset className="rounded-xl border border-[#eadfce] bg-[#fffaf2] p-3">
+              <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-[#7c5018]">
+                Supplements to review
+              </legend>
+              {requiredSupplements.length > 0 && (
+                <p className="text-xs text-[#7f7469] mb-2">
+                  Always included: {requiredSupplements.map((s) => s.name).join(', ')}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2 text-sm">
+                {optionalSupplements.map((s) => {
+                  const checked = includedOptionalNames.has(s.name);
+                  return (
+                    <label
+                      key={s.name}
+                      className={[
+                        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 cursor-pointer transition-colors',
+                        checked
+                          ? 'border-[#f97316] bg-[#fff1df] text-[#a16b38]'
+                          : 'border-[#eadfce] bg-white text-[#7f7469] hover:bg-[#fff8ef]',
+                      ].join(' ')}
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-3 w-3 accent-[#f97316]"
+                        checked={checked}
+                        onChange={() => toggleOptional(s.name)}
+                      />
+                      <span>{s.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-[#9c9288]">
+                Uncheck any optional supplements you don't use — your vet won't see those.
+              </p>
+            </fieldset>
+          )}
           <Input
             label="Vet's email"
             type="email"

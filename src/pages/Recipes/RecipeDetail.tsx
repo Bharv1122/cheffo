@@ -583,7 +583,7 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
-      <VetApprovalSection recipeId={recipe.id} />
+      <VetApprovalSection recipeId={recipe.id} supplements={recipe.supplements} />
 
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
         <article className="doggo-card p-5">
