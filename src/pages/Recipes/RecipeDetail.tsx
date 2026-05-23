@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, Play, ShoppingBag, Timer, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
+import { ChevronDown, Heart, Play, ShoppingBag, Timer, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -594,11 +594,16 @@ export default function RecipeDetailPage() {
               <button
                 type="button"
                 onClick={() => setIsBatchOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#f2c8a0] bg-[#fff7ee] px-3 py-1.5 text-xs font-semibold text-[#a16b38] transition-colors hover:bg-[#fff1df] sm:text-sm"
-                title="Pick a batch size — ingredient amounts scale to match"
+                aria-haspopup="dialog"
+                title="Tap to change the batch size — ingredient amounts scale to match"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-[#f97316] bg-white px-3 py-1.5 text-xs font-semibold text-[#a16b38] shadow-sm transition-colors hover:bg-[#fff1df] focus:outline-none focus:ring-2 focus:ring-[#f97316]/40 sm:text-sm"
               >
                 <Package size={14} />
-                Batch · {selectedBatchDays} day{selectedBatchDays === 1 ? '' : 's'}
+                <span>
+                  Batch size: <span className="text-[#f97316]">{selectedBatchDays} day{selectedBatchDays === 1 ? '' : 's'}</span>
+                </span>
+                <ChevronDown size={14} className="opacity-70" aria-hidden="true" />
+                <span className="sr-only"> — change</span>
               </button>
             </div>
           </div>
