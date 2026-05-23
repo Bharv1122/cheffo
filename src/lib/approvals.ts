@@ -12,6 +12,17 @@ export interface VetSupplementDose {
   doseText: string;
 }
 
+// A vet-suggested ingredient on the approval form. ingredientId is set when
+// the vet picked from the catalog dropdown; undefined means "Other..." (vet
+// typed a free-form name). amountGrams must be > 0. (CHE-126)
+export interface VetIngredientEdit {
+  ingredientId?: string;
+  name: string;
+  amountGrams: number;
+  category: 'protein' | 'carb' | 'vegetable' | 'fat' | 'supplement' | 'treat';
+  prepNote?: string;
+}
+
 export interface ApprovalSummary {
   id: string;
   recipeId: string;
@@ -22,6 +33,10 @@ export interface ApprovalSummary {
   vetState: string | null;
   notes: string | null;
   supplementDoses: VetSupplementDose[] | null;
+  // True when the vet's submission included ingredient edits that were
+  // applied to the recipe — drives the "Updated by Dr. X DVM" indicator
+  // on the family side. (CHE-126)
+  recipeUpdatedByVet: boolean;
   submittedAt: string | null;
   createdAt: string;
 }
@@ -50,6 +65,7 @@ function toApprovalSummary(row: ApprovalRow): ApprovalSummary {
     vetState: row.vet_state,
     notes: row.notes,
     supplementDoses: parseSupplementDoses(row.supplement_doses),
+    recipeUpdatedByVet: row.recipe_updated_by_vet ?? false,
     submittedAt: row.submitted_at,
     createdAt: row.created_at,
   };
@@ -167,6 +183,10 @@ export interface SubmitApprovalArgs {
   vetState?: string;
   signatureConfirmed: boolean;
   supplementDoses?: VetSupplementDose[];
+  // Final ingredient list after the vet's edits. Omit (or send null) when the
+  // vet didn't change the ingredients — the recipe stays as-is. Ignored on
+  // decline. (CHE-126)
+  ingredientEdits?: VetIngredientEdit[];
 }
 
 export async function submitVetApproval(args: SubmitApprovalArgs): Promise<{ status: ApprovalStatus }> {

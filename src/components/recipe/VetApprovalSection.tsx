@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, FileText, Mail, Send, ShieldAlert, Sparkles } from 'lucide-react';
+import { CheckCircle2, FileText, Mail, Pencil, Send, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import {
@@ -133,6 +133,17 @@ export function VetApprovalSection({ recipeId }: Props) {
                     </span>
                   )}
                 </div>
+                {approval.recipeUpdatedByVet && (
+                  <p className="mt-1 text-xs flex items-center gap-1">
+                    <Pencil size={11} />
+                    <span>
+                      Recipe updated by {approval.vetName ? `Dr. ${approval.vetName} DVM` : approval.vetEmail}
+                      {approval.submittedAt && (
+                        <span className="opacity-75"> on {new Date(approval.submittedAt).toLocaleDateString()}</span>
+                      )}
+                    </span>
+                  </p>
+                )}
                 {approval.notes && <p className="mt-1 text-xs italic">"{approval.notes}"</p>}
                 {approval.supplementDoses && approval.supplementDoses.length > 0 && (
                   <div className="mt-2 text-xs">

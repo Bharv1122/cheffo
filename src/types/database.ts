@@ -130,6 +130,7 @@ export type Database = {
           status: ApprovalStatus;
           notes: string | null;
           supplement_doses: Json | null;
+          recipe_updated_by_vet: boolean;
           token_hash: string;
           token_expires_at: string;
           submitted_at: string | null;
@@ -151,6 +152,7 @@ export type Database = {
           status?: ApprovalStatus;
           notes?: string | null;
           supplement_doses?: Json | null;
+          recipe_updated_by_vet?: boolean;
           token_hash: string;
           token_expires_at: string;
           submitted_at?: string | null;
@@ -172,6 +174,7 @@ export type Database = {
           status?: ApprovalStatus;
           notes?: string | null;
           supplement_doses?: Json | null;
+          recipe_updated_by_vet?: boolean;
           token_hash?: string;
           token_expires_at?: string;
           submitted_at?: string | null;
