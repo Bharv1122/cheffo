@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import { CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { Disclaimer } from '../ui/Disclaimer';
 import type { SupplementItem } from '../../types/recipe';
+import type { SuggestedDose } from '../../utils/supplementDosing';
 
 interface Props {
   supplements: SupplementItem[];
+  // Per-dog suggested doses (computed once on the recipe page and passed
+  // down). When provided, rendered alongside the educational range so the
+  // family sees the same starting point the vet does on the approval form.
+  // (CHE-122)
+  suggestions?: SuggestedDose[];
+  dogName?: string;
 }
 
-export function SupplementChecklist({ supplements }: Props) {
+export function SupplementChecklist({ supplements, suggestions, dogName }: Props) {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -29,7 +36,9 @@ export function SupplementChecklist({ supplements }: Props) {
       </Disclaimer>
 
       <div className="space-y-2">
-        {supplements.map(s => (
+        {supplements.map(s => {
+          const suggestion = suggestions?.find(x => x.supplementName === s.name);
+          return (
           <div key={s.name} className={['rounded-xl border transition-colors', checked.has(s.name) ? 'border-green-300 bg-green-50' : 'border-[#E7E5E4] bg-white'].join(' ')}>
             <div className="flex items-start gap-3 p-3 cursor-pointer" onClick={() => toggle(s.name)}>
               <button type="button" className="shrink-0 mt-0.5 text-[#78716C]" onClick={e => { e.stopPropagation(); toggle(s.name); }}>
@@ -45,6 +54,12 @@ export function SupplementChecklist({ supplements }: Props) {
                 </div>
                 {s.estimatedAmount && (
                   <p className="text-xs text-[#78716C] mt-1 italic">{s.estimatedAmount}</p>
+                )}
+                {suggestion?.suggestion && (
+                  <p className="text-xs text-[#2f7d4a] mt-1">
+                    <span className="font-semibold">Suggested for {dogName ?? 'your dog'}: </span>
+                    {suggestion.suggestion}
+                  </p>
                 )}
               </div>
               <button type="button" className="shrink-0 text-[#78716C]" onClick={e => { e.stopPropagation(); setExpanded(expanded === s.name ? null : s.name); }}>
@@ -67,7 +82,8 @@ export function SupplementChecklist({ supplements }: Props) {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <p className="text-xs text-[#78716C] text-center italic">

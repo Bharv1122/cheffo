@@ -22,6 +22,7 @@ import {
 } from '../../utils/calculator';
 import { checkSingleIngredient } from '../../utils/safetyValidator';
 import { getRecipePhoto } from '../../utils/recipeInsights';
+import { computeSuggestedDoses } from '../../utils/supplementDosing';
 import type { Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
 
 // Quick-select chips for the batch modal. The numeric input below lets the
@@ -549,7 +550,16 @@ export default function RecipeDetailPage() {
             <span className="rounded-full bg-[#fff1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a16b38]">Required for completeness</span>
           </div>
           <div className="mt-3">
-            <SupplementChecklist supplements={recipe.supplements} />
+            <SupplementChecklist
+              supplements={recipe.supplements}
+              // Per-dog suggested doses, same math as the vet-approval form
+              // so the family sees a starting amount, not just the range.
+              // (CHE-122)
+              suggestions={dogProfile
+                ? computeSuggestedDoses({ recipe, dogWeightLbs: dogProfile.weightLbs })
+                : undefined}
+              dogName={dogProfile?.name}
+            />
           </div>
         </section>
       )}
