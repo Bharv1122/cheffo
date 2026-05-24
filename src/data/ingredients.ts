@@ -33,7 +33,7 @@ export const INGREDIENTS: Ingredient[] = [
   {
     id: 'ground_beef_lean',
     name: 'Lean Ground Beef',
-    aliases: ['ground beef', 'beef mince', 'minced beef', 'lean beef'],
+    aliases: ['ground beef', 'beef mince', 'minced beef', 'lean beef', 'hamburger', 'hamburger meat', 'burger', 'ground meat'],
     category: 'protein',
     isToxic: false,
     caloriesPerGram: 2.15,
@@ -488,10 +488,34 @@ export function getBudgetIngredients(): Ingredient[] {
   return INGREDIENTS.filter(i => i.budgetFriendly && !i.isToxic);
 }
 
+/**
+ * Look up an ingredient by user-typed name. Tries (in order):
+ *   1. Exact match on canonical name or alias (case-insensitive).
+ *   2. Substring match — user input contains a catalog name/alias, or
+ *      vice versa. So "ground turkey breast" finds "Ground Turkey", and
+ *      "carrots" finds "Carrot".
+ * Stops at the first hit so the caller still gets a single ingredient.
+ */
 export function findIngredientByName(name: string): Ingredient | undefined {
-  const lower = name.toLowerCase();
-  return INGREDIENTS.find(i =>
+  const lower = name.toLowerCase().trim();
+  if (!lower) return undefined;
+
+  // Pass 1: exact match (preferred — most specific).
+  const exact = INGREDIENTS.find(i =>
     i.name.toLowerCase() === lower ||
     i.aliases.some(a => a.toLowerCase() === lower)
   );
+  if (exact) return exact;
+
+  // Pass 2: substring match — handles plurals, modifiers ("organic
+  // chicken breast" → "Chicken Breast"), and short stems ("carrots" →
+  // "Carrot"). Requires the shorter side to be ≥3 chars to avoid
+  // matching too-generic tokens like "oil" against everything.
+  return INGREDIENTS.find(i => {
+    const candidates = [i.name.toLowerCase(), ...i.aliases.map(a => a.toLowerCase())];
+    return candidates.some(c => {
+      if (c.length < 3 || lower.length < 3) return false;
+      return c.includes(lower) || lower.includes(c);
+    });
+  });
 }

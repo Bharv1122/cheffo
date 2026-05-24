@@ -18,7 +18,7 @@ export default function PantryModePage() {
   const { activeProfile } = useDogProfiles();
 
   const [input, setInput] = useState('');
-  const [ingredients, setIngredients] = useState<Array<{ name: string; safe: boolean; warning?: string }>>([]);
+  const [ingredients, setIngredients] = useState<Array<{ name: string; safe: boolean; warning?: string; recognized: boolean }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +57,12 @@ export default function PantryModePage() {
           name,
           safe: true,
           warning: safety.warnings[0],
+          // "Recognized" means Cheffo's ingredient catalog has a match —
+          // only recognized items are used to choose a pantry-aware recipe
+          // template. Unrecognized items still appear as chips so the
+          // user knows they were heard, but they don't influence the
+          // recipe and we surface that clearly below.
+          recognized: !!findIngredientByName(name),
         })),
       ]);
     }
@@ -158,20 +164,41 @@ export default function PantryModePage() {
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {ingredients.map(ing => (
-                  <span
-                    key={ing.name}
-                    className={['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium', ing.warning ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'].join(' ')}
-                  >
-                    {ing.warning && <AlertTriangle size={12} />}
-                    {ing.name}
-                    <button type="button" onClick={() => remove(ing.name)} className="hover:opacity-70">
-                      <X size={13} />
-                    </button>
-                  </span>
-                ))}
+                {ingredients.map(ing => {
+                  const chipClass = !ing.recognized
+                    ? 'bg-gray-100 text-gray-600 line-through decoration-1'
+                    : ing.warning
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-green-100 text-green-800';
+                  return (
+                    <span
+                      key={ing.name}
+                      className={['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium', chipClass].join(' ')}
+                      title={!ing.recognized ? `Cheffo doesn't recognize "${ing.name}" yet, so it won't be used in the recipe.` : undefined}
+                    >
+                      {ing.warning && <AlertTriangle size={12} aria-hidden="true" />}
+                      {ing.name}
+                      <button type="button" onClick={() => remove(ing.name)} aria-label={`Remove ${ing.name}`} className="hover:opacity-70">
+                        <X size={13} />
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             )}
+
+            {(() => {
+              const unrecognized = ingredients.filter(i => !i.recognized);
+              if (unrecognized.length === 0) return null;
+              return (
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  <p>
+                    Cheffo doesn't recognize <strong>{unrecognized.map(i => `"${i.name}"`).join(', ')}</strong> yet, so {unrecognized.length === 1 ? "it won't be used" : "they won't be used"} when building the recipe. The other ingredients still count.
+                  </p>
+                </div>
+              );
+            })()}
 
             {ingredients.some(i => i.warning) && (
               <div className="mt-3 space-y-1">
