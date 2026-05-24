@@ -49,7 +49,7 @@ async function sendApprovalEmail(args: {
   link: string;
 }): Promise<{ sent: boolean; reason?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
-  const fromAddress = process.env.RESEND_FROM ?? 'Cheffo <vet-approvals@cheffo.app>';
+  const fromAddress = process.env.RESEND_FROM ?? 'Cheffo <vet-approvals@cheffodoggo.com>';
   if (!apiKey) {
     console.warn(`[approvals] RESEND_API_KEY missing — approval link for ${args.vetEmail}: ${args.link}`);
     return { sent: false, reason: 'resend_not_configured' };
