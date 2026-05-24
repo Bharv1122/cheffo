@@ -183,7 +183,7 @@ function findIngredientMatchesByTerms(recipe: Recipe, checkedTerms: string[]): s
 export default function RecipeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getRecipe, toggleFavorite, updateRecipe } = useRecipes();
+  const { getRecipe, toggleFavorite, updateRecipe, loading: recipesLoading } = useRecipes();
   const { getProfile } = useDogProfiles();
   const { unitPreference, setUnitPreference } = useUnitPreference();
   const { primaryApprovalForRecipe } = useApprovals();
@@ -207,6 +207,19 @@ export default function RecipeDetailPage() {
   const aafco = nutrition ? evaluateAafco(nutrition, dogProfile?.lifeStage ?? 'adult') : null;
 
   if (!recipe) {
+    // Don't flash "Recipe not found" while recipes are still hydrating —
+    // useRecipes is a per-component hook, so a freshly-saved recipe from
+    // BowlBuilder isn't in this component's state until the Supabase
+    // fetch completes on mount. (Reported 2026-05-23.)
+    if (recipesLoading) {
+      return (
+        <AppShell active="recipes">
+          <section className="doggo-card p-8 text-center text-[#7f7469]">
+            <p className="text-sm">Loading recipe…</p>
+          </section>
+        </AppShell>
+      );
+    }
     return (
       <AppShell active="recipes">
         <section className="doggo-card p-8 text-center">

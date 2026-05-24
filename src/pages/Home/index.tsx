@@ -38,32 +38,35 @@ export default function HomePage() {
   const { recipes } = useRecipes();
   const { user } = useAuth();
 
-  // First-run welcome modal — shown once per device for users who haven't
-  // created any dogs yet. Gates: not seen + profiles done hydrating + no
+  // First-run welcome modal — shown once per user (not per device) for
+  // users who haven't created any dogs yet. Scoping the seen-flag by
+  // user.id means a second account signing up on the same browser still
+  // gets the welcome. Gates: not seen + profiles done hydrating + no
   // profiles. (CHE-24)
+  const welcomeSeenKey = `${WELCOME_SEEN_KEY}:${user?.id ?? 'guest'}`;
   const [showWelcome, setShowWelcome] = useState(false);
   useEffect(() => {
     if (profilesLoading) return;
-    if (storageGet<boolean>(WELCOME_SEEN_KEY)) return;
+    if (storageGet<boolean>(welcomeSeenKey)) return;
     if (profiles.length > 0) {
-      // Existing user who somehow never saw the modal — flag as seen so we
-      // don't pop it later if they ever delete all their dogs.
-      storageSet(WELCOME_SEEN_KEY, true);
+      // Existing user who has dogs already → flag as seen so we don't pop
+      // it later if they ever delete all their dogs.
+      storageSet(welcomeSeenKey, true);
       return;
     }
     setShowWelcome(true);
-  }, [profilesLoading, profiles.length]);
+  }, [profilesLoading, profiles.length, welcomeSeenKey]);
 
   const dismissWelcome = useCallback(() => {
-    storageSet(WELCOME_SEEN_KEY, true);
+    storageSet(welcomeSeenKey, true);
     setShowWelcome(false);
-  }, []);
+  }, [welcomeSeenKey]);
 
   const startFromWelcome = useCallback(() => {
-    storageSet(WELCOME_SEEN_KEY, true);
+    storageSet(welcomeSeenKey, true);
     setShowWelcome(false);
     navigate('/profiles/new');
-  }, [navigate]);
+  }, [navigate, welcomeSeenKey]);
 
   const userName = user?.email?.split('@')[0] ?? 'there';
   // Gate "first recipe" copy on whether they have any. (CHE-117)
