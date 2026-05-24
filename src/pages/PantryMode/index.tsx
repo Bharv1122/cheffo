@@ -41,25 +41,40 @@ export default function PantryModePage() {
       return;
     }
 
+    // Partition into safe and unsafe — used to be all-or-nothing, which
+    // meant a single restricted item (e.g. "chicken" for a chicken-
+    // allergic dog) silently rejected every other ingredient in the same
+    // comma list. Now we add the safe ones and surface a clear warning
+    // about which were skipped and why.
     const checkedEntries = parsedNames.map(name => ({ name, safety: checkSingleIngredient(name, activeProfile ?? undefined) }));
-    const firstUnsafe = checkedEntries.find(entry => !entry.safety.safe);
+    const safeEntries = checkedEntries.filter(entry => entry.safety.safe);
+    const unsafeEntries = checkedEntries.filter(entry => !entry.safety.safe);
 
-    if (firstUnsafe) {
-      setError(firstUnsafe.safety.errors.join(' '));
-      focusInputSoon();
-      return;
+    if (safeEntries.length > 0) {
+      setIngredients(prev => [
+        ...prev,
+        ...safeEntries.map(({ name, safety }) => ({
+          name,
+          safe: true,
+          warning: safety.warnings[0],
+        })),
+      ]);
     }
 
-    setIngredients(prev => [
-      ...prev,
-      ...checkedEntries.map(({ name, safety }) => ({
-        name,
-        safe: true,
-        warning: safety.warnings[0],
-      })),
-    ]);
-    setInput('');
-    setError('');
+    if (unsafeEntries.length > 0) {
+      const reasons = unsafeEntries
+        .map(entry => `"${entry.name}": ${entry.safety.errors.join(' ')}`)
+        .join(' • ');
+      setError(`Skipped ${unsafeEntries.length} ingredient${unsafeEntries.length === 1 ? '' : 's'} — ${reasons}`);
+    } else {
+      setError('');
+    }
+
+    // Only clear the input box if we actually added something — otherwise
+    // the user's typing is wiped along with their error.
+    if (safeEntries.length > 0) {
+      setInput('');
+    }
     focusInputSoon();
   }
 
