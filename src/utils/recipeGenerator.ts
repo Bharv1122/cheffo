@@ -11,7 +11,7 @@ import {
   TOPPER_TEMPLATES, FULL_MEAL_TEMPLATES, BATCH_TEMPLATES,
   TREAT_TEMPLATES, type RecipeTemplate,
 } from '../data/recipeTemplates';
-import { getIngredientById } from '../data/ingredients';
+import { getIngredientById, findIngredientByName } from '../data/ingredients';
 import { getAllSupplements } from '../data/supplements';
 import {
   calcServing,
@@ -1000,3 +1000,320 @@ const TREAT_INSTRUCTIONS: Record<string, CookingStep[]> = {
     { stepNumber: 5, instruction: 'Serve frozen for a longer-lasting enrichment activity. Store extra filling in the freezer for up to 2 months.' },
   ],
 };
+
+// ════════════════════════════════════════════════════════════════════════════
+// Pantry-only recipe generator
+// ════════════════════════════════════════════════════════════════════════════
+// Unlike `generateRecipe`, this path does NOT pick a pre-built template. It
+// constructs a recipe directly from the user's typed pantry items so the
+// resulting recipe contains exactly those items, in the user's wording —
+// never adding anything they didn't type. Items not in our catalog are
+// categorized via keyword heuristics and given default kcal densities so
+// nutrition math still works.
+
+type PantryCategory = 'protein' | 'carb' | 'vegetable' | 'fat' | 'supplement';
+
+// Keyword → category guesses for items the user typed that aren't in the
+// catalog. Order matters within a category (longer/more specific phrases
+// first), and the protein/fat/supplement lists are checked before vegetable
+// (the fallback). These don't try to cover everything — just the common
+// pantry words a reasonable home cook would type.
+const PANTRY_CATEGORY_KEYWORDS: Array<{ category: PantryCategory; pattern: RegExp }> = [
+  { category: 'supplement', pattern: /\b(supplement|multivitamin|vitamin|kelp|calcium powder|fish oil|cod liver oil|probiotic|glucosamine|chondroitin|msm)\b/i },
+  { category: 'fat',        pattern: /\b(oil|butter|coconut oil|olive oil|avocado oil|flaxseed oil|flax oil|salmon oil|ghee|tallow|lard)\b/i },
+  { category: 'protein',    pattern: /\b(beef|hamburger|burger|ground meat|chicken|turkey|pork|lamb|duck|venison|bison|rabbit|salmon|tuna|sardine|mackerel|whitefish|trout|fish|egg|eggs|liver|heart|kidney|tripe|tofu|tempeh|cottage cheese|greek yogurt|plain yogurt)\b/i },
+  { category: 'carb',       pattern: /\b(rice|brown rice|white rice|oat|oatmeal|rolled oats|quinoa|barley|millet|farro|pasta|noodle|bread|toast|cracker|potato|sweet potato|yam|corn|polenta|tortilla|bun)\b/i },
+];
+
+// Sensible defaults for items not in the catalog. Real numbers vary, but
+// these are close enough for the rough calorie math nutrition cards use.
+const PANTRY_DEFAULT_KCAL_PER_GRAM: Record<PantryCategory, number> = {
+  protein: 2.0,
+  carb: 1.3,
+  vegetable: 0.4,
+  fat: 8.0,
+  supplement: 0,
+};
+
+function titleCasePantry(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .split(/(\s+)/)
+    .map(part => part && /\S/.test(part) ? part.charAt(0).toUpperCase() + part.slice(1) : part)
+    .join('');
+}
+
+function classifyPantryItem(rawName: string): { category: PantryCategory; caloriesPerGram: number; catalogId: string | null } {
+  const catalog = findIngredientByName(rawName);
+  if (catalog) {
+    // 'treat' is a catalog-only category that doesn't map to RecipeIngredient
+    // — collapse to vegetable for our purposes (used for ordering/macros).
+    const cat: PantryCategory = catalog.category === 'treat' ? 'vegetable' : (catalog.category as PantryCategory);
+    return { category: cat, caloriesPerGram: catalog.caloriesPerGram, catalogId: catalog.id };
+  }
+  for (const { category, pattern } of PANTRY_CATEGORY_KEYWORDS) {
+    if (pattern.test(rawName)) {
+      return { category, caloriesPerGram: PANTRY_DEFAULT_KCAL_PER_GRAM[category], catalogId: null };
+    }
+  }
+  // Fallback: assume vegetable. Lowest calorie density, safest assumption for
+  // anything fresh the user might have on hand.
+  return { category: 'vegetable', caloriesPerGram: PANTRY_DEFAULT_KCAL_PER_GRAM.vegetable, catalogId: null };
+}
+
+// Macro-by-weight split used when ≥1 category is present. We only apply the
+// proportions to the categories the user actually typed — e.g. a user with
+// protein + veg only gets 40%:20% rebalanced to 67%:33%, so we use ALL of
+// the daily-gram budget instead of leaving carb/fat shares unallocated.
+const PANTRY_CATEGORY_SHARE: Record<PantryCategory, number> = {
+  protein: 0.40,
+  carb: 0.30,
+  vegetable: 0.20,
+  fat: 0.10,
+  supplement: 0, // supplements are sprinkled in by mass, not as a macro share
+};
+
+function buildPantryRecipeIngredient(
+  displayName: string,
+  category: PantryCategory,
+  catalogId: string | null,
+  amountGrams: number,
+): RecipeIngredient {
+  const grams = Math.max(1, Math.round(amountGrams));
+  const amountCups = gramsToCups(grams);
+  const amountMl = Math.max(1, Math.round(cupsToMl(amountCups)));
+  const amountOz = gramsToOz(grams);
+  const displayBase = {
+    name: displayName,
+    category,
+    amountGrams: grams,
+    amountCups,
+    amountMl,
+  };
+  return {
+    // Catalog ID when we have one (powers swap suggestions + safety
+    // re-checks). Synthetic prefix for unrecognized items so they round-trip
+    // safely without colliding with real catalog IDs.
+    ingredientId: catalogId ?? `pantry:${displayName.toLowerCase().replace(/\s+/g, '_')}`,
+    name: displayName,
+    category,
+    amountGrams: grams,
+    amountCups,
+    amountOz,
+    amountMl,
+    groceryFriendlyAmount: groceryLabel(grams, displayName),
+    displayMetric: formatMetricIngredient(displayBase),
+    displayVolume: formatVolumeIngredient(displayBase),
+  };
+}
+
+function buildPantryInstructions(items: Array<{ displayName: string; category: PantryCategory }>): CookingStep[] {
+  const namesByCat = (cat: PantryCategory) =>
+    items.filter(i => i.category === cat).map(i => i.displayName);
+  const proteins = namesByCat('protein');
+  const carbs = namesByCat('carb');
+  const veggies = namesByCat('vegetable');
+  const fats = namesByCat('fat');
+  const supplements = namesByCat('supplement');
+
+  const allNames = items.map(i => i.displayName).join(', ');
+  const steps: CookingStep[] = [
+    {
+      stepNumber: 1,
+      instruction: `Gather your pantry items: ${allNames}. Weigh or measure according to the portions shown.`,
+      tip: 'Prep everything before you start — pantry recipes go quickly once cooking starts.',
+    },
+  ];
+
+  let step = 2;
+  if (proteins.length) {
+    steps.push({
+      stepNumber: step++,
+      instruction: `Cook the proteins (${proteins.join(', ')}) thoroughly with no salt, oil, or seasoning. Ground meats to 160°F internal, poultry to 165°F.`,
+      durationMinutes: 20,
+      tip: 'Drain any extra fat after cooking, especially with hamburger or ground beef.',
+    });
+  }
+  if (carbs.length) {
+    steps.push({
+      stepNumber: step++,
+      instruction: `Cook the carbs (${carbs.join(', ')}) plain in water — no salt or seasoning. Cook until soft.`,
+      durationMinutes: 20,
+    });
+  }
+  if (veggies.length) {
+    steps.push({
+      stepNumber: step++,
+      instruction: `Prepare the vegetables (${veggies.join(', ')}): steam or lightly boil until just soft. Do not overcook — you want them soft enough for your dog to chew easily.`,
+      durationMinutes: 10,
+      tip: 'Steaming preserves more nutrients than boiling.',
+    });
+  }
+  steps.push({
+    stepNumber: step++,
+    instruction: 'Let everything cool to room temperature before combining. Never add fats, oils, or supplements to hot food — heat can destroy omega-3s and some vitamins.',
+  });
+  steps.push({
+    stepNumber: step++,
+    instruction: `Combine everything in a large bowl${fats.length ? ` and stir in the fats (${fats.join(', ')})` : ''}${supplements.length ? ` plus any supplements (${supplements.join(', ')})` : ''}. Mix gently so everything is evenly distributed.`,
+  });
+  steps.push({
+    stepNumber: step++,
+    instruction: 'Portion into meal-sized servings. Refrigerate up to 3–4 days, or freeze for up to 3 months.',
+  });
+  steps.push({
+    stepNumber: step,
+    instruction: 'Serve at room temperature or slightly warm. Introduce gradually if your dog isn\'t used to homemade food.',
+    tip: 'Pantry recipes use only what you typed — they may not be nutritionally complete on their own. Consider a multivitamin or check with your vet.',
+  });
+  return steps;
+}
+
+export async function generatePantryRecipe(input: {
+  dog: DogProfile;
+  pantryItems: string[]; // raw user-typed names
+}): Promise<Recipe> {
+  const { dog, pantryItems } = input;
+
+  if (pantryItems.length === 0) {
+    throw new Error('Add at least one pantry ingredient before generating a recipe.');
+  }
+
+  // 1. Defense-in-depth safety check (the UI also pre-filters unsafe items
+  //    before they reach this function, but we re-validate here so the
+  //    function is safe to call from anywhere).
+  const safety = validateIngredients(pantryItems, dog);
+  if (!safety.safe) {
+    throw new Error(`Safety check failed: ${safety.errors.join('; ')}`);
+  }
+
+  // 2. Classify each item.
+  const classified = pantryItems.map(raw => {
+    const guess = classifyPantryItem(raw);
+    return {
+      displayName: titleCasePantry(raw),
+      rawName: raw,
+      category: guess.category,
+      caloriesPerGram: guess.caloriesPerGram,
+      catalogId: guess.catalogId,
+    };
+  });
+
+  // 3. Compute daily portion grams (uses default 1.1 kcal/g — matches the
+  //    catalog mid-range; pantry recipes lean on this for the dog's
+  //    calorie target).
+  const baseServing = calcServing(dog);
+  const dailyGrams = baseServing.totalDailyGrams;
+  const dailyKcalTarget = calcDER(dog);
+
+  // 4. Distribute daily grams across categories the user actually typed.
+  const presentCategories = Array.from(new Set(classified.map(i => i.category))) as PantryCategory[];
+  const shareTotal = presentCategories.reduce((sum, c) => sum + PANTRY_CATEGORY_SHARE[c], 0);
+  const adjustedShare: Record<PantryCategory, number> = {
+    protein: 0, carb: 0, vegetable: 0, fat: 0, supplement: 0,
+  };
+  for (const cat of presentCategories) {
+    if (shareTotal > 0 && PANTRY_CATEGORY_SHARE[cat] > 0) {
+      adjustedShare[cat] = PANTRY_CATEGORY_SHARE[cat] / shareTotal;
+    } else {
+      // User typed only supplements (edge case) — split evenly.
+      adjustedShare[cat] = 1 / presentCategories.length;
+    }
+  }
+
+  // 5. Build the ingredient list, distributing grams within each category.
+  const ingredients: RecipeIngredient[] = [];
+  for (const cat of presentCategories) {
+    const itemsInCat = classified.filter(i => i.category === cat);
+    const catGrams = dailyGrams * (adjustedShare[cat] ?? 0);
+    const perItemGrams = Math.max(5, Math.round(catGrams / itemsInCat.length));
+    for (const item of itemsInCat) {
+      ingredients.push(buildPantryRecipeIngredient(item.displayName, item.category, item.catalogId, perItemGrams));
+    }
+  }
+
+  // 6. Compute actual nutrition from the assembled grams + densities.
+  const totalCalories = classified.reduce((sum, item) => {
+    const ing = ingredients.find(i => i.name === item.displayName);
+    return ing ? sum + item.caloriesPerGram * ing.amountGrams : sum;
+  }, 0);
+  const caloriesPerServing = Math.max(1, Math.round(totalCalories / Math.max(1, baseServing.mealsPerDay)));
+  const nutrition = {
+    caloriesPerServing,
+    caloriesPerDay: Math.max(1, Math.round(totalCalories)),
+    isEstimate: true as const,
+  };
+
+  // 7. Pantry mode is a single-day quick recipe, not a weekly batch.
+  const batch = calcBatch(baseServing, '1day');
+
+  // 8. Instructions referencing the user's typed items by name.
+  const instructions = buildPantryInstructions(
+    classified.map(c => ({ displayName: c.displayName, category: c.category }))
+  );
+
+  // 9. Shopping list = exactly the user's items (no auto-added supplements).
+  const shoppingList: ShoppingListItem[] = ingredients.map(ing => ({
+    name: ing.name,
+    displayAmount: ing.displayVolume ?? ing.groceryFriendlyAmount,
+    displayAmountMetric: ing.displayMetric,
+    displayAmountVolume: ing.displayVolume,
+    category: ingCategoryToShopping(ing.category),
+    note: ing.prepNote,
+  }));
+
+  // 10. Compose the Recipe.
+  const restrictedTerms = getDogRestrictedTerms(dog);
+  const proteinName = classified.find(c => c.category === 'protein')?.displayName ?? classified[0].displayName;
+  const recipeName = `${proteinName} Pantry Bowl`;
+
+  const safetyNotes = [
+    ...safety.warnings,
+    'All listed ingredients have been checked against the common toxic foods list for dogs.',
+    ...(restrictedTerms.length ? [`Allergen profile check passed for: ${restrictedTerms.join(', ')}.`] : []),
+    'This is a pantry-style recipe built from the ingredients you typed — it may not be nutritionally complete on its own. Consider a canine multivitamin and check with your vet for ongoing diet plans.',
+    GENERAL_VET_DISCLAIMER,
+  ];
+
+  const now = new Date().toISOString();
+  const baseRecipe: Recipe = {
+    id: generateId(),
+    dogProfileId: dog.id,
+    name: recipeName,
+    description: `A quick pantry recipe for ${dog.name} using ${classified.map(c => c.displayName).join(', ')}. Daily target ~${Math.round(dailyKcalTarget)} kcal.`,
+    type: 'pantry',
+    ingredients,
+    instructions,
+    nutrition,
+    serving: baseServing,
+    batch,
+    supplements: [], // pantry mode = exactly what the user typed
+    storage: {
+      fridgeDays: 3,
+      freezerMonths: 2,
+      thawInstructions: 'Thaw overnight in the refrigerator. Never microwave-thaw.',
+      servingTemperature: 'Room temperature or slightly warm.',
+      portioningNotes: 'Portion into meal-sized airtight containers. Refrigerate up to 3 days, freeze the rest.',
+    },
+    shoppingList,
+    safetyNotes,
+    allergenSafety: {
+      checkedTerms: restrictedTerms,
+      allergenFree: true,
+      warning: undefined,
+      matchedIngredients: [],
+    },
+    isFavorite: false,
+    scaleFactor: 1,
+    createdAt: now,
+    updatedAt: now,
+    vetDisclaimer: GENERAL_VET_DISCLAIMER,
+  } as Recipe;
+
+  const imageUrl = (await generateRecipeImage(baseRecipe)) ?? undefined;
+  return {
+    ...baseRecipe,
+    imageUrl,
+  };
+}

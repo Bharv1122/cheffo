@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Disclaimer } from '../../components/ui/Disclaimer';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
-import { generateRecipe } from '../../utils/recipeGenerator';
+import { generatePantryRecipe } from '../../utils/recipeGenerator';
 import { checkSingleIngredient } from '../../utils/safetyValidator';
 import { findIngredientByName } from '../../data/ingredients';
 
@@ -92,19 +92,16 @@ export default function PantryModePage() {
     if (!activeProfile) { setError('Please add a dog profile first.'); return; }
     if (ingredients.length === 0) { setError('Add at least one ingredient to your pantry.'); return; }
 
-    const pantryIds = ingredients
-      .map(i => findIngredientByName(i.name)?.id)
-      .filter((id): id is string => !!id);
-
     setLoading(true);
     setError('');
     try {
-      const recipe = await generateRecipe({
+      // Pantry mode now builds a recipe from the user's typed items
+      // verbatim — recognized or not — instead of picking a template that
+      // happens to overlap. (Reported 2026-05-23: "want a recipe generated
+      // with the provided pantry items, don't add anything not typed in".)
+      const recipe = await generatePantryRecipe({
         dog: activeProfile,
-        recipeType: 'pantry',
-        preferredProteinIds: pantryIds.slice(0, 2),
-        budgetMode: false,
-        pantryIngredientIds: pantryIds,
+        pantryItems: ingredients.map(i => i.name),
       });
       const saved = await saveRecipe(recipe);
       navigate(`/recipes/${saved.id}`);
@@ -166,7 +163,7 @@ export default function PantryModePage() {
               <div className="flex flex-wrap gap-2">
                 {ingredients.map(ing => {
                   const chipClass = !ing.recognized
-                    ? 'bg-gray-100 text-gray-600 line-through decoration-1'
+                    ? 'bg-stone-100 text-stone-700 border border-dashed border-stone-300'
                     : ing.warning
                       ? 'bg-amber-100 text-amber-800'
                       : 'bg-green-100 text-green-800';
@@ -174,7 +171,7 @@ export default function PantryModePage() {
                     <span
                       key={ing.name}
                       className={['inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium', chipClass].join(' ')}
-                      title={!ing.recognized ? `Cheffo doesn't recognize "${ing.name}" yet, so it won't be used in the recipe.` : undefined}
+                      title={!ing.recognized ? `Cheffo doesn't have "${ing.name}" in its catalog yet, so calorie + category will be a best guess. The recipe will still include it.` : undefined}
                     >
                       {ing.warning && <AlertTriangle size={12} aria-hidden="true" />}
                       {ing.name}
@@ -191,10 +188,10 @@ export default function PantryModePage() {
               const unrecognized = ingredients.filter(i => !i.recognized);
               if (unrecognized.length === 0) return null;
               return (
-                <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs text-stone-700">
+                  <AlertTriangle size={13} className="mt-0.5 shrink-0 text-stone-500" aria-hidden="true" />
                   <p>
-                    Cheffo doesn't recognize <strong>{unrecognized.map(i => `"${i.name}"`).join(', ')}</strong> yet, so {unrecognized.length === 1 ? "it won't be used" : "they won't be used"} when building the recipe. The other ingredients still count.
+                    <strong>{unrecognized.map(i => `"${i.name}"`).join(', ')}</strong> {unrecognized.length === 1 ? "isn't" : "aren't"} in Cheffo's catalog yet, so the calorie estimate will be a best guess. The recipe will still include {unrecognized.length === 1 ? 'it' : 'them'} verbatim — nothing is dropped.
                   </p>
                 </div>
               );
