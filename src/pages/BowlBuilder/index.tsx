@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChefHat } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
@@ -15,6 +15,11 @@ import type { RecipeType } from '../../types/recipe';
 
 export default function BowlBuilderPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Set by /profiles/new after the user saves their very first dog (CHE-24)
+  // so we can greet them with a "Now let's make a recipe for X" line instead
+  // of dropping them on a generic form.
+  const welcomeDogName = searchParams.get('welcome');
   const { saveRecipe } = useRecipes();
   const { activeProfile, profiles, loading: profilesLoading } = useDogProfiles();
 
@@ -57,6 +62,15 @@ export default function BowlBuilderPage() {
     <>
       <Header title="Bowl Builder" backTo="/" />
       <PageWrapper>
+        {welcomeDogName && (
+          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#f4ddc1] bg-[#fff8ee] p-4">
+            <ChefHat size={18} className="mt-0.5 shrink-0 text-[#f97316]" aria-hidden="true" />
+            <p className="text-sm text-[#7e6b54]">
+              <strong className="font-semibold text-[#5b4a37]">Welcome!</strong>{' '}
+              Now let's make a recipe for {welcomeDogName}. Pick a type below and Cheffo handles the rest.
+            </p>
+          </div>
+        )}
         <div className="mb-4">
           <h2 className="text-lg font-bold text-[#1C1917]">Build Your Bowl</h2>
           <p className="text-sm text-[#78716C] mt-1">

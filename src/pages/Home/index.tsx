@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calculator,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useApprovals } from '../../hooks/useApprovals';
@@ -20,6 +21,7 @@ import { getRecipePhoto } from '../../utils/recipeInsights';
 import { storageGet, storageSet } from '../../utils/storage';
 
 const APPROVALS_LAST_SEEN_KEY = 'approvals-last-seen';
+const WELCOME_SEEN_KEY = 'onboarding-seen';
 
 const QUICK_ACTIONS = [
   { label: 'Full Meals', desc: 'Create complete balanced homemade recipes', icon: <ChefHat size={18} />, to: '/bowl-builder', color: 'bg-[#fff0de] text-[#f97316]' },
@@ -32,9 +34,36 @@ const QUICK_ACTIONS = [
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { profiles } = useDogProfiles();
+  const { profiles, loading: profilesLoading } = useDogProfiles();
   const { recipes } = useRecipes();
   const { user } = useAuth();
+
+  // First-run welcome modal — shown once per device for users who haven't
+  // created any dogs yet. Gates: not seen + profiles done hydrating + no
+  // profiles. (CHE-24)
+  const [showWelcome, setShowWelcome] = useState(false);
+  useEffect(() => {
+    if (profilesLoading) return;
+    if (storageGet<boolean>(WELCOME_SEEN_KEY)) return;
+    if (profiles.length > 0) {
+      // Existing user who somehow never saw the modal — flag as seen so we
+      // don't pop it later if they ever delete all their dogs.
+      storageSet(WELCOME_SEEN_KEY, true);
+      return;
+    }
+    setShowWelcome(true);
+  }, [profilesLoading, profiles.length]);
+
+  const dismissWelcome = useCallback(() => {
+    storageSet(WELCOME_SEEN_KEY, true);
+    setShowWelcome(false);
+  }, []);
+
+  const startFromWelcome = useCallback(() => {
+    storageSet(WELCOME_SEEN_KEY, true);
+    setShowWelcome(false);
+    navigate('/profiles/new');
+  }, [navigate]);
 
   const userName = user?.email?.split('@')[0] ?? 'there';
   // Gate "first recipe" copy on whether they have any. (CHE-117)
@@ -259,6 +288,61 @@ export default function HomePage() {
       </section>
 
       <p className="mt-4 text-center text-xs text-[#9c9288]">Your data is private and secure. We never share your information.</p>
+
+      <Modal
+        open={showWelcome}
+        onClose={dismissWelcome}
+        title="Welcome to Cheffo Doggo 🐾"
+        size="md"
+        footer={(
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={dismissWelcome}
+              className="rounded-xl px-3 py-2 text-sm font-semibold text-[#7f7469] hover:text-[#2b2118]"
+            >
+              I'll explore first
+            </button>
+            <Button onClick={startFromWelcome}>Add Your First Dog</Button>
+          </div>
+        )}
+      >
+        <p className="text-sm leading-relaxed text-[#5f5650]">
+          Hi {userName}! Cheffo Doggo makes vet-informed homemade meals for your dog in seconds. Here's what you can do:
+        </p>
+        <ul className="mt-4 space-y-3 text-sm text-[#3a302a]">
+          <li className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff0de] text-[#f97316]">
+              <ShieldCheck size={18} />
+            </span>
+            <span>
+              <strong className="block font-semibold">Safety-checked recipes</strong>
+              <span className="text-[#7f7469]">Every ingredient is screened against your dog's allergies and meds.</span>
+            </span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eaf6ea] text-[#43a365]">
+              <ChefHat size={18} />
+            </span>
+            <span>
+              <strong className="block font-semibold">Personalized portions</strong>
+              <span className="text-[#7f7469]">Calorie math, batch sizing, and shopping lists tuned to your pup.</span>
+            </span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#efe9ff] text-[#7f56d9]">
+              <Sparkles size={18} />
+            </span>
+            <span>
+              <strong className="block font-semibold">Your vet, in the loop</strong>
+              <span className="text-[#7f7469]">Request your own vet's approval on any recipe — they fill out a one-page form.</span>
+            </span>
+          </li>
+        </ul>
+        <p className="mt-4 text-xs text-[#9c9288]">
+          One step to get started: add your dog's profile (weight, age, allergies). Takes about a minute.
+        </p>
+      </Modal>
     </AppShell>
   );
 }
