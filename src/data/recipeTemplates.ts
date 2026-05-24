@@ -216,7 +216,7 @@ export const TOPPER_TEMPLATES: RecipeTemplate[] = [
   {
     id: 'topper_beef_liver_mini',
     name: 'Beef Liver Mini-Topper',
-    description: 'A tiny scoop of seared beef liver with soft spinach — exceptional iron and B12 in a small, controlled portion.',
+    description: 'A tiny scoop of gently cooked beef liver with soft spinach — exceptional iron and B12 in a small, controlled portion.',
     type: 'topper',
     proteinIds: ['beef_liver'],
     carbIds: [],

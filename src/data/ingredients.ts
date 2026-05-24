@@ -208,8 +208,8 @@ export const INGREDIENTS: Ingredient[] = [
     budgetFriendly: true,
     commonAllergen: false,
     whyIncluded: 'Highly nutrient-dense — exceptional source of vitamin A, B12, iron, folate, copper.',
-    prepNotes: 'Sear or boil briefly until just cooked through. Slice or dice thin.',
-    safetyNotes: 'Feed sparingly — no more than ~5% of total daily food due to vitamin A density.',
+    prepNotes: 'Pan-cook or boil through until no pink remains. Slice or dice thin.',
+    safetyNotes: 'Feed sparingly — no more than ~5% of total daily food due to vitamin A density. Always cook through; raw liver risks pathogens.',
     possibleSwaps: ['chicken_liver', 'eggs'],
   },
   {
