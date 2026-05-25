@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, Sparkles } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card } from '../../components/ui/Card';
@@ -8,10 +8,20 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Disclaimer } from '../../components/ui/Disclaimer';
 import { RecipeTypeSelector } from '../../components/recipe/RecipeTypeSelector';
+import { UpgradeModal } from '../../components/paywall/UpgradeModal';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
+import { usePaywall, type PaywallFeature } from '../../hooks/usePaywall';
 import { generateRecipe } from '../../utils/recipeGenerator';
 import type { RecipeType } from '../../types/recipe';
+
+function recipeTypeToPaywallFeature(type: RecipeType): PaywallFeature {
+  if (type === 'full_meal') return 'full_meal';
+  if (type === 'batch_week') return 'batch_week';
+  if (type === 'topper') return 'topper';
+  if (type === 'pantry') return 'pantry';
+  return 'treat';
+}
 
 export default function BowlBuilderPage() {
   const navigate = useNavigate();
@@ -29,6 +39,9 @@ export default function BowlBuilderPage() {
   const [error, setError] = useState('');
 
   const dog = profiles.find(p => p.id === dogId) ?? activeProfile;
+  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium, treatRecipesRemaining } = usePaywall();
+  const paywallFeature = recipeTypeToPaywallFeature(recipeType);
+  const isGenerationBlocked = !canUseFeature(paywallFeature);
 
   // First-run onboarding: if the user has no dog profiles yet, bounce them to
   // profile creation. Replaces the wizard's first-step handholding. (CHE-125)
@@ -40,6 +53,12 @@ export default function BowlBuilderPage() {
 
   async function handleGenerate() {
     if (!dog) { setError('Please add a dog profile first.'); return; }
+    // Paywall gate: free users can make exactly one treat. Everything else
+    // requires Premium. (CHE-36)
+    if (!canUseFeature(paywallFeature)) {
+      requireUpgrade(paywallFeature);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -113,11 +132,47 @@ export default function BowlBuilderPage() {
             <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">{error}</div>
           )}
 
-          <Button fullWidth size="lg" loading={loading} icon={<ChefHat size={18} />} onClick={handleGenerate} disabled={!dog}>
-            {loading ? 'Generating recipe & image…' : 'Generate Recipe'}
+          {!isPremium && isGenerationBlocked && (
+            <div className="rounded-xl border border-[#f4ddc1] bg-[#fff8ee] p-4 text-sm text-[#7e6b54]">
+              <p className="font-semibold text-[#5b4a37] flex items-center gap-1.5">
+                <Sparkles size={14} className="text-[#f97316]" aria-hidden="true" />
+                Premium required
+              </p>
+              <p className="mt-1">
+                {recipeType === 'treat'
+                  ? "You've already made your free treat recipe. Upgrade to make unlimited recipes."
+                  : 'Full meals, batches, toppers, and pantry mode are part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.'}
+              </p>
+            </div>
+          )}
+
+          {!isPremium && !isGenerationBlocked && recipeType === 'treat' && (
+            <p className="rounded-xl border border-[#d6ebda] bg-[#f2fbf4] px-3 py-2 text-xs text-[#4f8f64]">
+              ✨ Free taste: {treatRecipesRemaining} treat recipe remaining. Upgrade for unlimited.
+            </p>
+          )}
+
+          <Button
+            fullWidth
+            size="lg"
+            loading={loading}
+            icon={isGenerationBlocked ? <Sparkles size={18} /> : <ChefHat size={18} />}
+            onClick={handleGenerate}
+            disabled={!dog}
+          >
+            {loading
+              ? 'Generating recipe & image…'
+              : isGenerationBlocked
+                ? 'Upgrade to generate'
+                : 'Generate Recipe'}
           </Button>
         </div>
       </PageWrapper>
+      <UpgradeModal
+        open={upgradePrompt.open}
+        onClose={dismissUpgradePrompt}
+        feature={upgradePrompt.feature}
+      />
     </>
   );
 }
