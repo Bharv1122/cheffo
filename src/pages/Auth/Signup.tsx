@@ -5,6 +5,7 @@ import { AuthLayout } from './AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 
 export default function SignupPage() {
   const { signUp, isAuthenticated, isSupabaseEnabled } = useAuth();
@@ -110,6 +111,10 @@ export default function SignupPage() {
         <Button type="submit" fullWidth size="lg" loading={loading} disabled={!isSupabaseEnabled}>
           Create Account
         </Button>
+
+        <p className="rounded-xl border border-[#e7e5e4] bg-[#fafaf9] px-3 py-2 text-xs leading-relaxed text-[#78716C]">
+          {SHORT_VET_DISCLAIMER}
+        </p>
       </form>
     </AuthLayout>
   );

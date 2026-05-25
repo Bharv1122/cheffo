@@ -9,6 +9,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useAuth } from '../../contexts/AuthContext';
 import { chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../../utils/assistantChat';
+import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 import { recipeFromChatJson, validateChatRecipe } from '../../utils/chatRecipeConverter';
 import { generateId } from '../../utils/storage';
 import type { ChatMessage } from '../../types/assistant';
@@ -252,6 +253,9 @@ export default function AssistantPage() {
       </section>
 
       <section className="mt-4 doggo-card flex h-[62vh] flex-col p-4">
+        <p className="mb-3 rounded-xl border border-[#e7e5e4] bg-[#fafaf9] px-3 py-2 text-xs leading-relaxed text-[#78716C]">
+          {SHORT_VET_DISCLAIMER}
+        </p>
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-[#7f7469]">
             {messages.length} message{messages.length === 1 ? '' : 's'}

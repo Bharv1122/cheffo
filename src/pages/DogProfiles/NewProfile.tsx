@@ -5,6 +5,7 @@ import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { DogProfileForm } from '../../components/dog/DogProfileForm';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
+import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 
 export default function NewProfilePage() {
   const navigate = useNavigate();
@@ -18,10 +19,13 @@ export default function NewProfilePage() {
             new signups by explaining the why up front. (CHE-24) */}
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#f4ddc1] bg-[#fff8ee] p-4">
           <Sparkles size={18} className="mt-0.5 shrink-0 text-[#f97316]" aria-hidden="true" />
-          <p className="text-sm text-[#7e6b54]">
-            <strong className="font-semibold text-[#5b4a37]">Why we ask:</strong>{' '}
-            Cheffo uses weight, age, and allergies to personalize portions and run safety checks on every recipe. Your data stays private and is never shared.
-          </p>
+          <div className="space-y-2 text-sm text-[#7e6b54]">
+            <p>
+              <strong className="font-semibold text-[#5b4a37]">Why we ask:</strong>{' '}
+              Cheffo uses weight, age, and allergies to personalize portions and run safety checks on every recipe. Your data stays private and is never shared.
+            </p>
+            <p className="text-xs text-[#9c8568]">{SHORT_VET_DISCLAIMER}</p>
+          </div>
         </div>
         <DogProfileForm
           onSave={async data => {

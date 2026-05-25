@@ -19,6 +19,7 @@ import { useApprovals } from '../../hooks/useApprovals';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRecipePhoto } from '../../utils/recipeInsights';
 import { storageGet, storageSet } from '../../utils/storage';
+import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 
 const APPROVALS_LAST_SEEN_KEY = 'approvals-last-seen';
 const WELCOME_SEEN_KEY = 'onboarding-seen';
@@ -344,6 +345,9 @@ export default function HomePage() {
         </ul>
         <p className="mt-4 text-xs text-[#9c9288]">
           One step to get started: add your dog's profile (weight, age, allergies). Takes about a minute.
+        </p>
+        <p className="mt-3 rounded-xl border border-[#e7e5e4] bg-[#fafaf9] px-3 py-2 text-xs leading-relaxed text-[#78716C]">
+          {SHORT_VET_DISCLAIMER}
         </p>
       </Modal>
     </AppShell>
