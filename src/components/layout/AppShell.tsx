@@ -18,7 +18,7 @@ import { Button } from '../ui/Button';
 import { FloatingChatHead } from '../chat/FloatingChatHead';
 import { useAuth } from '../../contexts/AuthContext';
 
-type MainNavKey = 'home' | 'recipes' | 'dogs' | 'treats' | 'assistant';
+type MainNavKey = 'home' | 'recipes' | 'dogs' | 'treats' | 'assistant' | 'settings';
 
 interface AppShellProps {
   active: MainNavKey;
@@ -80,13 +80,17 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
             >
               <Bell size={18} aria-hidden="true" />
             </button>
-            <div className="flex items-center gap-2 rounded-full border border-[#eadfce] bg-white px-2 py-1.5">
-              <img src="/cheffo-doggo-logo.png" alt="User" className="h-9 w-9 rounded-full object-cover" />
+            <Link
+              to="/settings"
+              className="flex items-center gap-2 rounded-full border border-[#eadfce] bg-white px-2 py-1.5 hover:bg-[#fff8ef] transition-colors"
+              aria-label="Settings"
+            >
+              <img src="/cheffo-doggo-logo.png" alt="" className="h-9 w-9 rounded-full object-cover" />
               <div className="hidden pr-1 sm:block">
                 <p className="text-sm font-semibold leading-tight text-[#2b2118]">{displayName}</p>
-                <p className="text-xs leading-tight text-[#8b8378]">Dog Parent</p>
+                <p className="text-xs leading-tight text-[#8b8378]">Settings</p>
               </div>
-            </div>
+            </Link>
             {isSupabaseEnabled && (
               <Button
                 variant="ghost"
@@ -146,6 +150,14 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
 
             <Button className="mt-4 w-full" size="sm" icon={<Plus size={16} />} onClick={() => handleMobileNavigate('/bowl-builder')}>
               Start New Bowl
+            </Button>
+            <Button
+              variant="ghost"
+              className="mt-2 w-full justify-center"
+              size="sm"
+              onClick={() => handleMobileNavigate('/settings')}
+            >
+              Settings
             </Button>
             {isSupabaseEnabled && (
               <Button

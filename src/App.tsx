@@ -21,6 +21,7 @@ const Assistant = lazy(() => import('./pages/Assistant'));
 const CookingMode = lazy(() => import('./pages/CookingMode'));
 const VetExport = lazy(() => import('./pages/VetExport'));
 const VetApprove = lazy(() => import('./pages/VetApprove'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 function LoadingFallback() {
   return (
@@ -155,6 +156,14 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <VetExport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />
