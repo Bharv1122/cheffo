@@ -18,6 +18,19 @@ export type ApprovalStatus =
   | 'declined'
   | 'expired';
 
+// Mirrors Stripe's subscription.status enum. `inactive` is our own
+// "never subscribed / fully canceled" sentinel — Stripe doesn't emit it.
+export type SubscriptionStatus =
+  | 'inactive'
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'canceled'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'paused'
+  | 'unpaid';
+
 export type Database = {
   public: {
     Tables: {
@@ -222,6 +235,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      subscriptions: {
+        Row: {
+          user_id: string;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          status: SubscriptionStatus;
+          price_id: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          canceled_at: string | null;
+          trial_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          status?: SubscriptionStatus;
+          price_id?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          trial_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          status?: SubscriptionStatus;
+          price_id?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          trial_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -256,6 +314,10 @@ export type DogProfileUpdate = Database['public']['Tables']['dog_profiles']['Upd
 
 export type UserPreferenceRow = Database['public']['Tables']['user_preferences']['Row'];
 export type UserPreferenceInsert = Database['public']['Tables']['user_preferences']['Insert'];
+
+export type SubscriptionRow = Database['public']['Tables']['subscriptions']['Row'];
+export type SubscriptionInsert = Database['public']['Tables']['subscriptions']['Insert'];
+export type SubscriptionUpdate = Database['public']['Tables']['subscriptions']['Update'];
 
 export type SavedRecipeRow = Database['public']['Tables']['saved_recipes']['Row'];
 export type SavedRecipeInsert = Database['public']['Tables']['saved_recipes']['Insert'];
