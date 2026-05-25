@@ -5,6 +5,7 @@
 
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
 import { hashToken } from '../_lib/approvalToken';
+import { checkIpRateLimit, tooManyRequestsResponse } from '../_lib/rateLimit';
 import { validateIngredients } from '../../src/utils/safetyValidator';
 import { getIngredientById } from '../../src/data/ingredients';
 import type { ApprovalStatus, Json } from '../../src/types/database';
@@ -233,6 +234,9 @@ function decisionToStatus(decision: SubmitBody['decision']): ApprovalStatus | nu
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
+
+  const rateLimit = await checkIpRateLimit(req, 'approvals_submit');
+  if (!rateLimit.allowed) return tooManyRequestsResponse(rateLimit);
 
   let body: SubmitBody;
   try {

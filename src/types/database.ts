@@ -231,6 +231,15 @@ export type Database = {
         Args: { p_user_id: string; p_daily_limit: number };
         Returns: { allowed: boolean; current_count: number }[];
       };
+      check_and_increment_ip_rate_limit: {
+        Args: {
+          p_ip_hash: string;
+          p_scope: string;
+          p_window_seconds: number;
+          p_limit: number;
+        };
+        Returns: { allowed: boolean; current_count: number }[];
+      };
     };
     Enums: {
       [_ in never]: never;

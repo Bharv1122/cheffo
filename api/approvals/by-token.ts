@@ -6,6 +6,7 @@
 
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
 import { hashToken } from '../_lib/approvalToken';
+import { checkIpRateLimit, tooManyRequestsResponse } from '../_lib/rateLimit';
 
 export const config = { runtime: 'edge' };
 
@@ -18,6 +19,9 @@ function jsonResponse(status: number, body: unknown): Response {
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'GET') return jsonResponse(405, { error: 'Method not allowed' });
+
+  const rateLimit = await checkIpRateLimit(req, 'approvals_by_token');
+  if (!rateLimit.allowed) return tooManyRequestsResponse(rateLimit);
 
   const url = new URL(req.url);
   const token = url.searchParams.get('token')?.trim();
