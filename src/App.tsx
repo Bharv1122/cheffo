@@ -22,6 +22,7 @@ const CookingMode = lazy(() => import('./pages/CookingMode'));
 const VetExport = lazy(() => import('./pages/VetExport'));
 const VetApprove = lazy(() => import('./pages/VetApprove'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Pricing = lazy(() => import('./pages/Pricing'));
 
 function LoadingFallback() {
   return (
@@ -164,6 +165,14 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pricing"
+            element={
+              <ProtectedRoute>
+                <Pricing />
               </ProtectedRoute>
             }
           />

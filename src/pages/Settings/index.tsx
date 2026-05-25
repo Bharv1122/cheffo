@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Download, Trash2, AlertTriangle, Mail, Sparkles } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Download, Trash2, AlertTriangle, Mail, Sparkles, CreditCard, Star } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -24,15 +24,48 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { statusLabel: subscriptionStatusLabel, isPremium } = useSubscription();
+  const { statusLabel: subscriptionStatusLabel, isPremium, refresh: refreshSubscription } = useSubscription();
+  const [searchParams] = useSearchParams();
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // After a successful Stripe Checkout the user lands back with ?upgrade=success.
+  // The webhook should already have written into subscriptions — refresh the
+  // hook so the page shows "Active" immediately instead of waiting on the
+  // next mount.
+  const justUpgraded = searchParams.get('upgrade') === 'success';
+  useEffect(() => {
+    if (justUpgraded) void refreshSubscription();
+  }, [justUpgraded, refreshSubscription]);
+
+  async function handleOpenBillingPortal() {
+    setOpeningPortal(true);
+    setPortalError(null);
+    try {
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: await buildAuthHeaders(),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Could not open billing portal.' }));
+        throw new Error(err.error ?? 'Could not open billing portal.');
+      }
+      const { url } = (await response.json()) as { url: string };
+      window.location.href = url;
+    } catch (err) {
+      setPortalError(err instanceof Error ? err.message : 'Could not open billing portal.');
+      setOpeningPortal(false);
+    }
+  }
 
   const userEmail = user?.email ?? '';
   const userEmailLower = userEmail.toLowerCase();
@@ -113,6 +146,50 @@ export default function SettingsPage() {
             <dt className="text-sm text-[#8b8378]">User ID</dt>
             <dd className="text-xs font-mono text-[#6f6459] break-all">{user?.id ?? '—'}</dd>
           </dl>
+        </section>
+
+        <section className="doggo-card p-5">
+          <h2 className="text-base font-semibold text-[#2b2118]">Subscription</h2>
+          {justUpgraded && (
+            <p className="mt-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              You're in — welcome to Cheffo Doggo Premium 🎉
+            </p>
+          )}
+          {portalError && (
+            <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {portalError}
+            </p>
+          )}
+          {isPremium ? (
+            <>
+              <p className="mt-1 text-sm text-[#6f6459]">
+                You're on Cheffo Doggo Premium. Update payment method, view invoices, or cancel anytime.
+              </p>
+              <Button
+                className="mt-4"
+                variant="secondary"
+                icon={<CreditCard size={16} />}
+                loading={openingPortal}
+                onClick={handleOpenBillingPortal}
+              >
+                Manage subscription
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-[#6f6459]">
+                Unlock unlimited personalized recipes, Ask Cheffo Doggo, and the vet-approval flow.
+                $8/mo or $59/yr · 14-day money-back guarantee.
+              </p>
+              <Button
+                className="mt-4"
+                icon={<Star size={16} />}
+                onClick={() => navigate('/pricing')}
+              >
+                Upgrade to Premium
+              </Button>
+            </>
+          )}
         </section>
 
         <section className="doggo-card p-5">
