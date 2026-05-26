@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/layout/BottomNav';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
 
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Signup = lazy(() => import('./pages/Auth/Signup'));
@@ -26,6 +27,7 @@ const Pricing = lazy(() => import('./pages/Pricing'));
 const Help = lazy(() => import('./pages/Help'));
 const Privacy = lazy(() => import('./pages/Legal/Privacy'));
 const Terms = lazy(() => import('./pages/Legal/Terms'));
+const Landing = lazy(() => import('./pages/Landing'));
 
 function LoadingFallback() {
   return (
@@ -38,7 +40,22 @@ function LoadingFallback() {
   );
 }
 
+// Root route: marketing landing for unauthenticated visitors, in-app Home
+// for signed-in users. Same URL (/), different content based on session
+// state — standard SaaS pattern. (CHE-52)
+function RootRoute() {
+  const { isAuthenticated, isSupabaseEnabled, loading } = useAuth();
+  // When Supabase isn't configured (e.g. local dev without env), fall back
+  // to the in-app Home — ProtectedRoute does the same.
+  if (!isSupabaseEnabled) return <Home />;
+  if (loading) return <LoadingFallback />;
+  return isAuthenticated ? <Home /> : <Landing />;
+}
+
 const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/', '/vet-approve/', '/privacy', '/terms'];
+// Routes that don't render the in-app header / bottom nav — landing and legal
+// pages have their own marketing chrome. The Home page at `/` also doesn't
+// (its layout is special); RootRoute switches between Landing and Home.
 const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/vet-approve/', '/privacy', '/terms'];
 
 function AppLayout() {
@@ -61,14 +78,7 @@ function AppLayout() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
 
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/" element={<RootRoute />} />
           <Route
             path="/profiles"
             element={
