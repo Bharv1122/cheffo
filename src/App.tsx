@@ -23,6 +23,7 @@ const VetExport = lazy(() => import('./pages/VetExport'));
 const VetApprove = lazy(() => import('./pages/VetApprove'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Pricing = lazy(() => import('./pages/Pricing'));
+const Help = lazy(() => import('./pages/Help'));
 
 function LoadingFallback() {
   return (
@@ -173,6 +174,14 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <Pricing />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <ProtectedRoute>
+                <Help />
               </ProtectedRoute>
             }
           />

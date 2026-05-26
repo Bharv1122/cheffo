@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Download, Trash2, AlertTriangle, Mail, Sparkles, CreditCard, Star } from 'lucide-react';
+import { Download, Trash2, AlertTriangle, Mail, Sparkles, CreditCard, Star, HelpCircle } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -193,19 +193,29 @@ export default function SettingsPage() {
         </section>
 
         <section className="doggo-card p-5">
-          <h2 className="text-base font-semibold text-[#2b2118]">Contact & feedback</h2>
+          <h2 className="text-base font-semibold text-[#2b2118]">Help & support</h2>
           <p className="mt-1 text-sm text-[#6f6459]">
-            Bug reports, feature ideas, billing questions — drop us a line. We read every email.
+            Check the FAQ for common questions, or email us directly. We read every message.
           </p>
-          <a
-            href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Cheffo Doggo feedback')}&body=${encodeURIComponent(
-              `\n\n---\nUser: ${userEmail || '(not signed in)'}\nUser ID: ${user?.id ?? '—'}`
-            )}`}
-            className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-[#eadfce] bg-white px-4 py-2.5 text-sm font-semibold text-[#2b2118] shadow-sm transition-colors hover:bg-[#fff6ec]"
-          >
-            <Mail size={16} aria-hidden="true" />
-            Email {SUPPORT_EMAIL}
-          </a>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/help')}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#eadfce] bg-white px-4 py-2.5 text-sm font-semibold text-[#2b2118] shadow-sm transition-colors hover:bg-[#fff6ec]"
+            >
+              <HelpCircle size={16} aria-hidden="true" />
+              Browse help center
+            </button>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Cheffo Doggo feedback')}&body=${encodeURIComponent(
+                `\n\n---\nUser: ${userEmail || '(not signed in)'}\nUser ID: ${user?.id ?? '—'}`
+              )}`}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#eadfce] bg-white px-4 py-2.5 text-sm font-semibold text-[#2b2118] shadow-sm transition-colors hover:bg-[#fff6ec]"
+            >
+              <Mail size={16} aria-hidden="true" />
+              Email {SUPPORT_EMAIL}
+            </a>
+          </div>
         </section>
 
         <section className="doggo-card p-5">
