@@ -112,6 +112,13 @@ export default function SignupPage() {
           Create Account
         </Button>
 
+        <p className="text-center text-xs text-[#78716C]">
+          By creating an account you agree to our{' '}
+          <Link to="/terms" className="font-semibold text-[#f97316] hover:text-[#ea6a0c]">Terms of Service</Link>
+          {' '}and{' '}
+          <Link to="/privacy" className="font-semibold text-[#f97316] hover:text-[#ea6a0c]">Privacy Policy</Link>.
+        </p>
+
         <p className="rounded-xl border border-[#e7e5e4] bg-[#fafaf9] px-3 py-2 text-xs leading-relaxed text-[#78716C]">
           {SHORT_VET_DISCLAIMER}
         </p>

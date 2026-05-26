@@ -24,6 +24,8 @@ const VetApprove = lazy(() => import('./pages/VetApprove'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const Help = lazy(() => import('./pages/Help'));
+const Privacy = lazy(() => import('./pages/Legal/Privacy'));
+const Terms = lazy(() => import('./pages/Legal/Terms'));
 
 function LoadingFallback() {
   return (
@@ -36,8 +38,8 @@ function LoadingFallback() {
   );
 }
 
-const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/', '/vet-approve/'];
-const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/vet-approve/'];
+const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/', '/vet-approve/', '/privacy', '/terms'];
+const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/vet-approve/', '/privacy', '/terms'];
 
 function AppLayout() {
   const location = useLocation();
@@ -56,6 +58,8 @@ function AppLayout() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/vet-approve/:token" element={<VetApprove />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
 
           <Route
             path="/"
