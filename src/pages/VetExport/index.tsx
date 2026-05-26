@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Check, Copy, Mail, Printer } from 'lucide-react';
+import { Check, Copy, Mail, Printer, Sparkles, Star } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Button } from '../../components/ui/Button';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
+import { usePaywall } from '../../hooks/usePaywall';
 import { formatRecipeType, formatCalories, formatDate, formatGrams, formatOz } from '../../utils/formatting';
 import type { DogProfile } from '../../types/dog';
 import type { Recipe } from '../../types/recipe';
@@ -72,6 +73,35 @@ export default function VetExportPage() {
   const recipe = getRecipe(id!);
   const dog = recipe ? getProfile(recipe.dogProfileId) : null;
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+  const { canUseFeature, isPremium } = usePaywall();
+
+  // Vet Export is a Premium-only feature — emailing the vet a polished PDF
+  // is part of the paid tier per the M4 tier decision.
+  if (!isPremium && !canUseFeature('vet_export')) {
+    return (
+      <>
+        <Header title="Vet Export" backTo="/recipes" />
+        <PageWrapper>
+          <section className="doggo-card p-8 text-center max-w-xl mx-auto">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#fff0de] text-[#f97316]">
+              <Sparkles size={22} />
+            </div>
+            <h1 className="mt-4 text-xl font-semibold text-[#2b2118]">Vet Export is a Premium feature</h1>
+            <p className="mt-2 text-sm text-[#7f7469]">
+              Generate a printable, vet-ready summary of any recipe — dog profile, ingredients, calorie + portion plan, supplement recommendations, and questions for your vet. Part of Cheffo Doggo Premium.
+            </p>
+            <p className="mt-3 text-xs text-[#8b8378]">
+              $8/mo or $59/yr · 14-day money-back guarantee · cancel anytime
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <Button variant="secondary" onClick={() => navigate(`/recipes/${id}`)}>Back to recipe</Button>
+              <Button icon={<Star size={16} />} onClick={() => navigate('/pricing')}>See plans</Button>
+            </div>
+          </section>
+        </PageWrapper>
+      </>
+    );
+  }
 
   if (!recipe) {
     return (

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Plus, X, AlertTriangle, ChefHat } from 'lucide-react';
+import { ShoppingBag, Plus, X, AlertTriangle, ChefHat, Sparkles } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card } from '../../components/ui/Card';
@@ -8,6 +8,8 @@ import { Button } from '../../components/ui/Button';
 import { Disclaimer } from '../../components/ui/Disclaimer';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
+import { usePaywall } from '../../hooks/usePaywall';
+import { UpgradeModal } from '../../components/paywall/UpgradeModal';
 import { generatePantryRecipe } from '../../utils/recipeGenerator';
 import { checkSingleIngredient } from '../../utils/safetyValidator';
 import { findIngredientByName } from '../../data/ingredients';
@@ -88,9 +90,16 @@ export default function PantryModePage() {
     setIngredients(prev => prev.filter(i => i.name !== name));
   }
 
+  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium } = usePaywall();
+  const pantryAllowed = canUseFeature('pantry');
+
   async function handleGenerate() {
     if (!activeProfile) { setError('Please add a dog profile first.'); return; }
     if (ingredients.length === 0) { setError('Add at least one ingredient to your pantry.'); return; }
+    if (!canUseFeature('pantry')) {
+      requireUpgrade('pantry');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -213,14 +222,30 @@ export default function PantryModePage() {
             Cheffo Doggo will use your pantry ingredients to suggest a safe recipe or topper. If important nutritional components are missing (like calcium), you'll see a reminder. Pantry recipes may not be complete meals on their own.
           </Disclaimer>
 
+          {!isPremium && !pantryAllowed && (
+            <div className="rounded-xl border border-[#f4ddc1] bg-[#fff8ee] p-4 text-sm text-[#7e6b54]">
+              <p className="font-semibold text-[#5b4a37] flex items-center gap-1.5">
+                <Sparkles size={14} className="text-[#f97316]" aria-hidden="true" />
+                Premium required
+              </p>
+              <p className="mt-1">
+                Pantry Mode is part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.
+              </p>
+            </div>
+          )}
+
           <Button
             fullWidth size="lg"
-            icon={<ChefHat size={18} />}
+            icon={!pantryAllowed ? <Sparkles size={18} /> : <ChefHat size={18} />}
             onClick={handleGenerate}
             loading={loading}
             disabled={ingredients.length === 0 || !activeProfile}
           >
-            {loading ? 'Building recipe & image…' : 'Build a Recipe'}
+            {loading
+              ? 'Building recipe & image…'
+              : !pantryAllowed
+                ? 'Upgrade to build'
+                : 'Build a Recipe'}
           </Button>
 
           {!activeProfile && (
@@ -230,6 +255,11 @@ export default function PantryModePage() {
           )}
         </div>
       </PageWrapper>
+      <UpgradeModal
+        open={upgradePrompt.open}
+        onClose={dismissUpgradePrompt}
+        feature={upgradePrompt.feature}
+      />
     </>
   );
 }

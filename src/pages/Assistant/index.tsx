@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, BookmarkPlus, Check, Trash2 } from 'lucide-react';
+import { Send, BookmarkPlus, Check, Trash2, Sparkles } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { MessageContent } from '../../components/chat/MessageContent';
+import { UpgradeModal } from '../../components/paywall/UpgradeModal';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useRecipes } from '../../hooks/useRecipes';
+import { usePaywall } from '../../hooks/usePaywall';
 import { useAuth } from '../../contexts/AuthContext';
 import { chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../../utils/assistantChat';
 import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
@@ -45,6 +47,8 @@ export default function AssistantPage() {
   const [savingRecipeForId, setSavingRecipeForId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<{ id: string; message: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium } = usePaywall();
+  const assistantAllowed = canUseFeature('assistant');
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,6 +57,10 @@ export default function AssistantPage() {
   async function sendMessage(text: string) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
+    if (!canUseFeature('assistant')) {
+      requireUpgrade('assistant');
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: generateId(),
@@ -328,6 +336,18 @@ export default function AssistantPage() {
           <div ref={bottomRef} />
         </div>
 
+        {!isPremium && !assistantAllowed && (
+          <div className="mt-3 rounded-2xl border border-[#f4ddc1] bg-[#fff8ee] p-4 text-sm text-[#7e6b54]">
+            <p className="font-semibold text-[#5b4a37] flex items-center gap-1.5">
+              <Sparkles size={14} className="text-[#f97316]" aria-hidden="true" />
+              Ask Cheffo Doggo is a Premium feature
+            </p>
+            <p className="mt-1">
+              Personalized canine-nutrition chat — portions, supplements, transitions, ingredient swaps — is part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.
+            </p>
+          </div>
+        )}
+
         <div className="mt-3 rounded-2xl border border-[#eadfce] bg-white p-2">
           <div className="mb-2 flex flex-wrap gap-2 px-1">
             {['How do I adjust portions for weight loss?', 'What veggies are safe for dogs?', 'Can I add eggs to recipes?'].map(prompt => (
@@ -350,13 +370,22 @@ export default function AssistantPage() {
                   sendMessage(input);
                 }
               }}
-              placeholder="Ask Cheffo Doggo anything about homemade dog food..."
+              placeholder={assistantAllowed ? 'Ask Cheffo Doggo anything about homemade dog food...' : 'Upgrade to Premium to chat with Cheffo Doggo'}
               className="doggo-input flex-1 border-none"
             />
-            <Button icon={<Send size={15} />} onClick={() => sendMessage(input)} disabled={!input.trim() || loading} />
+            <Button
+              icon={assistantAllowed ? <Send size={15} /> : <Sparkles size={15} />}
+              onClick={() => (assistantAllowed ? sendMessage(input) : requireUpgrade('assistant'))}
+              disabled={loading || (assistantAllowed && !input.trim())}
+            />
           </div>
         </div>
       </section>
+      <UpgradeModal
+        open={upgradePrompt.open}
+        onClose={dismissUpgradePrompt}
+        feature={upgradePrompt.feature}
+      />
     </AppShell>
   );
 }
