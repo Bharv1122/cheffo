@@ -10,16 +10,18 @@ import {
   Package,
   MessageCircle,
   Check,
+  X,
   ArrowRight,
+  Leaf,
 } from 'lucide-react';
 
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
 const VALUE_PROPS = [
   {
-    icon: <ShieldCheck size={20} />,
-    title: 'Safety-checked, every recipe',
-    body: 'Every ingredient runs through a toxic-food block and your dog\'s personal allergy + medication profile. No surprises.',
+    icon: <Leaf size={20} />,
+    title: 'Real food, no fillers',
+    body: 'Whole-food ingredients you\'d cook with yourself — named meats, real produce, simple supplements. No "meat by-products," no rendered protein, no BHA/BHT, no mystery.',
     color: 'bg-[#eaf6ea] text-[#43a365]',
   },
   {
@@ -34,6 +36,24 @@ const VALUE_PROPS = [
     body: 'Request your own veterinarian\'s sign-off on any recipe with one click. They fill out a one-page form in ~60 seconds. Recipe gets a real "Approved by Dr. X DVM" badge.',
     color: 'bg-[#efe9ff] text-[#7f56d9]',
   },
+];
+
+const PROCESSED_INGREDIENTS = [
+  '"Meat by-products" — parts that don\'t make the cut for human food',
+  'Rendered protein — cooked to slurry at high heat, then dried',
+  '"Poultry" or "meat" with no species named on the label',
+  'Ground corn, soybean meal as bulk filler',
+  'BHA, BHT, ethoxyquin (chemical preservatives)',
+  'Artificial colors so kibble "looks" like food',
+];
+
+const REAL_INGREDIENTS = [
+  'Lean chicken, ground turkey, salmon — named, whole-muscle cuts',
+  'Sweet potato, brown rice, quinoa, butternut squash, oats',
+  'Carrots, green beans, spinach, kale, blueberries',
+  'Olive oil, fish oil, ground flaxseed for healthy fats',
+  'Eggshell powder for calcium — no chemical preservatives',
+  'Ingredients you can buy at any grocery store',
 ];
 
 const STEPS = [
@@ -97,18 +117,18 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-[#fff0de] px-3 py-1 text-xs font-semibold text-[#a16b38]">
-            <Sparkles size={12} aria-hidden="true" />
-            Real food first
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf6ea] px-3 py-1 text-xs font-semibold text-[#2f8e56]">
+            <Leaf size={12} aria-hidden="true" />
+            Real human-food ingredients
           </p>
           <h1 className="mt-5 text-4xl font-bold leading-tight text-[#2b2118] sm:text-5xl">
-            Homemade dog food,<br className="hidden sm:inline" />{' '}
-            <span className="text-[#f97316]">built for your dog.</span>
+            From ultra-processed kibble<br className="hidden sm:inline" />{' '}
+            to <span className="text-[#f97316]">homemade human food.</span>
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-[#5f564d]">
-            Vet-informed, lightly-cooked recipes personalized to your dog's weight, age, allergies,
-            and life stage. Cheffo Doggo handles portions, safety checks, and shopping lists —
-            you handle the spatula.
+            Cheffo Doggo turns the same fresh ingredients you cook with — lean chicken, salmon,
+            sweet potato, leafy greens — into personalized, vet-informed meals for your dog.
+            No "meat by-products," no preservatives, no mystery.
           </p>
           <p className="mt-2 italic text-[#7f7469]">
             "Real food first. Supplements only when food can't get there."
@@ -118,7 +138,7 @@ export default function LandingPage() {
               to="/signup"
               className="inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
             >
-              Get started — try a free recipe
+              Make the swap — start free
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
             <Link
@@ -129,6 +149,62 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="mt-4 text-xs text-[#9c9288]">$8/month or $59/year · 14-day money-back guarantee</p>
+        </div>
+      </section>
+
+      {/* Transformation: what's actually in your dog's food? */}
+      <section className="px-4 py-16 bg-white border-y border-[#eadfce]">
+        <div className="mx-auto max-w-5xl">
+          <header className="text-center">
+            <h2 className="text-3xl font-bold text-[#2b2118]">What's actually in your dog's food?</h2>
+            <p className="mt-2 text-[#7f7469] max-w-2xl mx-auto">
+              You wouldn't eat ultra-processed food yourself. Your dog deserves better than the
+              kibble industry's version of fast food.
+            </p>
+          </header>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            {/* Processed side */}
+            <div className="rounded-3xl border border-[#e7e5e4] bg-[#fafaf9] p-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#a3a39e]">
+                Typical commercial dog food
+              </p>
+              <h3 className="mt-2 text-xl font-semibold text-[#5f564d]">Ultra-processed kibble</h3>
+              <ul className="mt-5 space-y-3 text-sm text-[#6f6459]">
+                {PROCESSED_INGREDIENTS.map(item => (
+                  <li key={item} className="flex items-start gap-2.5">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#fee2e2] text-[#b91c1c]">
+                      <X size={11} strokeWidth={3} aria-hidden="true" />
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Real side */}
+            <div className="rounded-3xl border-2 border-[#43a365] bg-[#f2fbf4] p-6 shadow-[0_8px_24px_-12px_rgba(67,163,101,0.35)]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#2f8e56]">
+                A Cheffo Doggo recipe
+              </p>
+              <h3 className="mt-2 text-xl font-semibold text-[#1f5a36]">Real homemade human food</h3>
+              <ul className="mt-5 space-y-3 text-sm text-[#1f5a36]">
+                {REAL_INGREDIENTS.map(item => (
+                  <li key={item} className="flex items-start gap-2.5">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#bfe7cb] text-[#1f5a36]">
+                      <Check size={11} strokeWidth={3} aria-hidden="true" />
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <p className="mt-8 text-center text-base text-[#3a302a]">
+            <strong className="font-semibold">Make the swap.</strong>{' '}
+            Your dog notices. Their coat, energy, digestion, and stool quality usually do too.
+          </p>
         </div>
       </section>
 
