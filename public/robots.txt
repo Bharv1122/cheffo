@@ -1,0 +1,34 @@
+# Cheffo Doggo — robots policy
+# Marketing pages are crawlable; utility and authenticated routes are not.
+
+User-agent: *
+Allow: /
+Allow: /pricing
+Allow: /help
+Allow: /privacy
+Allow: /terms
+
+# Utility / auth routes — no SEO value, sometimes contain query-param state.
+Disallow: /login
+Disallow: /signup
+Disallow: /reset-password
+Disallow: /settings
+
+# In-app routes (require authentication anyway — included for clarity).
+Disallow: /profiles
+Disallow: /recipes
+Disallow: /bowl-builder
+Disallow: /pantry
+Disallow: /treats
+Disallow: /calculator
+Disallow: /assistant
+Disallow: /cook/
+Disallow: /vet-export/
+
+# Per-token vet-approval pages — never to be indexed.
+Disallow: /vet-approve/
+
+# Server-side endpoints.
+Disallow: /api/
+
+Sitemap: https://chef-doggo.vercel.app/sitemap.xml
