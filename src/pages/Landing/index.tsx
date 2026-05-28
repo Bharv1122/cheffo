@@ -138,7 +138,7 @@ export default function LandingPage() {
               to="/signup"
               className="inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
             >
-              Make the swap — start free
+              Try a free treat recipe — no card needed
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
             <Link
@@ -148,7 +148,7 @@ export default function LandingPage() {
               See pricing
             </Link>
           </div>
-          <p className="mt-4 text-xs text-[#9c9288]">$8/month or $59/year · 14-day money-back guarantee</p>
+          <p className="mt-4 text-xs text-[#9c9288]">No payment required for your dog&rsquo;s first treat · $8/month or $59/year after</p>
         </div>
       </section>
 
