@@ -22,8 +22,8 @@ export async function checkIpRateLimit(
   scope: string,
   options: { windowSeconds?: number; limit?: number } = {}
 ): Promise<RateLimitDecision> {
-  const windowSeconds = options.windowSeconds ?? Number(process.env.RATE_LIMIT_WINDOW_SECONDS) || DEFAULT_WINDOW_SECONDS;
-  const limit = options.limit ?? Number(process.env.RATE_LIMIT_PER_WINDOW) || DEFAULT_LIMIT_PER_WINDOW;
+  const windowSeconds = options.windowSeconds ?? (Number(process.env.RATE_LIMIT_WINDOW_SECONDS) || DEFAULT_WINDOW_SECONDS);
+  const limit = options.limit ?? (Number(process.env.RATE_LIMIT_PER_WINDOW) || DEFAULT_LIMIT_PER_WINDOW);
 
   const ipHash = await getRequestIpHash(req);
   if (!ipHash) {
