@@ -41,15 +41,31 @@ const AAFCO_TARGETS = {
   puppy: { proteinMinPct: 22, proteinMaxPct: 32, fatMinPct: 18, fatMaxPct: 35 },
 };
 
+// Category-level macro splits (fraction of calories from protein / fat / carb).
+// These are coarse averages: real meats range from chicken-breast (~85/15/0) to
+// eggs (~33/67/0), but lumping all whole proteins at ~50/45/5 gets us from
+// "biologically impossible 0g fat" to "useful estimate." Per-ingredient overrides
+// can be added later if more precision is needed; for now this matches what most
+// home cooks would see on a nutrition label.
+const MACRO_SPLITS: Record<RecipeIngredient['category'], { protein: number; fat: number; carbs: number }> = {
+  protein: { protein: 0.50, fat: 0.45, carbs: 0.05 },
+  carb: { protein: 0.12, fat: 0.08, carbs: 0.80 },
+  vegetable: { protein: 0.20, fat: 0.05, carbs: 0.75 },
+  fat: { protein: 0.05, fat: 0.95, carbs: 0.00 },
+  supplement: { protein: 0.30, fat: 0.40, carbs: 0.30 },
+  treat: { protein: 0.12, fat: 0.08, carbs: 0.80 },
+};
+
 function getNutritionBreakdown(recipe: Recipe) {
   const categoryCalories = recipe.ingredients.reduce(
     (acc, ingredient) => {
       const source = getIngredientById(ingredient.ingredientId);
       const calories = source ? source.caloriesPerGram * ingredient.amountGrams : 0;
+      const split = MACRO_SPLITS[ingredient.category] ?? MACRO_SPLITS.carb;
 
-      if (ingredient.category === 'protein') acc.protein += calories;
-      else if (ingredient.category === 'fat' || ingredient.category === 'supplement') acc.fat += calories;
-      else acc.carbs += calories;
+      acc.protein += calories * split.protein;
+      acc.fat += calories * split.fat;
+      acc.carbs += calories * split.carbs;
 
       if (ingredient.category === 'carb' || ingredient.category === 'vegetable') {
         acc.fiberGrams += ingredient.amountGrams * 0.03;
@@ -196,7 +212,14 @@ export default function RecipeDetailPage() {
   // values (1/3/5/7/14); the numeric input below lets users pick anything in
   // [BATCH_MIN_DAYS, BATCH_MAX_DAYS]. Display-only — saved recipe data isn't
   // mutated. (CHE-batch-custom)
-  const [batchDays, setBatchDays] = useState<number>(1);
+  // Treats default to 7 days because a single day's allowance of training treats
+  // is typically <15 kcal — too tiny to produce makeable ingredient amounts.
+  // Derived rather than initial state so the default tracks the recipe even when
+  // recipe loads async (useRecipes is per-component and fetches on mount).
+  const [batchDaysOverride, setBatchDaysOverride] = useState<number | null>(null);
+  const defaultBatchDays = recipe?.type === 'treat' ? 7 : 1;
+  const batchDays = batchDaysOverride ?? defaultBatchDays;
+  const setBatchDays = setBatchDaysOverride;
   const [swapError, setSwapError] = useState<string | null>(null);
   const [swapSuccess, setSwapSuccess] = useState<string | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
@@ -204,7 +227,12 @@ export default function RecipeDetailPage() {
   // useMemo dropped intentionally — React Compiler auto-memoizes, and the manual
   // useMemo here triggered its preserve-manual-memoization warning on `recipe`.
   const nutrition = recipe ? getNutritionBreakdown(recipe) : null;
-  const aafco = nutrition ? evaluateAafco(nutrition, dogProfile?.lifeStage ?? 'adult') : null;
+  // AAFCO maintenance targets only apply to complete meals — skip for treats,
+  // which by definition are supplemental and shouldn't be evaluated as the
+  // dog's full nutrition.
+  const aafco = nutrition && recipe && recipe.type !== 'treat'
+    ? evaluateAafco(nutrition, dogProfile?.lifeStage ?? 'adult')
+    : null;
 
   if (!recipe) {
     // Don't flash "Recipe not found" while recipes are still hydrating —
