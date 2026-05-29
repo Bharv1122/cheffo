@@ -212,12 +212,35 @@ export default function RecipeDetailPage() {
   // values (1/3/5/7/14); the numeric input below lets users pick anything in
   // [BATCH_MIN_DAYS, BATCH_MAX_DAYS]. Display-only — saved recipe data isn't
   // mutated. (CHE-batch-custom)
-  // Treats default to 7 days because a single day's allowance of training treats
-  // is typically <15 kcal — too tiny to produce makeable ingredient amounts.
-  // Derived rather than initial state so the default tracks the recipe even when
-  // recipe loads async (useRecipes is per-component and fetches on mount).
+  //
+  // Smart per-type default:
+  //   - 'treat': use the recipe's NATURAL batch size — `batch.totalYieldGrams /
+  //     serving.totalDailyGrams`. Treat recipes are generated to make a real
+  //     cooking session's worth (~1 egg, ~½ cup oats, etc.), so the natural
+  //     batch is how many days that yield covers. Showing "1 day" scaled
+  //     everything down 20–30× → "2 g eggs", "½ tsp oats" — unmakeable.
+  //   - 'batch_week': 7 (matches the model — these are pre-cooked weekly).
+  //   - everything else (full_meal, topper, pantry): 1 day (these are fresh).
+  //
+  // Capped at BATCH_MAX_DAYS to keep the numeric input range valid. User can
+  // still pick any value in [1, 60] via chips/input.
+  //
+  // Derived rather than initial state so the default tracks the recipe even
+  // when recipe loads async (useRecipes is per-component and fetches on mount).
   const [batchDaysOverride, setBatchDaysOverride] = useState<number | null>(null);
-  const defaultBatchDays = recipe?.type === 'treat' ? 7 : 1;
+  const defaultBatchDays = (() => {
+    if (!recipe) return 1;
+    if (recipe.type === 'batch_week') return 7;
+    if (recipe.type === 'treat') {
+      const dailyG = recipe.serving?.totalDailyGrams ?? 0;
+      const totalG = recipe.batch?.totalYieldGrams ?? 0;
+      if (dailyG > 0 && totalG > 0) {
+        return Math.max(BATCH_MIN_DAYS, Math.min(BATCH_MAX_DAYS, Math.round(totalG / dailyG)));
+      }
+      return 7; // fallback if the recipe doesn't have yield data
+    }
+    return 1;
+  })();
   const batchDays = batchDaysOverride ?? defaultBatchDays;
   const setBatchDays = setBatchDaysOverride;
   const [swapError, setSwapError] = useState<string | null>(null);
