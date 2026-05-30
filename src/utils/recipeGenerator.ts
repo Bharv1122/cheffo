@@ -212,6 +212,15 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
   // 4. Build ingredient list
   const ingredients = buildIngredients(template, split, recipeType, dog);
 
+  // 4a. For treats, the batch yield is the actual sum of the fixed treat
+  // ingredients. calcBatch above is derived from the full-meal serving and is
+  // meaningless for a treat (it produced an 856g "yield" for a 150g recipe,
+  // making the "lasts ~N days" label wildly wrong). Override it so the day
+  // count and the displayed amounts stay consistent.
+  if (recipeType === 'treat') {
+    batch.totalYieldGrams = ingredients.reduce((sum, ing) => sum + ing.amountGrams, 0);
+  }
+
   // 4b. Final strict validation before recipe can be shown/saved
   const strictAllergenValidation = validateRecipeAgainstDogRestrictions(ingredients, dog);
   if (!strictAllergenValidation.isSafe) {
@@ -663,7 +672,19 @@ function buildIngredients(
   };
 
   if (recipeType === 'treat') {
-    // treats use small fixed amounts
+    // Treats are baked as a fixed batch worth the effort (~2-3 dozen small
+    // biscuits), NOT scaled to the dog's tiny daily treat allowance — a single
+    // day's allowance is often <15g, which produced unmakeable "2g egg" recipes.
+    // Amounts are category-aware so they land on real cooking measures and the
+    // ratios actually bake (enough binder/bulk relative to egg + fruit).
+    const TREAT_GRAMS_BY_CATEGORY: Record<string, number> = {
+      protein: 100,    // ~2 large eggs / ~3.5 oz meat
+      carb: 120,       // ~1.25 cups oats / flour — the bulk + binder
+      vegetable: 100,  // ~⅔ cup
+      treat: 100,      // fruit add-ins (apple, banana, berries, pumpkin)
+      fat: 15,         // oils are calorie-dense — keep small
+      supplement: 10,  // supplements are measured in small amounts
+    };
     const allIds = [
       ...template.proteinIds, ...template.carbIds,
       ...template.vegetableIds, ...template.supplementIds,
@@ -671,9 +692,9 @@ function buildIngredients(
     allIds.forEach(id => {
       const ing = getIngredientById(id);
       if (!ing) return;
-      const g = 50;
       const cat: RecipeIngredient['category'] =
         ing.category === 'treat' ? 'treat' : ing.category;
+      const g = TREAT_GRAMS_BY_CATEGORY[cat] ?? 80;
       const amountCups = gramsToCups(g);
       const ingredientBase = {
         name: ing.name,
