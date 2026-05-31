@@ -672,29 +672,43 @@ function buildIngredients(
   };
 
   if (recipeType === 'treat') {
-    // Treats are baked as a fixed batch worth the effort (~2-3 dozen small
-    // biscuits), NOT scaled to the dog's tiny daily treat allowance — a single
+    // Treats are made as ONE sensible batch worth the effort (a real tray /
+    // dehydrator load), NOT scaled to the dog's tiny daily allowance — a single
     // day's allowance is often <15g, which produced unmakeable "2g egg" recipes.
-    // Amounts are category-aware so they land on real cooking measures and the
-    // ratios actually bake (enough binder/bulk relative to egg + fruit).
-    const TREAT_GRAMS_BY_CATEGORY: Record<string, number> = {
-      protein: 100,    // ~2 large eggs / ~3.5 oz meat
-      carb: 120,       // ~1.25 cups oats / flour — the bulk + binder
-      vegetable: 100,  // ~⅔ cup
-      treat: 100,      // fruit add-ins (apple, banana, berries, pumpkin)
-      fat: 15,         // oils are calorie-dense — keep small
-      supplement: 10,  // supplements are measured in small amounts
+    //
+    // We target a fixed TOTAL batch and distribute it across whatever
+    // ingredients the treat has, weighted by category. This fixes the
+    // single-ingredient case (e.g. a carrot-only treat now gets a full ~400g
+    // batch, not a lone 100g) AND keeps multi-ingredient ratios sane (the
+    // carb/binder gets the most, oils/supplements stay small).
+    const TREAT_TARGET_BATCH_GRAMS = 400; // ~a tray of treats / ~2-3 dozen biscuits
+    const TREAT_CATEGORY_WEIGHT: Record<string, number> = {
+      carb: 3,        // binder + bulk — the largest share
+      protein: 2,
+      vegetable: 2,
+      treat: 2,       // fruit add-ins (apple, banana, berries, pumpkin)
+      fat: 0.3,       // oils are calorie-dense — small share
+      supplement: 0.2,
     };
     const allIds = [
       ...template.proteinIds, ...template.carbIds,
       ...template.vegetableIds, ...template.supplementIds,
     ];
-    allIds.forEach(id => {
-      const ing = getIngredientById(id);
-      if (!ing) return;
-      const cat: RecipeIngredient['category'] =
-        ing.category === 'treat' ? 'treat' : ing.category;
-      const g = TREAT_GRAMS_BY_CATEGORY[cat] ?? 80;
+    const weighted = allIds
+      .map(id => {
+        const ing = getIngredientById(id);
+        if (!ing) return null;
+        const cat: RecipeIngredient['category'] =
+          ing.category === 'treat' ? 'treat' : ing.category;
+        return { id, ing, cat, weight: TREAT_CATEGORY_WEIGHT[cat] ?? 1 };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+    const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0) || 1;
+
+    weighted.forEach(({ id, ing, cat, weight }) => {
+      // Distribute the target batch by category weight; floor at 10g so a tiny
+      // share (e.g. a supplement) still renders as a real, measurable amount.
+      const g = Math.max(10, Math.round((TREAT_TARGET_BATCH_GRAMS * weight) / totalWeight));
       const amountCups = gramsToCups(g);
       const ingredientBase = {
         name: ing.name,

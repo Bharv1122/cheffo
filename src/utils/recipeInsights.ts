@@ -42,8 +42,14 @@ const REAL_RECIPE_PHOTOS: Record<RecipePhotoKind, RecipePhotoMeta> = {
   treats: {
     kind: 'treats',
     label: 'Treat Recipe',
-    alt: 'Real food photo of homemade baked treats on a tray',
-    src: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=1200&q=80',
+    alt: 'Real food photo of fresh whole-food dog treat ingredients',
+    // NOTE: the previous stock photo here was chocolate-chip cookies — wrong AND
+    // alarming on a dog app (chocolate is toxic to dogs). Treats now classify by
+    // their actual ingredients (see classifyPhotoKind), so this generic fallback
+    // only shows for treats with no protein/veg lead. Points at the same
+    // safe whole-food image as `veggie` until a dedicated dog-treat photo (or the
+    // AI-generated per-recipe image) is in place.
+    src: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
   },
 };
 
@@ -72,13 +78,19 @@ function getRecipeClassifierText(recipe: Recipe): string {
 }
 
 function classifyPhotoKind(recipe: Recipe): RecipePhotoKind {
+  const classifierText = getRecipeClassifierText(recipe);
+  const matchedRule = RECIPE_CLASSIFIER_RULES.find(rule => rule.pattern.test(classifierText));
+
+  // Treats classify by their actual ingredients too — a carrot/sweet-potato
+  // treat should look like produce, a chicken-jerky treat like chicken, etc.
+  // Falling back to 'veggie' (a safe whole-food image) rather than the old
+  // one-size-fits-all baked-cookie photo, which was both inaccurate and showed
+  // chocolate (toxic to dogs). The AI-generated per-recipe image, when present,
+  // overrides all of this in getRecipePhoto.
   if (recipe.type === 'treat') {
-    return 'treats';
+    return matchedRule?.kind ?? 'veggie';
   }
 
-  const classifierText = getRecipeClassifierText(recipe);
-
-  const matchedRule = RECIPE_CLASSIFIER_RULES.find(rule => rule.pattern.test(classifierText));
   return matchedRule?.kind ?? 'veggie';
 }
 
