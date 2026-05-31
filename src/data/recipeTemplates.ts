@@ -18,6 +18,14 @@ export interface RecipeTemplate {
   textureProfile: 'soft' | 'chunky' | 'brothy' | 'any';
   cookTimeMinutes: number;
   budgetFriendly: boolean;
+  // Treats only: real, chef-checked per-ingredient amounts in grams, keyed by
+  // ingredient id. Treats are too heterogeneous (dehydrated single-veg, baked
+  // biscuits, frozen yogurt cups, fruit-with-smear) for a generic runtime
+  // formula to produce sensible quantities, so each treat declares its own
+  // realistic batch. The generator uses these directly; if absent it falls back
+  // to the category-weighted formula. Meals/toppers/batches still use the
+  // calorie-scaled engine and leave this undefined.
+  treatAmountsGrams?: Record<string, number>;
 }
 
 export const TOPPER_TEMPLATES: RecipeTemplate[] = [
@@ -728,6 +736,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: ['peanut_butter'],
+    treatAmountsGrams: { banana: 240, peanut_butter: 48 }, // ~2 bananas + ~3 tbsp PB
     tags: ['frozen', 'peanut butter', 'banana', 'easy', 'beginner'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -744,6 +753,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { eggs: 50, oats: 180, pumpkin: 245 }, // 1 egg + ~2 cups oats + 1 cup pumpkin → ~30 biscuits
     tags: ['baked', 'training treats', 'pumpkin', 'oat', 'beginner'],
     skillLevel: 'beginner',
     textureProfile: 'chunky',
@@ -760,6 +770,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: ['plain_greek_yogurt'],
+    treatAmountsGrams: { plain_greek_yogurt: 245, blueberries: 75 }, // 1 cup yogurt base + ½ cup berries
     tags: ['lick mat', 'frozen', 'yogurt', 'blueberry', 'kong'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -776,6 +787,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: ['carrots'],
     fatIds: [],
     supplementIds: ['plain_greek_yogurt'],
+    treatAmountsGrams: { chicken_breast: 85, white_rice: 80, carrots: 40, plain_greek_yogurt: 30 }, // one celebration bowl, not a big batch
     tags: ['birthday', 'special occasion', 'celebration'],
     skillLevel: 'any',
     textureProfile: 'any',
@@ -792,6 +804,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { eggs: 50, oats: 180, apple: 120 }, // 1 egg + ~2 cups oats + ⅔ cup diced apple
     tags: ['baked', 'apple', 'oat', 'crunchy'],
     skillLevel: 'beginner',
     textureProfile: 'chunky',
@@ -808,6 +821,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { sweet_potato: 450 }, // ~2 large sweet potatoes — dehydrating shrinks them a lot
     tags: ['dehydrated', 'chew', 'one-ingredient', 'sweet potato'],
     skillLevel: 'beginner',
     textureProfile: 'chunky',
@@ -824,6 +838,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: ['peanut_butter'],
+    treatAmountsGrams: { pumpkin: 120, banana: 120, peanut_butter: 32 }, // ½ cup pumpkin + 1 banana + 2 tbsp PB
     tags: ['kong', 'frozen', 'enrichment', 'peanut butter'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -840,6 +855,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { chicken_breast: 85, oats: 135, sweet_potato: 100 }, // 1.5 cups oats bulk + ~3 oz chicken + ¾ cup sweet potato
     tags: ['holiday', 'baked', 'chicken', 'festive', 'special occasion'],
     skillLevel: 'some_experience',
     textureProfile: 'chunky',
@@ -856,6 +872,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: ['plain_greek_yogurt'],
+    treatAmountsGrams: { plain_greek_yogurt: 245, strawberries: 100 }, // 1 cup yogurt base + ~⅔ cup strawberries
     tags: ['frozen', 'summer', 'yogurt', 'strawberry', 'antioxidants'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -872,6 +889,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { watermelon: 300 }, // ~2 cups cubed seedless watermelon
     tags: ['frozen', 'summer', 'hydrating', 'watermelon', 'low-calorie'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -888,6 +906,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { chicken_liver: 115, eggs: 50, oats: 90 }, // ~1 cup liver + 1 egg + 1 cup oats → many tiny training bites
     tags: ['training', 'high-value', 'liver', 'baked', 'tiny-pieces'],
     skillLevel: 'some_experience',
     textureProfile: 'chunky',
@@ -904,6 +923,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { eggs: 50, oats: 180, pear: 120 }, // 1 egg + ~2 cups oats + ⅔ cup grated pear
     tags: ['baked', 'pear', 'oat', 'soft', 'senior-friendly'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -920,6 +940,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: ['carrots'],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { carrots: 400 }, // ~1 lb carrots — dehydrating shrinks them a lot
     tags: ['dehydrated', 'one-ingredient', 'carrot', 'chew', 'budget'],
     skillLevel: 'beginner',
     textureProfile: 'chunky',
@@ -936,6 +957,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { cottage_cheese: 226, blueberries: 75 }, // 1 cup cottage cheese base + ½ cup berries
     tags: ['frozen', 'cottage-cheese', 'blueberry', 'protein', 'summer'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -952,6 +974,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: ['coconut_oil'],
     supplementIds: [],
+    treatAmountsGrams: { banana: 120, oats: 45, coconut_oil: 14 }, // 1 banana + ½ cup oats + 1 tbsp coconut oil
     tags: ['frozen', 'banana', 'coconut', 'easy', 'beginner'],
     skillLevel: 'beginner',
     textureProfile: 'soft',
@@ -968,6 +991,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: ['sunflower_butter'],
+    treatAmountsGrams: { apple: 180, sunflower_butter: 32 }, // 1 apple + 2 tbsp sunbutter (a thin smear, not a scoop)
     tags: ['nut-free', 'apple', 'sunbutter', 'crunchy', 'quick'],
     skillLevel: 'beginner',
     textureProfile: 'chunky',
@@ -984,6 +1008,7 @@ export const TREAT_TEMPLATES: RecipeTemplate[] = [
     vegetableIds: [],
     fatIds: [],
     supplementIds: [],
+    treatAmountsGrams: { eggs: 50, oats: 90, pumpkin: 180 }, // 1 egg + 1 cup oats + ¾ cup pumpkin → one mini cake
     tags: ['baked', 'pumpkin', 'birthday', 'special occasion', 'cake'],
     skillLevel: 'some_experience',
     textureProfile: 'soft',

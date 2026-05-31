@@ -672,27 +672,22 @@ function buildIngredients(
   };
 
   if (recipeType === 'treat') {
-    // Treats are made as ONE sensible batch worth the effort (a real tray /
-    // dehydrator load), NOT scaled to the dog's tiny daily allowance — a single
-    // day's allowance is often <15g, which produced unmakeable "2g egg" recipes.
-    //
-    // We target a fixed TOTAL batch and distribute it across whatever
-    // ingredients the treat has, weighted by category. This fixes the
-    // single-ingredient case (e.g. a carrot-only treat now gets a full ~400g
-    // batch, not a lone 100g) AND keeps multi-ingredient ratios sane (the
-    // carb/binder gets the most, oils/supplements stay small).
-    const TREAT_TARGET_BATCH_GRAMS = 400; // ~a tray of treats / ~2-3 dozen biscuits
+    // Treats use REAL per-recipe amounts declared on the template
+    // (`treatAmountsGrams`), because treats are too heterogeneous (dehydrated
+    // single-veg, baked biscuits, frozen yogurt cups, fruit-with-smear) for a
+    // generic formula to size sensibly — see the chef-checked amounts in
+    // recipeTemplates.ts. If a template predates that data, we fall back to a
+    // category-weighted distribution of a fixed target batch so it's at least
+    // makeable rather than a per-day sliver.
+    const TREAT_TARGET_BATCH_GRAMS = 400; // fallback only: ~a tray of treats
     const TREAT_CATEGORY_WEIGHT: Record<string, number> = {
-      carb: 3,        // binder + bulk — the largest share
-      protein: 2,
-      vegetable: 2,
-      treat: 2,       // fruit add-ins (apple, banana, berries, pumpkin)
-      fat: 0.3,       // oils are calorie-dense — small share
-      supplement: 0.2,
+      carb: 3, protein: 2, vegetable: 2, treat: 2, fat: 0.3, supplement: 0.2,
     };
+    // Include fatIds — previously omitted, which silently dropped fats like
+    // coconut oil from treats (e.g. Banana Coconut Bites).
     const allIds = [
       ...template.proteinIds, ...template.carbIds,
-      ...template.vegetableIds, ...template.supplementIds,
+      ...template.vegetableIds, ...template.fatIds, ...template.supplementIds,
     ];
     const weighted = allIds
       .map(id => {
@@ -704,11 +699,14 @@ function buildIngredients(
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
     const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0) || 1;
+    const templateAmounts = template.treatAmountsGrams;
 
     weighted.forEach(({ id, ing, cat, weight }) => {
-      // Distribute the target batch by category weight; floor at 10g so a tiny
-      // share (e.g. a supplement) still renders as a real, measurable amount.
-      const g = Math.max(10, Math.round((TREAT_TARGET_BATCH_GRAMS * weight) / totalWeight));
+      // Prefer the template's real amount; else distribute the target batch by
+      // category weight (floored at 10g so a tiny share still renders as a real,
+      // measurable amount).
+      const g = templateAmounts?.[id]
+        ?? Math.max(10, Math.round((TREAT_TARGET_BATCH_GRAMS * weight) / totalWeight));
       const amountCups = gramsToCups(g);
       const ingredientBase = {
         name: ing.name,
