@@ -47,8 +47,10 @@ export default function AssistantPage() {
   const [savingRecipeForId, setSavingRecipeForId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<{ id: string; message: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium } = usePaywall();
-  const assistantAllowed = canUseFeature('assistant');
+  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium, isLoading: paywallLoading } = usePaywall();
+  // While subscription state loads, don't show the feature as blocked (a
+  // premium user is briefly isPremium=false otherwise).
+  const assistantAllowed = paywallLoading || canUseFeature('assistant');
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,6 +59,7 @@ export default function AssistantPage() {
   async function sendMessage(text: string) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
+    if (paywallLoading) return; // subscription not resolved yet — ignore click
     if (!canUseFeature('assistant')) {
       requireUpgrade('assistant');
       return;

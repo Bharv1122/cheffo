@@ -34,6 +34,11 @@ export interface UpgradePromptState {
 
 export interface UsePaywallResult {
   isPremium: boolean;
+  // True while subscription state is still loading. Callers must NOT block or
+  // open the upgrade modal while this is true — `isPremium` is false until the
+  // subscription row resolves, so a premium user would otherwise be treated as
+  // free on their first action after page load.
+  isLoading: boolean;
   // True if the user can use this feature right now. Free users get
   // FREE_TREAT_LIMIT treat recipes lifetime; everything else is premium-only.
   canUseFeature: (feature: PaywallFeature) => boolean;
@@ -47,7 +52,7 @@ export interface UsePaywallResult {
 }
 
 export function usePaywall(): UsePaywallResult {
-  const { isPremium } = useSubscription();
+  const { isPremium, loading: isLoading } = useSubscription();
   const { recipes } = useRecipes();
   const [upgradePrompt, setUpgradePrompt] = useState<UpgradePromptState>({ open: false, feature: null });
 
@@ -76,6 +81,7 @@ export function usePaywall(): UsePaywallResult {
 
   return {
     isPremium,
+    isLoading,
     canUseFeature,
     requireUpgrade,
     upgradePrompt,

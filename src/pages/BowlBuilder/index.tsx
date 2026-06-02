@@ -39,9 +39,11 @@ export default function BowlBuilderPage() {
   const [error, setError] = useState('');
 
   const dog = profiles.find(p => p.id === dogId) ?? activeProfile;
-  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium, treatRecipesRemaining } = usePaywall();
+  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium, isLoading: paywallLoading, treatRecipesRemaining } = usePaywall();
   const paywallFeature = recipeTypeToPaywallFeature(recipeType);
-  const isGenerationBlocked = !canUseFeature(paywallFeature);
+  // Don't treat "subscription still loading" as blocked — otherwise a premium
+  // user's first click fires the upgrade modal before isPremium resolves.
+  const isGenerationBlocked = !paywallLoading && !canUseFeature(paywallFeature);
 
   // First-run onboarding: if the user has no dog profiles yet, bounce them to
   // profile creation. Replaces the wizard's first-step handholding. (CHE-125)
@@ -52,6 +54,9 @@ export default function BowlBuilderPage() {
   }, [profilesLoading, profiles.length, navigate]);
 
   async function handleGenerate() {
+    // Subscription state not loaded yet — ignore the click rather than firing
+    // the upgrade modal against a not-yet-known premium status.
+    if (paywallLoading) return;
     if (!dog) { setError('Please add a dog profile first.'); return; }
     // Paywall gate: free users can make exactly one treat. Everything else
     // requires Premium. (CHE-36)
@@ -155,16 +160,18 @@ export default function BowlBuilderPage() {
           <Button
             fullWidth
             size="lg"
-            loading={loading}
+            loading={loading || paywallLoading}
             icon={isGenerationBlocked ? <Sparkles size={18} /> : <ChefHat size={18} />}
             onClick={handleGenerate}
-            disabled={!dog}
+            disabled={!dog || paywallLoading}
           >
             {loading
               ? 'Generating recipe & image…'
-              : isGenerationBlocked
-                ? 'Upgrade to generate'
-                : 'Generate Recipe'}
+              : paywallLoading
+                ? 'Loading…'
+                : isGenerationBlocked
+                  ? 'Upgrade to generate'
+                  : 'Generate Recipe'}
           </Button>
         </div>
       </PageWrapper>

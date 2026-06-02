@@ -57,7 +57,11 @@ export function useSubscription(): UseSubscriptionResult {
   const userId = user?.id ?? null;
 
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Start true: on first render the subscription row hasn't loaded yet, so
+  // `isPremium` is still false. Consumers (the paywall) must be able to tell
+  // "not premium" apart from "not loaded yet" — otherwise a premium user is
+  // briefly treated as free and the upgrade modal fires on their first click.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
 

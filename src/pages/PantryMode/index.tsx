@@ -90,10 +90,12 @@ export default function PantryModePage() {
     setIngredients(prev => prev.filter(i => i.name !== name));
   }
 
-  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium } = usePaywall();
-  const pantryAllowed = canUseFeature('pantry');
+  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium, isLoading: paywallLoading } = usePaywall();
+  // While subscription state loads, don't show the feature as blocked.
+  const pantryAllowed = paywallLoading || canUseFeature('pantry');
 
   async function handleGenerate() {
+    if (paywallLoading) return; // subscription not resolved yet — ignore click
     if (!activeProfile) { setError('Please add a dog profile first.'); return; }
     if (ingredients.length === 0) { setError('Add at least one ingredient to your pantry.'); return; }
     if (!canUseFeature('pantry')) {

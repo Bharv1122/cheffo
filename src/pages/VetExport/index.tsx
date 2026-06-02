@@ -73,11 +73,13 @@ export default function VetExportPage() {
   const recipe = getRecipe(id!);
   const dog = recipe ? getProfile(recipe.dogProfileId) : null;
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
-  const { canUseFeature, isPremium } = usePaywall();
+  const { canUseFeature, isPremium, isLoading: paywallLoading } = usePaywall();
 
   // Vet Export is a Premium-only feature — emailing the vet a polished PDF
-  // is part of the paid tier per the M4 tier decision.
-  if (!isPremium && !canUseFeature('vet_export')) {
+  // is part of the paid tier per the M4 tier decision. Don't flash the upsell
+  // while subscription state is still loading (premium user is briefly
+  // isPremium=false otherwise).
+  if (!paywallLoading && !isPremium && !canUseFeature('vet_export')) {
     return (
       <>
         <Header title="Vet Export" backTo="/recipes" />
