@@ -113,7 +113,7 @@ function buildPrompt(recipeType: RecipeType, ingredients: RecipeIngredient[], na
     const phrase = joinNames(names.slice(0, 5)) || 'dog-safe whole-food ingredients';
     const form = classifyTreatForm(name, names);
     const styleByForm: Record<TreatForm, string> = {
-      frozen: 'It is a soft, creamy frozen or chilled treat — a smooth yogurt-and-fruit mixture spread in a small dish, silicone mold, or on a rubber lick mat. It is NOT baked: no biscuits, no cookies, no dough, no crust.',
+      frozen: `It is a soft, creamy frozen or chilled treat — a smooth mixture of the ingredients above (${phrase}), spooned or spread into a small dish, silicone mold, or onto a rubber lick mat. Match the real ingredients: cottage cheese stays white and lumpy, not smooth yogurt. It is NOT baked: no biscuits, no cookies, no dough, no crust.`,
       dehydrated: 'It is dried, dehydrated treat pieces — thin, leathery, chewy slices of the ingredient on a plain plate. It is NOT baked dough and NOT biscuits.',
       baked: 'Small, simple home-baked biscuits on a plain plate, plain home baking.',
       nobake: 'Small, simple no-bake treat bites or pieces on a plain plate.',
