@@ -13,6 +13,8 @@ import {
   X,
   ArrowRight,
   Leaf,
+  Clock,
+  Snowflake,
 } from 'lucide-react';
 
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
@@ -54,6 +56,27 @@ const REAL_INGREDIENTS = [
   'Olive oil, fish oil, ground flaxseed for healthy fats',
   'Eggshell powder for calcium — no chemical preservatives',
   'Ingredients you can buy at any grocery store',
+];
+
+const BATCH_BENEFITS = [
+  {
+    icon: <Clock size={20} />,
+    title: 'One session, a whole week',
+    body: 'Set aside an hour. Cook a single big batch instead of prepping a fresh bowl every single night — homemade that actually fits a real schedule.',
+    color: 'bg-[#ffe8cf] text-[#f97316]',
+  },
+  {
+    icon: <Package size={20} />,
+    title: 'Pre-portioned for your dog',
+    body: 'Every batch comes with the exact number of containers and a per-meal portion scaled to your dog’s weight and calories. No daily measuring or guesswork.',
+    color: 'bg-[#eaf6ea] text-[#43a365]',
+  },
+  {
+    icon: <Snowflake size={20} />,
+    title: 'Fridge + freezer, grab and go',
+    body: 'Keep a few days in the fridge, freeze the rest. Thaw, serve, done — with a shopping list so one grocery run covers the whole week.',
+    color: 'bg-[#e8f1ff] text-[#2f6fed]',
+  },
 ];
 
 const STEPS = [
@@ -130,6 +153,9 @@ export default function LandingPage() {
             sweet potato, leafy greens — into personalized, vet-informed meals for your dog.
             No "meat by-products," no preservatives, no mystery.
           </p>
+          <p className="mt-3 text-base font-medium text-[#3a302a]">
+            And homemade doesn’t mean cooking every night — <span className="text-[#f97316] font-semibold">batch a whole week in one session</span>, portion, freeze, and serve.
+          </p>
           <p className="mt-2 italic text-[#7f7469]">
             "Real food first. Supplements only when food can't get there."
           </p>
@@ -205,6 +231,46 @@ export default function LandingPage() {
             <strong className="font-semibold">Make the swap.</strong>{' '}
             Your dog notices. Their coat, energy, digestion, and stool quality usually do too.
           </p>
+        </div>
+      </section>
+
+      {/* Batch cooking: cook once, feed all week */}
+      <section className="px-4 py-16">
+        <div className="mx-auto max-w-5xl">
+          <header className="text-center">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-[#ffe8cf] px-3 py-1 text-xs font-semibold text-[#f97316]">
+              <CalendarDays size={12} aria-hidden="true" />
+              Built for real life
+            </p>
+            <h2 className="mt-4 text-3xl font-bold text-[#2b2118]">Cook once. Feed all week.</h2>
+            <p className="mt-2 text-[#7f7469] max-w-2xl mx-auto">
+              The #1 reason people never switch to homemade is time. So Cheffo Doggo is built
+              around batch cooking — make a full week of real meals in a single session, then
+              just scoop, thaw, and serve.
+            </p>
+          </header>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {BATCH_BENEFITS.map(benefit => (
+              <div key={benefit.title} className="rounded-3xl border border-[#eadfce] bg-white p-6">
+                <div className={['grid h-12 w-12 place-items-center rounded-2xl', benefit.color].join(' ')}>
+                  {benefit.icon}
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-[#2b2118]">{benefit.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#5f564d]">{benefit.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link
+              to="/signup"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
+            >
+              Start your first weekly batch
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
       </section>
 
