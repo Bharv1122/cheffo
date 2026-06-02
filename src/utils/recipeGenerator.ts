@@ -193,7 +193,7 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
   const treatDailyCalorieCap = Math.max(1, Math.round(calcDER(dog) * 0.1));
   const treatDailyGramsCap = Math.max(10, Math.round(treatDailyCalorieCap / 3)); // ~3 kcal/g treat estimate
 
-  const serving = recipeType === 'treat'
+  let serving = recipeType === 'treat'
     ? {
         gramsPerMeal: Math.max(5, Math.round(treatDailyGramsCap / 2)),
         cupsPerMeal: Math.round((Math.max(5, Math.round(treatDailyGramsCap / 2)) / 240) * 10) / 10,
@@ -213,13 +213,27 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
   // 4. Build ingredient list
   const ingredients = buildIngredients(template, split, recipeType, dog);
 
-  // 4a. For treats, the batch yield is the actual sum of the fixed treat
+  // 4a. For treats AND toppers, the batch yield is the actual sum of the built
   // ingredients. calcBatch above is derived from the full-meal serving and is
-  // meaningless for a treat (it produced an 856g "yield" for a 150g recipe,
-  // making the "lasts ~N days" label wildly wrong). Override it so the day
-  // count and the displayed amounts stay consistent.
-  if (recipeType === 'treat') {
-    batch.totalYieldGrams = ingredients.reduce((sum, ing) => sum + ing.amountGrams, 0);
+  // meaningless for these small portions (it produced an 856g "yield" for a
+  // ~77g topper / 150g treat, making the "lasts ~N days" label wildly wrong).
+  // Toppers additionally get a right-sized serving so the detail page shows the
+  // real topper portion (a spoonful added to a meal) instead of the full-meal
+  // "1.8 cup / 428g" values. Nutrition (per-serving over mealsPerDay) is
+  // unaffected — mealsPerDay is unchanged.
+  if (recipeType === 'treat' || recipeType === 'topper') {
+    const actualSum = ingredients.reduce((sum, ing) => sum + ing.amountGrams, 0);
+    batch.totalYieldGrams = actualSum;
+    if (recipeType === 'topper') {
+      const meals = baseServing.mealsPerDay || 2;
+      const perMeal = Math.max(1, Math.round(actualSum / meals));
+      serving = {
+        gramsPerMeal: perMeal,
+        cupsPerMeal: Math.round((perMeal / 240) * 10) / 10,
+        mealsPerDay: meals,
+        totalDailyGrams: actualSum,
+      };
+    }
   }
 
   // 4b. Final strict validation before recipe can be shown/saved
