@@ -13,6 +13,7 @@ import type {
   ShoppingListItem,
 } from '../types/recipe';
 import { calcBatch, calcServing, gramsToCups, gramsPerCupFor, groceryLabel } from './calculator';
+import { findIngredientByName } from '../data/ingredients';
 import { generateRecipeImage } from './recipeImageGenerator';
 import { buildSafetyNotes } from './recipeGenerator';
 import { GENERAL_VET_DISCLAIMER, validateIngredients } from './safetyValidator';
@@ -73,7 +74,12 @@ export async function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: D
 
   const ingredients: RecipeIngredient[] = parsed.ingredients.map(item => {
     const scaledGrams = Math.max(1, Math.round((item.grams || 0) * scaleToDog));
-    const cups = Math.round(gramsToCups(scaledGrams, gramsPerCupFor(slugifyName(item.name))) * 100) / 100;
+    // Density lookup needs a CATALOG id. slugifyName produces "chat:oats",
+    // which never matches the density map keys ("oats"), so it always fell back
+    // to water density. Resolve the free-text name to a catalog ingredient
+    // first; unknown names still fall back to water.
+    const densityId = findIngredientByName(item.name)?.id;
+    const cups = Math.round(gramsToCups(scaledGrams, gramsPerCupFor(densityId)) * 100) / 100;
     return {
       ingredientId: slugifyName(item.name),
       name: item.name,

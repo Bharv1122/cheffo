@@ -31,7 +31,7 @@ function useTimer() {
 export default function CookingModePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getRecipe } = useRecipes();
+  const { getRecipe, loading: recipesLoading } = useRecipes();
   const { unitPreference } = useUnitPreference();
   const recipe = getRecipe(id!);
 
@@ -72,6 +72,20 @@ export default function CookingModePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
+
+  // While the recipe list is still loading (e.g. a direct navigation or page
+  // refresh on /cook/:id), getRecipe returns undefined — show a loading state
+  // instead of flashing "Recipe not found" before the data arrives.
+  if (!recipe && recipesLoading) {
+    return (
+      <div className="min-h-screen bg-[#1C1917] flex items-center justify-center p-6 text-white">
+        <div className="flex flex-col items-center gap-3 text-[#A8A29E]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#574738] border-t-[#F97316]" />
+          <p className="text-sm">Loading recipe…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!recipe) {
     return (
