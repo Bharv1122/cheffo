@@ -82,19 +82,43 @@ function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 }
 
+// Treats are heterogeneous — baked biscuits, frozen yogurt lick-mats,
+// dehydrated chews, no-bake fruit bites. A one-size "home-baked treats" prompt
+// made the model draw biscuits for everything (e.g. a yogurt lick-mat filler
+// rendered as blueberry cookies). Classify the treat's FORM from its name +
+// ingredients so the photo matches what the recipe actually is.
+type TreatForm = 'frozen' | 'dehydrated' | 'baked' | 'nobake';
+
+function classifyTreatForm(name: string, ingredientNames: string[]): TreatForm {
+  const text = `${name} ${ingredientNames.join(' ')}`.toLowerCase();
+  if (/lick ?mat|frozen|froze|yogurt|kong|pup ?sicle|popsicle|smoothie|ice|chill/.test(text)) return 'frozen';
+  if (/dehydrat|chew|jerky|dried|dry|crisp|crackle/.test(text)) return 'dehydrated';
+  if (/biscuit|cookie|bake|baked|muffin|cake|bar|cracker|bites? & oat|oat bites|training (treat|biscuit)/.test(text)) return 'baked';
+  // Soft dairy bases with no baking cue read as chilled/soft, not baked.
+  if (/yogurt|cottage cheese/.test(ingredientNames.join(' ').toLowerCase())) return 'frozen';
+  return 'nobake';
+}
+
 // Build a tightly-constrained image prompt. AI image models drift toward
 // glamorous human food — garnishes, herb sprigs, plating — when asked for
 // "appetizing professional food photography", and they freely swap the
 // protein. So the prompt leads with the recipe's actual protein and
 // explicitly rules out human-meal styling. (CHE-84)
-function buildPrompt(recipeType: RecipeType, ingredients: RecipeIngredient[]): string {
+function buildPrompt(recipeType: RecipeType, ingredients: RecipeIngredient[], name = ''): string {
   const names = ingredients.map(i => i.name.trim().toLowerCase()).filter(Boolean);
   const protein = ingredients.find(i => i.category === 'protein');
   const proteinName = protein?.name.trim().toLowerCase() ?? null;
 
   if (recipeType === 'treat') {
     const phrase = joinNames(names.slice(0, 5)) || 'dog-safe whole-food ingredients';
-    return `A realistic, plain overhead photo of homemade dog treats made with ${phrase}. Small, simple, home-baked treats on a plain plate. Plain home baking — no icing, no decoration, no garnish, no sprinkles. This is pet food, not a human dessert. Natural, even lighting.`;
+    const form = classifyTreatForm(name, names);
+    const styleByForm: Record<TreatForm, string> = {
+      frozen: 'It is a soft, creamy frozen or chilled treat — a smooth yogurt-and-fruit mixture spread in a small dish, silicone mold, or on a rubber lick mat. It is NOT baked: no biscuits, no cookies, no dough, no crust.',
+      dehydrated: 'It is dried, dehydrated treat pieces — thin, leathery, chewy slices of the ingredient on a plain plate. It is NOT baked dough and NOT biscuits.',
+      baked: 'Small, simple home-baked biscuits on a plain plate, plain home baking.',
+      nobake: 'Small, simple no-bake treat bites or pieces on a plain plate.',
+    };
+    return `A realistic, plain overhead photo of a homemade dog treat made with ${phrase}. ${styleByForm[form]} Plain pet food — no icing, no decoration, no garnish, no sprinkles. This is pet food, not a human dessert. Natural, even lighting.`;
   }
 
   const others = names.filter(name => name !== proteinName).slice(0, 4);
@@ -140,8 +164,8 @@ function downscaleToJpeg(dataUri: string): Promise<string> {
   });
 }
 
-export function getRecipeImagePrompt(recipe: Pick<Recipe, 'type' | 'ingredients'>): string {
-  return buildPrompt(recipe.type, recipe.ingredients);
+export function getRecipeImagePrompt(recipe: Pick<Recipe, 'name' | 'type' | 'ingredients'>): string {
+  return buildPrompt(recipe.type, recipe.ingredients, recipe.name);
 }
 
 // Generate a recipe-specific food photo. Returns a small JPEG data URI on
