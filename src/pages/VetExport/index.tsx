@@ -68,7 +68,7 @@ Thank you!`;
 export default function VetExportPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getRecipe } = useRecipes();
+  const { getRecipe, loading: recipesLoading } = useRecipes();
   const { getProfile } = useDogProfiles();
   const recipe = getRecipe(id!);
   const dog = recipe ? getProfile(recipe.dogProfileId) : null;
@@ -99,6 +99,22 @@ export default function VetExportPage() {
               <Button variant="secondary" onClick={() => navigate(`/recipes/${id}`)}>Back to recipe</Button>
               <Button icon={<Star size={16} />} onClick={() => navigate('/pricing')}>See plans</Button>
             </div>
+          </section>
+        </PageWrapper>
+      </>
+    );
+  }
+
+  // Don't flash "Recipe not found" while the recipe list is still loading
+  // (direct nav / refresh on /vet-export/:id).
+  if (!recipe && recipesLoading) {
+    return (
+      <>
+        <Header title="Vet Export" backTo="/recipes" />
+        <PageWrapper>
+          <section className="doggo-card p-8 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#eadfce] border-t-[#f97316]" />
+            <p className="mt-3 text-sm text-[#7f7469]">Loading recipe…</p>
           </section>
         </PageWrapper>
       </>
