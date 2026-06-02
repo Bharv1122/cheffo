@@ -17,6 +17,14 @@ import { getSupabaseAdmin, getUserClient } from '../_lib/supabaseAdmin';
 
 export const config = { runtime: 'edge' };
 
+declare const process: { env: Record<string, string | undefined> };
+
+const STRIPE_API_BASE = 'https://api.stripe.com/v1';
+
+// Stripe statuses that mean a subscription is still live and billable, so it
+// must be cancelled before we erase the account or the user keeps being charged.
+const BILLABLE_STRIPE_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete']);
+
 interface DeleteBody {
   confirm?: unknown;
 }
@@ -56,6 +64,48 @@ export default async function handler(req: Request): Promise<Response> {
     return jsonResponse(400, { error: 'Type your email exactly to confirm account deletion.' });
   }
 
+  const admin = getSupabaseAdmin();
+
+  // Cancel any live Stripe subscription FIRST, before erasing data. A deleted
+  // account must never keep getting billed. If cancellation fails we abort
+  // WITHOUT touching the user's data, so they can resolve billing (or retry)
+  // rather than ending up deleted-but-still-charged with the link gone.
+  const { data: sub } = await admin
+    .from('subscriptions')
+    .select('stripe_subscription_id, status')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (sub?.stripe_subscription_id && BILLABLE_STRIPE_STATUSES.has(sub.status as string)) {
+    if (!stripeSecretKey) {
+      // Misconfigured env (no key) — don't silently leave them billed.
+      console.error('[account/delete] live subscription but STRIPE_SECRET_KEY missing — cannot cancel', { userId: user.id });
+      return jsonResponse(500, {
+        error: 'We could not cancel your subscription automatically. Please cancel it in Settings → Manage subscription first, then delete your account.',
+      });
+    }
+    try {
+      const cancelResp = await fetch(`${STRIPE_API_BASE}/subscriptions/${encodeURIComponent(sub.stripe_subscription_id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${stripeSecretKey}` },
+      });
+      // 404 means Stripe already has no such subscription (already cancelled) —
+      // treat as success and continue with deletion.
+      if (!cancelResp.ok && cancelResp.status !== 404) {
+        const errText = await cancelResp.text().catch(() => '');
+        console.error('[account/delete] Stripe cancel failed:', cancelResp.status, errText);
+        return jsonResponse(502, {
+          error: 'We could not cancel your subscription automatically. Please cancel it in Settings → Manage subscription (or contact support), then try deleting again.',
+        });
+      }
+    } catch (e) {
+      console.error('[account/delete] Stripe cancel threw:', e);
+      return jsonResponse(502, {
+        error: 'We could not reach Stripe to cancel your subscription. Please try again in a moment, or cancel in Settings → Manage subscription first.',
+      });
+    }
+  }
+
   // Delete data first — under RLS the user can only ever delete their own
   // rows, so even if the WHERE clauses were tampered with these are bounded.
   const deletions = await Promise.all([
@@ -64,10 +114,10 @@ export default async function handler(req: Request): Promise<Response> {
     userClient.from('dog_profiles').delete().eq('user_id', user.id),
     userClient.from('user_preferences').delete().eq('user_id', user.id),
   ]);
-  // llm_usage is service-role-managed (no user-side DELETE policy), so we
-  // wipe it via the admin client.
-  const admin = getSupabaseAdmin();
+  // llm_usage and subscriptions are service-role-managed (no user-side DELETE
+  // policy), so we wipe them via the admin client.
   await admin.from('llm_usage').delete().eq('user_id', user.id);
+  await admin.from('subscriptions').delete().eq('user_id', user.id);
 
   const errors = deletions
     .map(r => r.error)

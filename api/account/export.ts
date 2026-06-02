@@ -34,12 +34,13 @@ export default async function handler(req: Request): Promise<Response> {
   // All user-owned tables read in parallel. RLS scopes each query to the
   // calling user, so even if a column filter were missing here we'd still only
   // see this user's rows.
-  const [profiles, recipes, preferences, approvals, llmUsage] = await Promise.all([
+  const [profiles, recipes, preferences, approvals, llmUsage, subscriptions] = await Promise.all([
     userClient.from('dog_profiles').select('*'),
     userClient.from('saved_recipes').select('*'),
     userClient.from('user_preferences').select('*'),
     userClient.from('approvals').select('*'),
     userClient.from('llm_usage').select('*'),
+    userClient.from('subscriptions').select('*'),
   ]);
 
   const bundle = {
@@ -56,7 +57,8 @@ export default async function handler(req: Request): Promise<Response> {
     userPreferences: preferences.data ?? [],
     approvals: approvals.data ?? [],
     llmUsage: llmUsage.data ?? [],
-    errors: [profiles.error, recipes.error, preferences.error, approvals.error, llmUsage.error]
+    subscriptions: subscriptions.data ?? [],
+    errors: [profiles.error, recipes.error, preferences.error, approvals.error, llmUsage.error, subscriptions.error]
       .filter((e): e is Exclude<typeof e, null> => Boolean(e))
       .map(e => ({ message: e.message, code: e.code })),
   };
