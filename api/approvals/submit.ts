@@ -7,6 +7,15 @@ import { getSupabaseAdmin } from '../_lib/supabaseAdmin';
 import { hashToken } from '../_lib/approvalToken';
 import { checkIpRateLimit, tooManyRequestsResponse } from '../_lib/rateLimit';
 import { validateIngredients } from '../../src/utils/safetyValidator';
+import {
+  gramsToCups,
+  gramsPerCupFor,
+  cupsToMl,
+  gramsToOz,
+  groceryLabel,
+  formatMetricIngredient,
+  formatVolumeIngredient,
+} from '../../src/utils/calculator';
 import { getIngredientById } from '../../src/data/ingredients';
 import type { ApprovalStatus, Json } from '../../src/types/database';
 import type { DogProfile } from '../../src/types/dog';
@@ -257,7 +266,10 @@ export default async function handler(req: Request): Promise<Response> {
     return jsonResponse(400, { error: 'You must confirm the e-signature checkbox to submit' });
   }
   const notes = body.notes?.slice(0, MAX_NOTES_CHARS) ?? null;
-  if (status === 'approve_with_notes' && !notes) {
+  // status is the mapped ApprovalStatus ('approved_with_notes'), NOT the raw
+  // decision ('approve_with_notes') — the old comparison never matched, so this
+  // required-notes guard silently never fired.
+  if (status === 'approved_with_notes' && !notes) {
     return jsonResponse(400, { error: 'Notes are required when approving with notes' });
   }
 
@@ -328,14 +340,35 @@ export default async function handler(req: Request): Promise<Response> {
     }
     const currentRecipe = recipeRow.recipe_data as unknown as Recipe;
 
-    const newIngredients: RecipeIngredient[] = edits.map((edit) => ({
-      ingredientId: edit.ingredientId,
-      name: edit.name,
-      category: edit.category,
-      amountGrams: edit.amountGrams,
-      groceryFriendlyAmount: `${edit.amountGrams} g`,
-      prepNote: edit.prepNote,
-    }));
+    const newIngredients: RecipeIngredient[] = edits.map((edit) => {
+      // Populate the same density-aware display fields the generator produces,
+      // so vet-edited recipes don't lose their volume/units (previously these
+      // were left undefined, making US-volume fall back to water density).
+      const amountCups = edit.category === 'supplement'
+        ? undefined
+        : gramsToCups(edit.amountGrams, gramsPerCupFor(edit.ingredientId));
+      const amountMl = amountCups ? cupsToMl(amountCups) : Math.max(1, Math.round(edit.amountGrams));
+      const displayBase = {
+        name: edit.name,
+        category: edit.category,
+        amountGrams: edit.amountGrams,
+        amountCups,
+        amountMl,
+      };
+      return {
+        ingredientId: edit.ingredientId,
+        name: edit.name,
+        category: edit.category,
+        amountGrams: edit.amountGrams,
+        amountCups,
+        amountMl,
+        amountOz: gramsToOz(edit.amountGrams),
+        groceryFriendlyAmount: groceryLabel(edit.amountGrams, edit.name),
+        displayMetric: formatMetricIngredient(displayBase),
+        displayVolume: formatVolumeIngredient(displayBase),
+        prepNote: edit.prepNote,
+      };
+    });
 
     // Recompute nutrition — catalog ingredients use their known caloriesPerGram;
     // "Other..." items use a 1.5 kcal/g default (rough average for mixed
@@ -367,7 +400,9 @@ export default async function handler(req: Request): Promise<Response> {
       shoppingList: [
         ...newIngredients.map((ing) => ({
           name: ing.name,
-          displayAmount: `${ing.amountGrams} g`,
+          displayAmount: ing.displayVolume ?? ing.groceryFriendlyAmount ?? `${ing.amountGrams} g`,
+          displayAmountMetric: ing.displayMetric,
+          displayAmountVolume: ing.displayVolume,
           category: mapIngredientCategoryToShopping(ing.category),
           note: ing.prepNote,
         })),
