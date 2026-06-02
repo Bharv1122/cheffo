@@ -95,6 +95,7 @@ export default function ResetPasswordPage() {
             icon={<KeyRound size={16} />}
             value={newPassword}
             onChange={event => setNewPassword(event.target.value)}
+            autoComplete="new-password"
             required
           />
           <Input
@@ -104,6 +105,7 @@ export default function ResetPasswordPage() {
             icon={<KeyRound size={16} />}
             value={confirmPassword}
             onChange={event => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
             required
           />
 
@@ -123,6 +125,7 @@ export default function ResetPasswordPage() {
             icon={<Mail size={16} />}
             value={email}
             onChange={event => setEmail(event.target.value)}
+            autoComplete="email"
             required
           />
 

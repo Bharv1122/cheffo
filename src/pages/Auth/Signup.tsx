@@ -75,6 +75,7 @@ export default function SignupPage() {
           icon={<Mail size={16} />}
           value={email}
           onChange={event => setEmail(event.target.value)}
+          autoComplete="email"
           required
         />
 
@@ -85,6 +86,7 @@ export default function SignupPage() {
           icon={<KeyRound size={16} />}
           value={password}
           onChange={event => setPassword(event.target.value)}
+          autoComplete="new-password"
           required
           hint="Tip: use a unique password you do not reuse elsewhere."
         />
@@ -96,6 +98,7 @@ export default function SignupPage() {
           icon={<KeyRound size={16} />}
           value={confirmPassword}
           onChange={event => setConfirmPassword(event.target.value)}
+          autoComplete="new-password"
           required
         />
 

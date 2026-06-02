@@ -59,6 +59,7 @@ export default function LoginPage() {
           icon={<Mail size={16} />}
           value={email}
           onChange={event => setEmail(event.target.value)}
+          autoComplete="email"
           required
         />
 
@@ -69,6 +70,7 @@ export default function LoginPage() {
           icon={<KeyRound size={16} />}
           value={password}
           onChange={event => setPassword(event.target.value)}
+          autoComplete="current-password"
           required
         />
 
