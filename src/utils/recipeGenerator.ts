@@ -1041,6 +1041,55 @@ const TREAT_INSTRUCTIONS: Record<string, CookingStep[]> = {
     { stepNumber: 4, instruction: 'Freeze for at least 4 hours or overnight.', durationMinutes: 240 },
     { stepNumber: 5, instruction: 'Serve frozen for a longer-lasting enrichment activity. Store extra filling in the freezer for up to 2 months.' },
   ],
+  // ── Added so these non-baked treats stop inheriting the baked default
+  // (which told users to "preheat oven / bake 20–25 min" for raw/frozen
+  // treats). v1 instructions — REVIEW-REQUIRED for chef sign-off.
+  treat_sunbutter_apple_bites: [
+    { stepNumber: 1, instruction: 'Core the apple and remove all seeds and stem, then slice into thin rounds or small chunks.', tip: 'Apple seeds contain trace cyanide — never include the core or seeds.' },
+    { stepNumber: 2, instruction: 'Spread a thin smear of xylitol-free sunflower butter onto each apple piece.', tip: 'Check the label — the sunflower butter must be xylitol-free.' },
+    { stepNumber: 3, instruction: 'Optional: chill in the fridge for 15 minutes to firm up the smear.' },
+    { stepNumber: 4, instruction: 'Serve fresh. Best eaten the same day; refrigerate any leftovers and use within 2 days.' },
+  ],
+  treat_strawberry_yogurt_pops: [
+    { stepNumber: 1, instruction: 'Hull and mash fresh strawberries in a bowl.' },
+    { stepNumber: 2, instruction: 'Stir the mashed strawberries into plain Greek yogurt until combined.' },
+    { stepNumber: 3, instruction: 'Spoon into silicone molds or an ice-cube tray.' },
+    { stepNumber: 4, instruction: 'Freeze for at least 2–3 hours until solid.', durationMinutes: 180 },
+    { stepNumber: 5, instruction: 'Serve frozen, straight from the freezer. Store in the freezer for up to 2 months.' },
+  ],
+  treat_watermelon_pupsicles: [
+    { stepNumber: 1, instruction: 'Remove any seeds and the rind, then cube the seedless watermelon.' },
+    { stepNumber: 2, instruction: 'Puree the watermelon in a blender until smooth — no added sugar or juice.' },
+    { stepNumber: 3, instruction: 'Pour into an ice-cube tray or small silicone molds.' },
+    { stepNumber: 4, instruction: 'Freeze for 2–3 hours until solid.', durationMinutes: 180 },
+    { stepNumber: 5, instruction: 'Serve frozen. Store in the freezer for up to 2 months.' },
+  ],
+  treat_cottage_berry_cups: [
+    { stepNumber: 1, instruction: 'Stir plain low-fat cottage cheese and blueberries together, lightly mashing the berries.' },
+    { stepNumber: 2, instruction: 'Spoon into small silicone cups or an ice-cube tray.' },
+    { stepNumber: 3, instruction: 'Freeze for 2–3 hours until firm.', durationMinutes: 180 },
+    { stepNumber: 4, instruction: 'Serve frozen or slightly thawed. Store in the freezer for up to 2 months.' },
+  ],
+  treat_banana_coconut_bites: [
+    { stepNumber: 1, instruction: 'Slice the banana into coins about ½ inch thick.' },
+    { stepNumber: 2, instruction: 'Gently melt a small amount of coconut oil, then dip each banana coin.' },
+    { stepNumber: 3, instruction: 'Roll the coins in plain rolled oats to coat.' },
+    { stepNumber: 4, instruction: 'Place on a parchment-lined tray and freeze for 1–2 hours until set.', durationMinutes: 120 },
+    { stepNumber: 5, instruction: 'Serve frozen. Store in the freezer for up to 2 months — a small handful is plenty.' },
+  ],
+  treat_carrot_pup_sticks: [
+    { stepNumber: 1, instruction: 'Wash and peel the carrots, then cut into sticks or thin rounds.' },
+    { stepNumber: 2, instruction: 'Option A — Oven: bake at 225°F (105°C) for 2–3 hours, flipping halfway, until dry and chewy.', durationMinutes: 180, tip: 'Low and slow keeps them chewy rather than burnt.' },
+    { stepNumber: 3, instruction: 'Option B — Dehydrator: dehydrate at 135°F for 6–8 hours.' },
+    { stepNumber: 4, instruction: 'Cool completely. Store in an airtight container; refrigerate for a longer shelf life.' },
+  ],
+  treat_birthday_bowl: [
+    { stepNumber: 1, instruction: 'Cook the protein thoroughly with no seasoning, and cook any grains plain in water. Let everything cool.', tip: 'No salt, oil, or spices — keep it plain and dog-safe.' },
+    { stepNumber: 2, instruction: 'Lightly steam or soften the vegetables until easy to chew.' },
+    { stepNumber: 3, instruction: 'Combine the cooled protein, grains, and vegetables in a bowl.' },
+    { stepNumber: 4, instruction: 'Top with a dollop of plain Greek yogurt "frosting" and a blueberry.' },
+    { stepNumber: 5, instruction: 'Serve as a one-time celebration portion, not a daily meal. Refrigerate leftovers and use within 3 days.' },
+  ],
 };
 
 // ════════════════════════════════════════════════════════════════════════════
