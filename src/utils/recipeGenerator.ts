@@ -304,8 +304,8 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
 function estimateNutrition(
   ingredients: RecipeIngredient[],
   recipeType: RecipeType,
-  serving: { mealsPerDay: number },
-  batch: { numberOfMeals: number },
+  serving: { mealsPerDay: number; gramsPerMeal: number },
+  batch: { numberOfMeals: number; totalYieldGrams: number },
   treatDailyCalorieCap: number
 ) {
   const totalCalories = ingredients.reduce((sum, ingredient) => {
@@ -315,9 +315,17 @@ function estimateNutrition(
   }, 0);
 
   if (recipeType === 'treat') {
+    // For treats, caloriesPerServing/caloriesPerDay represent the dog's SAFE
+    // DAILY TREAT BUDGET (the cap), used by RecipeCard ("Treat cap"), Vet
+    // Export, and re-approval logic. Separately compute the ACTUAL energy
+    // content of one serving from the real ingredient grams so the detail page
+    // can show "what's in it" alongside "how much is safe."
+    const energyPerGram = batch.totalYieldGrams > 0 ? totalCalories / batch.totalYieldGrams : 0;
+    const treatContentPerServing = Math.max(1, Math.round(energyPerGram * serving.gramsPerMeal));
     return {
       caloriesPerServing: Math.max(1, Math.round(treatDailyCalorieCap / serving.mealsPerDay)),
       caloriesPerDay: treatDailyCalorieCap,
+      treatContentPerServing,
       isEstimate: true as const,
     };
   }

@@ -29,6 +29,12 @@ export interface NutritionEstimate {
   caloriesPerServing: number;
   caloriesPerDay: number;
   isEstimate: true;
+  // Treats only: the ACTUAL energy content of one serving (computed from
+  // ingredient grams), distinct from caloriesPerServing/caloriesPerDay which
+  // for treats represent the dog's SAFE DAILY TREAT BUDGET (the cap), not the
+  // energy in the treat. Lets the detail page show both "what's in it" and
+  // "how much is safe." Undefined on older treats and on non-treat recipes.
+  treatContentPerServing?: number;
 }
 
 export interface ServingInfo {

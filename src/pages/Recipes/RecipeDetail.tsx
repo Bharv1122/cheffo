@@ -77,7 +77,15 @@ function getNutritionBreakdown(recipe: Recipe) {
   );
 
   const recipeTotalCalories = Math.max(1, categoryCalories.protein + categoryCalories.fat + categoryCalories.carbs);
-  const caloriesPerCup = Math.max(1, recipe.nutrition.caloriesPerServing);
+  // For treats, scale macros to the ACTUAL per-serving energy content (not the
+  // safe-budget figure stored in caloriesPerServing). Older treats without the
+  // content field fall back to caloriesPerServing.
+  const caloriesPerCup = Math.max(
+    1,
+    recipe.type === 'treat'
+      ? recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing
+      : recipe.nutrition.caloriesPerServing
+  );
   const scale = caloriesPerCup / recipeTotalCalories;
 
   const proteinCalPerCup = categoryCalories.protein * scale;
@@ -568,7 +576,11 @@ export default function RecipeDetailPage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-[#f4eef9] p-3 text-sm"><p className="font-semibold">Life Stage</p><p className="text-[#7f7469]">Custom</p></div>
               <div className="rounded-2xl bg-[#fff4ea] p-3 text-sm"><p className="font-semibold">Portion Size</p><p className="text-[#7f7469]">{recipe.serving.cupsPerMeal.toFixed(1)} cup</p></div>
-              <div className="rounded-2xl bg-[#fff0f0] p-3 text-sm"><p className="font-semibold">Calories/Cup</p><p className="text-[#7f7469]">{recipe.nutrition.caloriesPerServing} kcal</p></div>
+              {recipe.type === 'treat' ? (
+                <div className="rounded-2xl bg-[#fff0f0] p-3 text-sm"><p className="font-semibold">Energy/Serving</p><p className="text-[#7f7469]">{recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing} kcal</p></div>
+              ) : (
+                <div className="rounded-2xl bg-[#fff0f0] p-3 text-sm"><p className="font-semibold">Calories/Cup</p><p className="text-[#7f7469]">{recipe.nutrition.caloriesPerServing} kcal</p></div>
+              )}
               <div className="rounded-2xl bg-[#eef8ee] p-3 text-sm"><p className="font-semibold">Prep Time</p><p className="text-[#7f7469]">{prepTime} min</p></div>
               <div className="rounded-2xl bg-[#fff4ea] p-3 text-sm"><p className="font-semibold">Cook Time</p><p className="text-[#7f7469]">{cookTime} min</p></div>
               <div className="rounded-2xl bg-[#edf4ff] p-3 text-sm"><p className="font-semibold">Batch Yield</p><p className="text-[#7f7469]">{batchLabel}</p></div>
@@ -581,20 +593,35 @@ export default function RecipeDetailPage() {
       <section className="mt-4 doggo-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-[1.35rem] font-semibold">Nutrition Facts</h2>
-          <span className="rounded-full bg-[#fff1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a16b38]">Estimate · per cup</span>
+          <span className="rounded-full bg-[#fff1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a16b38]">{recipe.type === 'treat' ? 'Estimate · per serving' : 'Estimate · per cup'}</span>
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[260px_1fr]">
           {/* kcal cards */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-1 lg:grid-cols-1">
-            <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
-              <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerCup ?? recipe.nutrition.caloriesPerServing}</p>
-              <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per cup</p>
-            </div>
-            <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
-              <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerDay ?? '-'}</p>
-              <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per day</p>
-            </div>
+            {recipe.type === 'treat' ? (
+              <>
+                <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
+                  <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerCup ?? recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per serving</p>
+                </div>
+                <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
+                  <p className="text-3xl font-bold text-[#2b2118]">{recipe.nutrition.caloriesPerDay}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">max kcal/day in treats</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
+                  <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerCup ?? recipe.nutrition.caloriesPerServing}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per cup</p>
+                </div>
+                <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
+                  <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerDay ?? '-'}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per day</p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Macro table */}
