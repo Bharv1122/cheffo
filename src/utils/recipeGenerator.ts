@@ -208,7 +208,17 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     ? treatDailyGramsCap
     : batch.totalYieldGrams;
 
-  const split = splitIngredients(totalGrams);
+  // Full meals & batches are portioned by CALORIES to hit the dog's actual
+  // energy target (DER × days), with fat capped as a % of calories — see
+  // calorieAnchoredSplit. The legacy weight-based splitIngredients assumed a
+  // flat 1.1 kcal/g and produced meals delivering ~65–150% of DER depending on
+  // ingredient density (lean fish way under, oil-containing way over). Toppers
+  // (a 15% add-on, not the full diet) and pantry mode keep the weight split.
+  const isCalorieAnchored = recipeType === 'full_meal' || recipeType === 'batch_week';
+  const days = batch.numberOfContainers; // calcBatch sets this to the day count
+  const split = isCalorieAnchored
+    ? calorieAnchoredSplit(template, calcDER(dog) * days)
+    : splitIngredients(totalGrams);
 
   // 4. Build ingredient list
   const ingredients = buildIngredients(template, split, recipeType, dog);
@@ -234,6 +244,25 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
         totalDailyGrams: actualSum,
       };
     }
+  } else if (isCalorieAnchored) {
+    // Calorie-anchored portioning makes the ingredient sum differ from the old
+    // grams-at-1.1-kcal/g target, so re-derive serving + batch yield from the
+    // ACTUAL built ingredients. The displayed grams/cups/yield now match what
+    // the recipe really contains, and we preserve the invariant RecipeDetail's
+    // batch-day scaler relies on: batch.totalYieldGrams === serving.totalDailyGrams × days.
+    // (Calories come from the real ingredient grams in estimateNutrition and now
+    // land ≈ DER.)
+    const actualSum = ingredients.reduce((sum, ing) => sum + ing.amountGrams, 0);
+    const mealsPerDay = baseServing.mealsPerDay || 2;
+    const dailyGrams = Math.max(1, Math.round(actualSum / Math.max(1, days)));
+    const perMeal = Math.max(1, Math.round(dailyGrams / mealsPerDay));
+    serving = {
+      gramsPerMeal: perMeal,
+      cupsPerMeal: Math.round((perMeal / 240) * 10) / 10,
+      mealsPerDay,
+      totalDailyGrams: dailyGrams,
+    };
+    batch.totalYieldGrams = dailyGrams * days; // keep the scaler invariant exact
   }
 
   // 4b. Final strict validation before recipe can be shown/saved
@@ -648,6 +677,66 @@ function scaledFishOilGrams(weightLbs: number, totalGrams: number): number {
   return Math.round(ingredientScaledAmount * 10) / 10;
 }
 
+// Calorie-anchored macro split for full meals & batches. REVIEW-REQUIRED: these
+// are the target macro ratios BY CALORIES (not weight). A real vet/DACVN should
+// tune them; the structure (portion by calories, cap fat as a % of calories) is
+// the part that fixes the under/overfeeding bug class — see the call site.
+//
+// Unlike the legacy weight-based splitIngredients (40/30/20/10 by weight against
+// a flat 1.1 kcal/g assumption), this distributes the dog's energy target across
+// macros by calories, then converts each macro's calorie share to grams using
+// the REAL calorie density of the chosen ingredients. So lean fish and oil-heavy
+// bowls both land on the dog's DER instead of 65–150% of it.
+const CALORIE_SPLIT = { protein: 0.35, carb: 0.35, vegetable: 0.05, fat: 0.25 } as const;
+
+function calorieAnchoredSplit(
+  template: RecipeTemplate,
+  targetKcal: number
+): { proteinGrams: number; carbGrams: number; vegGrams: number; fatGrams: number } {
+  // Average calorie density of the real foods in a category (fish oil excluded —
+  // it's a bodyweight-dosed supplement added separately, not part of the budget).
+  const avgCalPerGram = (ids: string[]): number => {
+    const cals = ids
+      .filter(id => id !== 'fish_oil')
+      .map(id => getIngredientById(id)?.caloriesPerGram)
+      .filter((c): c is number => typeof c === 'number' && c > 0);
+    if (!cals.length) return 0;
+    return cals.reduce((a, b) => a + b, 0) / cals.length;
+  };
+
+  const dP = avgCalPerGram(template.proteinIds);
+  const dC = avgCalPerGram(template.carbIds);
+  const dV = avgCalPerGram(template.vegetableIds);
+  const dF = avgCalPerGram(template.fatIds);
+
+  // Only count macros that actually have a usable ingredient. If a macro is
+  // absent (e.g. no real fat ingredient), its calorie share is redistributed to
+  // the others by normalizing, so the meal still hits the DER target instead of
+  // silently dropping ~25% of the calories (the old underfeeding bug).
+  let pShare = dP > 0 ? CALORIE_SPLIT.protein : 0;
+  let cShare = dC > 0 ? CALORIE_SPLIT.carb : 0;
+  let vShare = dV > 0 ? CALORIE_SPLIT.vegetable : 0;
+  let fShare = dF > 0 ? CALORIE_SPLIT.fat : 0;
+  const totalShare = pShare + cShare + vShare + fShare;
+  if (totalShare <= 0) {
+    return { proteinGrams: 0, carbGrams: 0, vegGrams: 0, fatGrams: 0 };
+  }
+  pShare /= totalShare;
+  cShare /= totalShare;
+  vShare /= totalShare;
+  fShare /= totalShare;
+
+  const gramsFor = (share: number, density: number): number =>
+    density > 0 ? Math.round((targetKcal * share) / density) : 0;
+
+  return {
+    proteinGrams: gramsFor(pShare, dP),
+    carbGrams: gramsFor(cShare, dC),
+    vegGrams: gramsFor(vShare, dV),
+    fatGrams: gramsFor(fShare, dF),
+  };
+}
+
 function buildIngredients(
   template: RecipeTemplate,
   split: { proteinGrams: number; carbGrams: number; vegGrams: number; fatGrams: number },
@@ -662,7 +751,14 @@ function buildIngredients(
     category: RecipeIngredient['category']
   ) => {
     if (!ids.length) return;
-    const gramsEach = Math.round(totalGrams / ids.length);
+    // Fish oil is dosed by bodyweight (a supplement that happens to live in
+    // fatIds), so it must NOT consume a share of the macro's gram budget — the
+    // real foods split the full budget among themselves and fish oil is added
+    // on top at its own dose. (Previously `totalGrams / ids.length` let fish_oil
+    // halve a single real fat's allocation, e.g. olive oil getting 43g of an
+    // 86g fat budget.)
+    const portionedCount = ids.filter(id => id !== 'fish_oil').length || ids.length;
+    const gramsEach = Math.round(totalGrams / portionedCount);
     for (const id of ids) {
       const ing = getIngredientById(id);
       if (!ing) continue;
