@@ -19,6 +19,7 @@ import {
   formatMetricIngredient,
   formatVolumeIngredient,
   gramsToCups,
+  gramsPerCupFor,
   groceryLabel,
 } from '../../utils/calculator';
 import { checkSingleIngredient } from '../../utils/safetyValidator';
@@ -162,9 +163,14 @@ function ingredientCategoryToShoppingCategory(category: RecipeIngredient['catego
 }
 
 function rebuildIngredientDisplay(ingredient: RecipeIngredient): RecipeIngredient {
-  const derivedCups = ingredient.amountCups ?? gramsToCups(ingredient.amountGrams);
+  // Recompute volume from grams using THIS ingredient's density. Must NOT reuse
+  // a carried-over amountCups: after a swap the spread keeps the OLD
+  // ingredient's amountCups, so `?? gramsToCups(...)` would leave the previous
+  // ingredient's volume (e.g. 180g oats = 2 cups sticking to a rice swap that
+  // should be ~1.1 cups). Recompute density-aware via gramsPerCupFor(id).
+  const derivedCups = gramsToCups(ingredient.amountGrams, gramsPerCupFor(ingredient.ingredientId));
   const amountCups = ingredient.category === 'supplement' ? ingredient.amountCups : derivedCups;
-  const amountMl = ingredient.amountMl ?? (amountCups ? cupsToMl(amountCups) : Math.max(1, Math.round(ingredient.amountGrams)));
+  const amountMl = amountCups ? cupsToMl(amountCups) : Math.max(1, Math.round(ingredient.amountGrams));
   const displayBase = {
     name: ingredient.name,
     category: ingredient.category,
