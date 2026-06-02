@@ -52,8 +52,13 @@ export interface UsePaywallResult {
 }
 
 export function usePaywall(): UsePaywallResult {
-  const { isPremium, loading: isLoading } = useSubscription();
-  const { recipes } = useRecipes();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { recipes, loading: recipesLoading } = useRecipes();
+  // Not ready until BOTH the subscription status AND the recipe list have
+  // loaded. The treat gate counts existing treats from `recipes`; if we acted
+  // while that list was still empty, a returning free user who already used
+  // their one free treat could slip a second one in during the load window.
+  const isLoading = subscriptionLoading || recipesLoading;
   const [upgradePrompt, setUpgradePrompt] = useState<UpgradePromptState>({ open: false, feature: null });
 
   const treatRecipesUsed = useMemo(
