@@ -20,6 +20,7 @@ import {
   calcDER,
   gramsToOz,
   gramsToCups,
+  gramsPerCupFor,
   groceryLabel,
   cupsToMl,
   formatMetricIngredient,
@@ -646,7 +647,7 @@ function buildIngredients(
 
       const isFishOilSupplement = id === 'fish_oil';
       const amountGrams = isFishOilSupplement ? scaledFishOilGrams(dog.weightLbs, totalGrams) : gramsEach;
-      const amountCups = isFishOilSupplement ? undefined : gramsToCups(amountGrams);
+      const amountCups = isFishOilSupplement ? undefined : gramsToCups(amountGrams, gramsPerCupFor(id));
       const amountOz = gramsToOz(amountGrams);
       const amountMl = amountCups ? cupsToMl(amountCups) : Math.max(1, Math.round(amountGrams));
       const ingredientBase = {
@@ -707,7 +708,7 @@ function buildIngredients(
       // measurable amount).
       const g = templateAmounts?.[id]
         ?? Math.max(10, Math.round((TREAT_TARGET_BATCH_GRAMS * weight) / totalWeight));
-      const amountCups = gramsToCups(g);
+      const amountCups = gramsToCups(g, gramsPerCupFor(id));
       const ingredientBase = {
         name: ing.name,
         category: cat,
@@ -1114,7 +1115,7 @@ function buildPantryRecipeIngredient(
   amountGrams: number,
 ): RecipeIngredient {
   const grams = Math.max(1, Math.round(amountGrams));
-  const amountCups = gramsToCups(grams);
+  const amountCups = gramsToCups(grams, gramsPerCupFor(catalogId));
   const amountMl = Math.max(1, Math.round(cupsToMl(amountCups)));
   const amountOz = gramsToOz(grams);
   const displayBase = {

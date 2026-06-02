@@ -132,9 +132,67 @@ export function gramsToLbs(grams: number): number {
   return Math.round((grams / 453.592) * 10) / 10;
 }
 
-// Rough cups conversion (varies by ingredient density)
-export function gramsToCups(grams: number): number {
-  return Math.round((grams / ML_PER_CUP) * 4) / 4; // round to nearest ¼ cup
+// Approximate prepared weight per US cup (grams), by ingredient ID. Falls back
+// to water density (ML_PER_CUP = 240 g/cup) for anything not listed.
+//
+// The physical form (dry vs cooked, raw vs chopped) is inferred from each
+// ingredient's caloriesPerGram in ingredients.ts, so the density matches the
+// state the recipe actually uses:
+//   • oats are DRY (3.89 kcal/g) → light, ~90 g/cup
+//   • rice / barley / quinoa / millet are COOKED (~1.1–1.3 kcal/g) → ~160–190 g/cup
+//   • veg & fruit are RAW / CHOPPED (kcal matches raw USDA values) → ~30–170 g/cup
+// Previously gramsToCups assumed 1 g = 1 ml for everything, so dry/light
+// ingredients (notably oats) displayed ~2–3× too little volume in US units.
+// REVIEW-REQUIRED: chef can fine-tune these cup weights.
+const GRAMS_PER_CUP_BY_ID: Record<string, number> = {
+  // Carbs
+  oats: 90, // dry rolled oats
+  white_rice: 160, // cooked
+  brown_rice: 190, // cooked
+  barley: 157, // cooked
+  quinoa: 185, // cooked
+  millet: 174, // cooked
+  butternut_squash: 205, // cooked, cubed
+  acorn_squash: 205, // cooked, cubed
+  // pumpkin (puree ~245) and sweet_potato (mashed ~245) ≈ water → use default
+  // Vegetables (raw, chopped)
+  carrots: 128,
+  green_beans: 125,
+  zucchini: 124,
+  peas: 145,
+  broccoli: 91,
+  spinach: 30, // raw leaves are very light
+  kale: 67,
+  cucumber: 133,
+  cabbage: 89, // shredded
+  brussels_sprouts: 88, // halved
+  beets_cooked: 170,
+  parsnip: 133,
+  blueberries: 148,
+  // Fruit / treat produce
+  banana: 150, // sliced
+  apple: 125, // chopped
+  strawberries: 166, // sliced
+  watermelon: 152, // cubed
+  pear: 160, // chopped
+  // Seeds (ground)
+  flaxseed_ground: 130,
+  chia_seeds: 170,
+};
+
+export function gramsPerCupFor(ingredientId?: string | null): number {
+  if (ingredientId && GRAMS_PER_CUP_BY_ID[ingredientId] != null) {
+    return GRAMS_PER_CUP_BY_ID[ingredientId];
+  }
+  return ML_PER_CUP;
+}
+
+// Cups conversion that accounts for ingredient density. Pass the per-ingredient
+// grams-per-cup (via gramsPerCupFor) so dry/light ingredients convert correctly;
+// omitting it falls back to water density for backward compatibility.
+export function gramsToCups(grams: number, gramsPerCup: number = ML_PER_CUP): number {
+  if (!Number.isFinite(grams) || grams <= 0) return 0;
+  return Math.round((grams / gramsPerCup) * 4) / 4; // round to nearest ¼ cup
 }
 
 export function cupsToMl(cups: number): number {

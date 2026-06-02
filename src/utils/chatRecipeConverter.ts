@@ -12,7 +12,7 @@ import type {
   RecipeType,
   ShoppingListItem,
 } from '../types/recipe';
-import { calcBatch, calcServing, gramsToCups, groceryLabel } from './calculator';
+import { calcBatch, calcServing, gramsToCups, gramsPerCupFor, groceryLabel } from './calculator';
 import { generateRecipeImage } from './recipeImageGenerator';
 import { buildSafetyNotes } from './recipeGenerator';
 import { GENERAL_VET_DISCLAIMER, validateIngredients } from './safetyValidator';
@@ -73,7 +73,7 @@ export async function recipeFromChatJson(parsed: ParsedChatRecipe, dogProfile: D
 
   const ingredients: RecipeIngredient[] = parsed.ingredients.map(item => {
     const scaledGrams = Math.max(1, Math.round((item.grams || 0) * scaleToDog));
-    const cups = Math.round(gramsToCups(scaledGrams) * 100) / 100;
+    const cups = Math.round(gramsToCups(scaledGrams, gramsPerCupFor(slugifyName(item.name))) * 100) / 100;
     return {
       ingredientId: slugifyName(item.name),
       name: item.name,
