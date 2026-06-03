@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ChefHat,
   CalendarDays,
+  CirclePlay,
   Sparkles,
   ShieldCheck,
   Stethoscope,
@@ -88,12 +89,12 @@ const STEPS = [
   {
     number: 2,
     title: 'Pick a recipe type',
-    body: 'Full meal, weekly batch, topper, treat, or pantry mode (use what you already have). Cheffo Doggo picks safe, balanced ingredients.',
+    body: 'Choose full meal, weekly batch, topper, treat, or pantry mode. Non-subscribers get one free treat recipe; homemade food recipes require a paid plan.',
   },
   {
     number: 3,
     title: 'Cook with confidence',
-    body: 'Step-by-step instructions, scaled portions, shopping list, optional vet review. Real food, no guesswork.',
+    body: 'Step-by-step instructions, scaled portions, shopping list, and a completed vet approval packet you can review before sending.',
   },
 ];
 
@@ -111,6 +112,39 @@ const FAQ_TEASERS = [
   { q: 'Why no raw food?', a: 'Lightly-cooked positioning. Raw carries Salmonella, E. coli, Toxoplasma, and salmon-poisoning risk. Cooked is safer with most of the nutritional upside.' },
   { q: 'How much does it cost?', a: '$8/month or $59/year. 14-day money-back guarantee. One free treat recipe to try first.' },
 ];
+
+function DemoVideo() {
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-[#eadfce] bg-[#21150e] shadow-[0_20px_45px_-24px_rgba(43,33,24,0.45)]">
+      <video
+        key="cheffo-doggo-demo-v4"
+        ref={videoRef}
+        src="/cheffo-doggo-demo-v4.mp4"
+        controls
+        playsInline
+        preload="auto"
+        poster="/demo-poster.png"
+        className="block aspect-[16/10] w-full bg-[#21150e] object-contain"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => setIsPlaying(false)}
+      />
+      {!isPlaying && (
+        <button
+          type="button"
+          onClick={() => videoRef.current?.play()}
+          className="videoPlayOverlay absolute left-1/2 top-1/2 inline-flex min-h-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 rounded-full border border-white/70 bg-[#f97316] px-6 text-base font-bold text-white shadow-[0_18px_42px_rgba(43,27,18,0.32)] hover:bg-[#ea6a0c]"
+        >
+          <CirclePlay size={24} aria-hidden="true" />
+          Play demo
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -267,7 +301,7 @@ export default function LandingPage() {
               to="/signup"
               className="inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
             >
-              Start your first weekly batch
+              Subscribe for weekly batches
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
@@ -314,6 +348,58 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Full walkthrough demo + vet approval packet */}
+      <section className="px-4 py-16 bg-white border-y border-[#eadfce]">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
+          <div>
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-[#fff0de] px-3 py-1 text-xs font-semibold text-[#f97316]">
+              <CirclePlay size={12} aria-hidden="true" />
+              Full site demo
+            </p>
+            <h2 className="mt-4 text-3xl font-bold leading-tight text-[#2b2118]">
+              Watch someone use the whole Cheffo Doggo site.
+            </h2>
+            <p className="mt-3 leading-relaxed text-[#5f564d]">
+              The demo walks from the landing page through recipe types, weekly batch planning,
+              pricing, help, account screens, and the completed vet approval packet.
+            </p>
+
+            <div className="mt-6 rounded-3xl border border-[#eadfce] bg-[#fffbf5] p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#f97316]">Vet Approval Packet</p>
+                  <h3 className="mt-1 font-semibold text-[#2b2118]">Turkey + sweet potato weekly batch</h3>
+                </div>
+                <span className="rounded-full bg-[#eaf6ea] px-3 py-1 text-xs font-bold text-[#2f8e56]">Ready to send</span>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Dog profile', 'Molly | 42 lb | Adult'],
+                  ['Recipe', '14 containers + freezer plan'],
+                  ['Daily portion', '2 meals | 508 kcal/day'],
+                  ['Approval request', 'Approve or request edits'],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-[#eadfce] bg-white p-3">
+                    <p className="text-[0.68rem] font-bold uppercase tracking-wide text-[#f97316]">{label}</p>
+                    <p className="mt-1 text-sm font-semibold text-[#2b2118]">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 grid gap-2 text-sm font-semibold text-[#2f8e56] sm:grid-cols-2">
+                {['Calories and portions', 'Ingredients and exclusions', 'Supplement notes', 'Vet signature field'].map(item => (
+                  <span key={item} className="inline-flex items-center gap-2 rounded-2xl bg-[#eaf6ea] px-3 py-2">
+                    <Check size={14} aria-hidden="true" />
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DemoVideo />
+        </div>
+      </section>
+
       {/* What you can make */}
       <section className="px-4 py-12 bg-[#fff6ec]">
         <div className="mx-auto max-w-5xl">
@@ -338,13 +424,21 @@ export default function LandingPage() {
       {/* Pricing teaser */}
       <section className="px-4 py-16">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold text-[#2b2118]">Simple pricing</h2>
-          <p className="mt-2 text-[#7f7469]">No ads, no tracking, no upsells. Just food for your dog.</p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold text-[#2b2118]">One free treat recipe. Food recipes are paid.</h2>
+          <p className="mt-2 text-[#7f7469]">
+            Non-subscribers get exactly one free treat recipe. Full meals, weekly batches,
+            toppers, pantry food recipes, and vet packets require a paid plan.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3 max-w-4xl mx-auto">
+            <div className="rounded-3xl border border-[#eadfce] bg-white p-6 text-left">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#7f7469]">Free</p>
+              <p className="mt-3 text-4xl font-bold text-[#2b2118]">1 treat</p>
+              <p className="mt-2 text-sm text-[#5f564d]">one non-subscriber treat recipe, no meal or batch recipes</p>
+            </div>
             <div className="rounded-3xl border border-[#eadfce] bg-white p-6 text-left">
               <p className="text-sm font-semibold uppercase tracking-wide text-[#7f7469]">Monthly</p>
               <p className="mt-3 text-4xl font-bold text-[#2b2118]">$8<span className="text-base font-medium text-[#7f7469]">/mo</span></p>
-              <p className="mt-2 text-sm text-[#5f564d]">Cancel anytime.</p>
+              <p className="mt-2 text-sm text-[#5f564d]">unlocks homemade food recipes and weekly batches</p>
             </div>
             <div className="rounded-3xl border-2 border-[#f97316] bg-white p-6 text-left shadow-[0_8px_24px_-12px_rgba(249,115,22,0.4)]">
               <div className="flex items-center justify-between">
@@ -352,7 +446,7 @@ export default function LandingPage() {
                 <span className="rounded-full bg-[#fff0de] px-2.5 py-1 text-xs font-semibold text-[#f97316]">Save 38%</span>
               </div>
               <p className="mt-3 text-4xl font-bold text-[#2b2118]">$59<span className="text-base font-medium text-[#7f7469]">/yr</span></p>
-              <p className="mt-2 text-sm text-[#43a365]">≈ $4.92/month</p>
+              <p className="mt-2 text-sm text-[#43a365]">best value for paid food recipes and vet packets</p>
             </div>
           </div>
           <p className="mt-6 text-sm text-[#5f564d] flex items-center justify-center gap-1.5">
@@ -394,12 +488,12 @@ export default function LandingPage() {
       <section className="px-4 py-20 bg-gradient-to-b from-[#fff6ec] to-[#fff0de]">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold text-[#2b2118]">Ready to cook for your dog?</h2>
-          <p className="mt-3 text-[#5f564d]">Sign up and make your first recipe in under 5 minutes.</p>
+          <p className="mt-3 text-[#5f564d]">Try the free treat recipe first, then subscribe for homemade meals and weekly batches.</p>
           <Link
             to="/signup"
             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
           >
-            Get started — try a free recipe
+            Get started — try one free treat recipe
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
