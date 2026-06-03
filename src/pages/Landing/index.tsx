@@ -120,9 +120,9 @@ function DemoVideo() {
   return (
     <div className="relative overflow-hidden rounded-3xl border border-[#eadfce] bg-[#21150e] shadow-[0_20px_45px_-24px_rgba(43,33,24,0.45)]">
       <video
-        key="cheffo-doggo-demo-v4"
+        key="cheffo-doggo-demo-v5"
         ref={videoRef}
-        src="/cheffo-doggo-demo-v4.mp4"
+        src="/cheffo-doggo-demo-v5.mp4"
         controls
         playsInline
         preload="auto"
