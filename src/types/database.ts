@@ -280,6 +280,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      llm_usage: {
+        Row: {
+          user_id: string;
+          usage_date: string;
+          request_count: number;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          usage_date?: string;
+          request_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          usage_date?: string;
+          request_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
