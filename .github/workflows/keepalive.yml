@@ -1,0 +1,33 @@
+name: Supabase keep-alive
+
+# Free-tier Supabase projects pause after ~7 days with no activity, which takes
+# down auth/DB and breaks the live app (login → "Failed to fetch"). This pings
+# the REST API every 3 days so the project never idles into a pause.
+# Note: GitHub disables scheduled workflows after 60 days with no repo commits.
+
+on:
+  schedule:
+    - cron: '17 9 */3 * *' # every 3 days, 09:17 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST (registers project activity)
+        env:
+          SUPABASE_URL: https://oreekfxtfvrixzahkwdg.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/dog_profiles?select=id&limit=1")
+          echo "Supabase REST responded: $code"
+          # 200/206 = query reached PostgREST (RLS returns no rows for anon, still
+          # counts as activity). 401 also proves the request hit the project.
+          case "$code" in
+            200|206|401) echo "Keep-alive ping OK ($code)";;
+            *) echo "Unexpected status $code"; exit 1;;
+          esac
