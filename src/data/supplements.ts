@@ -19,7 +19,7 @@ export const SUPPLEMENT_REFERENCE: SupplementReference[] = [
     isRequired: true,
     whyNeeded: 'Homemade diets without raw meaty bones are almost always calcium-deficient. Calcium is essential for bones, teeth, muscle function, and nerve signaling.',
     educationalNote: 'Homemade dog food needs a calcium source unless you\'re feeding raw meaty bones. Without adequate calcium, dogs can develop serious bone problems over time.',
-    estimatedRangeNote: 'Roughly 1,000–1,200mg calcium per pound of food is a common starting point, but amounts vary widely by age, weight, and recipe. Puppies need more.',
+    estimatedRangeNote: 'Roughly 1,000–1,200mg calcium per pound of food is a common starting point, but amounts vary widely by age, weight, and recipe. Puppies need more. Budget tip: eggshell powder works — wash empty shells, bake at 300°F for 5–10 minutes to dry and sanitize, grind to a fine powder in a coffee grinder, and store airtight. About ½ tsp of eggshell powder ≈ 1,000mg calcium. Confirm amounts with your vet.',
     vetReviewRequired: true,
     commonSources: ['Eggshell powder (~2,000mg per tsp)', 'Calcium carbonate powder', 'Calcium citrate', 'Raw meaty bones (whole ground)'],
     exampleProducts: ['NOW Calcium Carbonate Powder', 'Bob\'s Red Mill Calcium Powder'],
