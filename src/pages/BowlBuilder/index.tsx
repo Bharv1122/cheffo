@@ -33,13 +33,19 @@ export default function BowlBuilderPage() {
   const { saveRecipe } = useRecipes();
   const { activeProfile, profiles, loading: profilesLoading } = useDogProfiles();
 
-  const [recipeType, setRecipeType] = useState<RecipeType>('full_meal');
+  const [chosenType, setChosenType] = useState<RecipeType | null>(null);
   const [dogId, setDogId] = useState(activeProfile?.id ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const dog = profiles.find(p => p.id === dogId) ?? activeProfile;
   const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium, isLoading: paywallLoading, treatRecipesRemaining } = usePaywall();
+  // Free-plan funnel: until the user picks a type themselves, default free
+  // users who still have their free treat to the treat option (their included
+  // taste) instead of a premium type. Derived, not effect-set, so the async
+  // paywall load can't overwrite a manual selection.
+  const highlightFreeTreat = !paywallLoading && !isPremium && treatRecipesRemaining > 0;
+  const recipeType: RecipeType = chosenType ?? (highlightFreeTreat ? 'treat' : 'full_meal');
   const paywallFeature = recipeTypeToPaywallFeature(recipeType);
   // Don't treat "subscription still loading" as blocked — otherwise a premium
   // user's first click fires the upgrade modal before isPremium resolves.
@@ -118,7 +124,7 @@ export default function BowlBuilderPage() {
           {/* Recipe type */}
           <Card>
             <h3 className="font-semibold text-[#1C1917] text-sm mb-3">What kind of recipe?</h3>
-            <RecipeTypeSelector selected={recipeType} onSelect={t => setRecipeType(t)} />
+            <RecipeTypeSelector selected={recipeType} onSelect={t => setChosenType(t)} highlightFreeTreat={highlightFreeTreat} />
           </Card>
 
           {recipeType === 'batch_week' && (

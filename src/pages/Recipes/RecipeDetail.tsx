@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChefHat, ChevronDown, Heart, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
+import { ChefHat, ChevronDown, Heart, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -597,13 +597,16 @@ export default function RecipeDetailPage() {
               <div className="rounded-2xl bg-[#edf4ff] p-3 text-sm"><p className="font-semibold">Batch Yield</p><p className="text-[#7f7469]">{batchLabel}</p></div>
             </div>
 
-            <Button
-              className="mt-4 w-full sm:w-auto"
-              onClick={() => navigate(`/cook/${recipe.id}`)}
-            >
-              <ChefHat size={18} className="mr-2" />
-              Start Cooking Mode
-            </Button>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Button onClick={() => navigate(`/cook/${recipe.id}`)}>
+                <ChefHat size={18} className="mr-2" />
+                Start Cooking Mode
+              </Button>
+              <Button variant="secondary" onClick={() => window.print()}>
+                <Printer size={18} className="mr-2" />
+                Print Recipe
+              </Button>
+            </div>
 
           </div>
         </div>

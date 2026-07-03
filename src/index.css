@@ -74,4 +74,19 @@
   body {
     background: white;
   }
+
+  /* Strip app chrome so a printed page is just the content: sticky header,
+     nav sidebars/rails, bottom nav, the floating chat head, and controls. */
+  header,
+  aside,
+  nav,
+  button {
+    display: none !important;
+  }
+
+  .doggo-card,
+  .doggo-soft-card {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
 }

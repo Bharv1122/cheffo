@@ -47,12 +47,18 @@ const OPTIONS: Option[] = [
 interface Props {
   selected?: RecipeType;
   onSelect: (type: RecipeType) => void;
+  // Free-plan funnel: surface the treat option (the included free taste)
+  // first with a FREE badge so new users find their free recipe immediately.
+  highlightFreeTreat?: boolean;
 }
 
-export function RecipeTypeSelector({ selected, onSelect }: Props) {
+export function RecipeTypeSelector({ selected, onSelect, highlightFreeTreat }: Props) {
+  const options = highlightFreeTreat
+    ? [...OPTIONS.filter(o => o.type === 'treat'), ...OPTIONS.filter(o => o.type !== 'treat')]
+    : OPTIONS;
   return (
     <div className="space-y-3">
-      {OPTIONS.map(opt => (
+      {options.map(opt => (
         <button
           key={opt.type}
           type="button"
@@ -70,6 +76,9 @@ export function RecipeTypeSelector({ selected, onSelect }: Props) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-[#1C1917] text-sm">{opt.label}</span>
+              {highlightFreeTreat && opt.type === 'treat' && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">FREE — try it first</span>
+              )}
               {opt.badge && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{opt.badge}</span>}
             </div>
             <p className="text-xs text-[#78716C] mt-0.5 leading-relaxed">{opt.description}</p>

@@ -21,10 +21,12 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
             </Link>
             <p className="mt-2 text-sm text-[#8b8378]">Homemade Dog Food Made Simple.</p>
 
-            <h1 className="mt-8 text-3xl font-semibold leading-tight text-[#2b2118] sm:text-4xl">{title}</h1>
+            <h1 className="mt-4 text-3xl font-semibold leading-tight text-[#2b2118] sm:text-4xl lg:mt-8">{title}</h1>
             <p className="mt-3 max-w-md text-base text-[#7d7268]">{subtitle}</p>
 
-            <div className="mt-8 rounded-3xl border border-[#eadfce] bg-white/80 p-4">
+            {/* Decorative mascot card is desktop-only: on phones it pushed the
+                form a full screen below the fold. */}
+            <div className="mt-8 hidden rounded-3xl border border-[#eadfce] bg-white/80 p-4 lg:block">
               <img
                 src="/cheffo-doggo-logo.png"
                 alt="Cheffo Doggo mascot"

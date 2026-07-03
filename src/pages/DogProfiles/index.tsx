@@ -28,13 +28,13 @@ function ageLabel(dog: DogProfile): string {
 
 function DogProfileBlock({
   dog,
-  progress,
+  recipeCount,
   goal,
   recent,
   onDelete,
 }: {
   dog: DogProfile;
-  progress: number;
+  recipeCount: number;
   goal: string;
   recent: string[];
   onDelete: () => void;
@@ -85,16 +85,14 @@ function DogProfileBlock({
           <div className="rounded-2xl border border-[#eadfce] bg-white p-4">
             <h4 className="font-semibold">Nutrition Goal</h4>
             <p className="mt-1 text-[#6f6459]">{goal}</p>
-            {recent.length > 0 ? (
+            {recipeCount > 0 ? (
               <>
-                <div className="mt-3 h-3 rounded-full bg-[#f4ebdf]">
-                  <div className="h-3 rounded-full bg-[#43a365]" style={{ width: `${progress}%` }} />
-                </div>
-                <div className="mt-1 flex justify-between text-xs text-[#8d8278]">
-                  <span>On track!</span>
-                  <span>{progress}%</span>
-                </div>
-                <Button size="sm" variant="secondary" className="mt-3 w-full">View Progress</Button>
+                <p className="mt-3 text-xs leading-relaxed text-[#8d8278]">
+                  🍲 {recipeCount} {recipeCount === 1 ? 'recipe' : 'recipes'} made for {dog.name} toward this goal.
+                </p>
+                <Button size="sm" variant="secondary" className="mt-3 w-full" onClick={() => navigate('/recipes')}>
+                  View Recipes
+                </Button>
               </>
             ) : (
               <>
@@ -165,11 +163,11 @@ export default function DogProfilesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const goalsByDog = useMemo(() => {
-    return profiles.reduce<Record<string, { goal: string; progress: number }>>((acc, dog) => {
+    return profiles.reduce<Record<string, { goal: string }>>((acc, dog) => {
       const hasWeightGoal = typeof dog.idealWeightLbs === 'number' && Math.abs(dog.weightLbs - dog.idealWeightLbs) > 1;
       acc[dog.id] = hasWeightGoal
-        ? { goal: dog.weightLbs > (dog.idealWeightLbs ?? dog.weightLbs) ? 'Reach Ideal Weight' : 'Build & Maintain Muscle', progress: 62 }
-        : { goal: 'Maintain Healthy Weight', progress: 78 };
+        ? { goal: dog.weightLbs > (dog.idealWeightLbs ?? dog.weightLbs) ? 'Reach Ideal Weight' : 'Build & Maintain Muscle' }
+        : { goal: 'Maintain Healthy Weight' };
       return acc;
     }, {});
   }, [profiles]);
@@ -212,8 +210,9 @@ export default function DogProfilesPage() {
       ) : (
         <div className="space-y-4">
           {profiles.map(dog => {
-            const stats = goalsByDog[dog.id] ?? { goal: 'Maintain Healthy Weight', progress: 75 };
-            const recent = getRecipesByDog(dog.id)
+            const stats = goalsByDog[dog.id] ?? { goal: 'Maintain Healthy Weight' };
+            const dogRecipes = getRecipesByDog(dog.id);
+            const recent = dogRecipes
               .slice(0, 2)
               .map(recipe => recipe.name);
 
@@ -221,7 +220,7 @@ export default function DogProfilesPage() {
               <div key={dog.id} className={deletingId === dog.id ? 'opacity-60 pointer-events-none' : ''}>
                 <DogProfileBlock
                   dog={dog}
-                  progress={stats.progress}
+                  recipeCount={dogRecipes.length}
                   goal={stats.goal}
                   recent={recent}
                   onDelete={() => void handleDeleteProfile(dog.id, dog.name)}
