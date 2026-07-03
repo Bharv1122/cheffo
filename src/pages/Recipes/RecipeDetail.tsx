@@ -420,8 +420,6 @@ export default function RecipeDetailPage() {
       category: item.category,
     };
   });
-  const shoppingItems = shoppingListItems.map(item => item.label);
-
   const prepTime = recipe.instructions.find(s => s.stepNumber === 1)?.durationMinutes ?? 15;
   const cookTime = recipe.instructions.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0) || 35;
   const dailyCups = Math.max(0.1, recipe.serving.cupsPerMeal * recipe.serving.mealsPerDay);
@@ -460,8 +458,12 @@ export default function RecipeDetailPage() {
               </button>
             </div>
             <ul className="mt-3 space-y-2 text-sm text-[#6f6459]">
-              {shoppingItems.map(item => (
-                <li key={item} className="rounded-xl border border-[#eadfce] bg-white px-3 py-2">{item}</li>
+              {shoppingListItems.map((item, idx) => (
+                <li key={`${item.name}-${idx}`} className="rounded-xl border border-[#eadfce] bg-white px-3 py-2">
+                  {item.label.toLowerCase().includes(item.name.toLowerCase())
+                    ? item.label
+                    : `${item.name} — ${item.label}`}
+                </li>
               ))}
             </ul>
           </section>
