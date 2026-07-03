@@ -85,14 +85,27 @@ function DogProfileBlock({
           <div className="rounded-2xl border border-[#eadfce] bg-white p-4">
             <h4 className="font-semibold">Nutrition Goal</h4>
             <p className="mt-1 text-[#6f6459]">{goal}</p>
-            <div className="mt-3 h-3 rounded-full bg-[#f4ebdf]">
-              <div className="h-3 rounded-full bg-[#43a365]" style={{ width: `${progress}%` }} />
-            </div>
-            <div className="mt-1 flex justify-between text-xs text-[#8d8278]">
-              <span>On track!</span>
-              <span>{progress}%</span>
-            </div>
-            <Button size="sm" variant="secondary" className="mt-3 w-full">View Progress</Button>
+            {recent.length > 0 ? (
+              <>
+                <div className="mt-3 h-3 rounded-full bg-[#f4ebdf]">
+                  <div className="h-3 rounded-full bg-[#43a365]" style={{ width: `${progress}%` }} />
+                </div>
+                <div className="mt-1 flex justify-between text-xs text-[#8d8278]">
+                  <span>On track!</span>
+                  <span>{progress}%</span>
+                </div>
+                <Button size="sm" variant="secondary" className="mt-3 w-full">View Progress</Button>
+              </>
+            ) : (
+              <>
+                <p className="mt-3 text-xs leading-relaxed text-[#8d8278]">
+                  No recipes yet — build {dog.name}'s first bowl to start working toward this goal.
+                </p>
+                <Button size="sm" variant="secondary" className="mt-3 w-full" onClick={() => navigate('/bowl-builder')}>
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="rounded-2xl border border-[#eadfce] bg-white p-4">

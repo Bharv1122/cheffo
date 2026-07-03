@@ -177,7 +177,8 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
         </div>
       )}
 
-      <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-5 px-4 py-5 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+      {/* pb-24 keeps fully-scrolled content clear of the floating chat head */}
+      <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-5 px-4 pt-5 pb-24 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_320px]">
         <aside className="doggo-card hidden p-3 lg:block">
           <div className="space-y-1">
             {SIDE_ITEMS.map(item => (

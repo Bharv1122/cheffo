@@ -69,9 +69,12 @@ export default function HomePage() {
     navigate('/profiles/new');
   }, [navigate, welcomeSeenKey]);
 
-  const userName = user?.email?.split('@')[0] ?? 'there';
+  const userName = user?.email?.split('@')[0];
   // Gate "first recipe" copy on whether they have any. (CHE-117)
   const hasRecipes = recipes.length > 0;
+  // "Welcome back" only fits users with history; brand-new accounts (no
+  // dogs, no recipes) get a plain welcome, and we never greet ", there".
+  const isReturningUser = profiles.length > 0 || hasRecipes;
 
   // In-app banner for approvals received since the user's last visit. The
   // "last seen" timestamp lives in localStorage so dismissing it persists
@@ -173,7 +176,7 @@ export default function HomePage() {
       <section className="doggo-soft-card overflow-hidden p-7">
         <div className="grid items-center gap-6 lg:grid-cols-[1fr_320px]">
           <div>
-            <h1 className="doggo-section-title">Welcome back, {userName}! 👋</h1>
+            <h1 className="doggo-section-title">{isReturningUser ? 'Welcome back' : 'Welcome'}{userName ? `, ${userName}` : ''}! 👋</h1>
             <p className="mt-2 text-[1.2rem] text-[#7f7469]">Let's make something amazing for your pup today.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-white/75 p-3">

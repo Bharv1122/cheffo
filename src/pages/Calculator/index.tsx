@@ -6,6 +6,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Disclaimer } from '../../components/ui/Disclaimer';
+import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { calcRER, calcDER, calcServing, calcBatch, splitIngredients, gramsToOz } from '../../utils/calculator';
 import { formatCalories, formatGrams, formatOz } from '../../utils/formatting';
 import type { DogProfile, LifeStage, ActivityLevel } from '../../types/dog';
@@ -25,16 +26,31 @@ const MEALS_OPTIONS = [1, 2, 3, 4].map(n => ({ value: String(n), label: `${n}x p
 
 type MockDog = Pick<DogProfile, 'weightLbs' | 'lifeStage' | 'activityLevel' | 'mealsPerDay'>;
 
+const DEFAULT_DOG: MockDog = {
+  weightLbs: 30,
+  lifeStage: 'adult',
+  activityLevel: 'moderate',
+  mealsPerDay: 2,
+};
+
 export default function CalculatorPage() {
-  const [dog, setDog] = useState<MockDog>({
-    weightLbs: 30,
-    lifeStage: 'adult',
-    activityLevel: 'moderate',
-    mealsPerDay: 2,
-  });
+  const { activeProfile } = useDogProfiles();
+  // Derived state, no effect: until the user edits a field, the form tracks
+  // the active dog's profile (which may hydrate async); after the first
+  // edit, the user's values win.
+  const [edited, setEdited] = useState<MockDog | null>(null);
+  const prefill: MockDog | null = activeProfile
+    ? {
+        weightLbs: activeProfile.weightLbs,
+        lifeStage: activeProfile.lifeStage,
+        activityLevel: activeProfile.activityLevel,
+        mealsPerDay: activeProfile.mealsPerDay,
+      }
+    : null;
+  const dog = edited ?? prefill ?? DEFAULT_DOG;
 
   function set<K extends keyof MockDog>(key: K, val: MockDog[K]) {
-    setDog(d => ({ ...d, [key]: val }));
+    setEdited({ ...dog, [key]: val });
   }
 
   const isInvalidWeight = !Number.isFinite(dog.weightLbs) || dog.weightLbs <= 0;
@@ -66,6 +82,9 @@ export default function CalculatorPage() {
         {/* Input card */}
         <Card className="mb-4">
           <h3 className="font-semibold text-[#1C1917] text-sm mb-3">Your Dog's Details</h3>
+          {!edited && activeProfile && (
+            <p className="text-xs text-[#78716C] -mt-2 mb-3">Prefilled from {activeProfile.name}'s profile.</p>
+          )}
           <div className="space-y-3">
             <Input
               label="Weight (lbs)"
