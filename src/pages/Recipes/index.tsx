@@ -31,7 +31,9 @@ function toFeaturedCard(recipe: Recipe) {
     id: recipe.id,
     name: recipe.name,
     badge: recipe.isFavorite ? 'Favorite' : recipe.type === 'batch_week' ? 'Batch Friendly' : 'Fresh',
-    cal: `${recipe.nutrition.caloriesPerServing} kcal/cup`,
+    cal: recipe.type === 'treat'
+      ? `treat cap ${recipe.nutrition.caloriesPerDay} kcal/day`
+      : `${recipe.nutrition.caloriesPerServing} kcal/meal`,
     time: `${recipe.instructions.reduce((sum, step) => sum + (step.durationMinutes ?? 5), 0)} min`,
     photo: getRecipePhoto(recipe),
   };
@@ -193,7 +195,11 @@ export default function RecipesPage() {
                     )}
                   </button>
                   <div className="mt-2 flex items-center justify-between text-sm text-[#7d7268]">
-                    <span>{recipe.nutrition.caloriesPerServing} kcal/cup</span>
+                    <span>
+                      {recipe.type === 'treat'
+                        ? `treat cap ${recipe.nutrition.caloriesPerDay} kcal/day`
+                        : `${recipe.nutrition.caloriesPerServing} kcal/meal`}
+                    </span>
                     <span>{totalMinutes} min</span>
                   </div>
                   <div className="mt-3 flex gap-2">

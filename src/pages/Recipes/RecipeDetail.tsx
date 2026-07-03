@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, Heart, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
+import { ChefHat, ChevronDown, Heart, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -102,7 +102,10 @@ function getNutritionBreakdown(recipe: Recipe) {
   const fatPct = Math.round((fatCalPerCup / caloriesPerCup) * 100);
   const carbsPct = Math.round((carbCalPerCup / caloriesPerCup) * 100);
 
-  const caloriesPerDay = Math.round(caloriesPerCup * recipe.serving.cupsPerMeal * recipe.serving.mealsPerDay);
+  // caloriesPerServing is per MEAL, not per cup — multiplying by cupsPerMeal
+  // again overstated the day total by ~2× (60lb dog showed 2627 vs real 1194).
+  // The generator already stores the correct daily figure; display that.
+  const caloriesPerDay = recipe.nutrition.caloriesPerDay;
 
   return {
     caloriesPerCup,
@@ -580,17 +583,25 @@ export default function RecipeDetailPage() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl bg-[#f4eef9] p-3 text-sm"><p className="font-semibold">Life Stage</p><p className="text-[#7f7469]">Custom</p></div>
+              <div className="rounded-2xl bg-[#f4eef9] p-3 text-sm"><p className="font-semibold">Life Stage</p><p className="text-[#7f7469]">{dogProfile ? dogProfile.lifeStage.charAt(0).toUpperCase() + dogProfile.lifeStage.slice(1) : 'Custom'}</p></div>
               <div className="rounded-2xl bg-[#fff4ea] p-3 text-sm"><p className="font-semibold">Portion Size</p><p className="text-[#7f7469]">{recipe.serving.cupsPerMeal.toFixed(1)} cup</p></div>
               {recipe.type === 'treat' ? (
                 <div className="rounded-2xl bg-[#fff0f0] p-3 text-sm"><p className="font-semibold">Energy/Serving</p><p className="text-[#7f7469]">{recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing} kcal</p></div>
               ) : (
-                <div className="rounded-2xl bg-[#fff0f0] p-3 text-sm"><p className="font-semibold">Calories/Cup</p><p className="text-[#7f7469]">{recipe.nutrition.caloriesPerServing} kcal</p></div>
+                <div className="rounded-2xl bg-[#fff0f0] p-3 text-sm"><p className="font-semibold">Calories/Meal</p><p className="text-[#7f7469]">{recipe.nutrition.caloriesPerServing} kcal</p></div>
               )}
               <div className="rounded-2xl bg-[#eef8ee] p-3 text-sm"><p className="font-semibold">Prep Time</p><p className="text-[#7f7469]">{prepTime} min</p></div>
               <div className="rounded-2xl bg-[#fff4ea] p-3 text-sm"><p className="font-semibold">Cook Time</p><p className="text-[#7f7469]">{cookTime} min</p></div>
               <div className="rounded-2xl bg-[#edf4ff] p-3 text-sm"><p className="font-semibold">Batch Yield</p><p className="text-[#7f7469]">{batchLabel}</p></div>
             </div>
+
+            <Button
+              className="mt-4 w-full sm:w-auto"
+              onClick={() => navigate(`/cook/${recipe.id}`)}
+            >
+              <ChefHat size={18} className="mr-2" />
+              Start Cooking Mode
+            </Button>
 
           </div>
         </div>
@@ -599,7 +610,7 @@ export default function RecipeDetailPage() {
       <section className="mt-4 doggo-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-[1.35rem] font-semibold">Nutrition Facts</h2>
-          <span className="rounded-full bg-[#fff1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a16b38]">{recipe.type === 'treat' ? 'Estimate · per serving' : 'Estimate · per cup'}</span>
+          <span className="rounded-full bg-[#fff1df] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a16b38]">{recipe.type === 'treat' ? 'Estimate · per serving' : 'Estimate · per meal'}</span>
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[260px_1fr]">
@@ -620,7 +631,7 @@ export default function RecipeDetailPage() {
               <>
                 <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
                   <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerCup ?? recipe.nutrition.caloriesPerServing}</p>
-                  <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per cup</p>
+                  <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">kcal per meal</p>
                 </div>
                 <div className="rounded-2xl border border-[#eadfce] bg-white p-3 text-center">
                   <p className="text-3xl font-bold text-[#2b2118]">{nutrition?.caloriesPerDay ?? '-'}</p>
@@ -664,9 +675,13 @@ export default function RecipeDetailPage() {
           </p>
         )}
 
-        <p className="mt-2 text-xs leading-relaxed text-[#7f7469]">
-          Homemade diets need supplementation (calcium, omega-3, multivitamin) to be nutritionally complete. See the supplement checklist below.
-        </p>
+        {/* Only promise a checklist when the recipe actually renders one
+            (treats/toppers have no supplements section). */}
+        {recipe.supplements.length > 0 && (
+          <p className="mt-2 text-xs leading-relaxed text-[#7f7469]">
+            Homemade diets need supplementation (calcium, omega-3, multivitamin) to be nutritionally complete. See the supplement checklist below.
+          </p>
+        )}
       </section>
 
       {recipe.supplements.length > 0 && (
@@ -749,6 +764,12 @@ export default function RecipeDetailPage() {
                 key={`${ingredient.ingredientId}-${index}`}
                 ingredient={ingredient}
                 onSwap={swapId => void handleInlineSwap(index, swapId)}
+                // Hide swaps the safety check would reject (allergies, meds,
+                // avoid-foods) instead of offering-then-blocking them.
+                isSwapAllowed={swapId => {
+                  const swapData = getIngredientById(swapId);
+                  return swapData ? checkSingleIngredient(swapData.name, dogProfile).safe : false;
+                }}
               />
             ))}
           </div>

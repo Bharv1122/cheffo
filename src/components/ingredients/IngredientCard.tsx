@@ -9,17 +9,23 @@ import type { RecipeIngredient } from '../../types/recipe';
 interface Props {
   ingredient: RecipeIngredient;
   onSwap?: (toId: string) => void;
+  // Filters the suggested swaps (e.g. drop the dog's allergens) so we never
+  // offer an option the safety check would reject after selection.
+  isSwapAllowed?: (toId: string) => boolean;
 }
 
 const CATEGORY_COLORS: Record<string, 'orange' | 'green' | 'blue' | 'amber' | 'gray'> = {
   protein: 'orange', carb: 'amber', vegetable: 'green', fat: 'blue', supplement: 'gray', treat: 'orange',
 };
 
-export function IngredientCard({ ingredient, onSwap }: Props) {
+export function IngredientCard({ ingredient, onSwap, isSwapAllowed }: Props) {
   const [open, setOpen] = useState(false);
   const { unitPreference } = useUnitPreference();
   const data = getIngredientById(ingredient.ingredientId);
   const displayAmount = formatIngredientByPreference(ingredient, unitPreference);
+  const visibleSwaps = (data?.possibleSwaps ?? []).filter(
+    swapId => !isSwapAllowed || isSwapAllowed(swapId)
+  );
 
   return (
     <div className="rounded-xl border border-[#E7E5E4] bg-white overflow-hidden">
@@ -56,13 +62,13 @@ export function IngredientCard({ ingredient, onSwap }: Props) {
             </div>
           )}
 
-          {data.possibleSwaps.length > 0 && onSwap && (
+          {visibleSwaps.length > 0 && onSwap && (
             <div>
               <p className="text-xs font-medium text-[#1C1917] mb-1 flex items-center gap-1">
                 <ArrowLeftRight size={12} /> Possible swaps:
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {data.possibleSwaps.map(swapId => {
+                {visibleSwaps.map(swapId => {
                   const swapData = getIngredientById(swapId);
                   return swapData ? (
                     <button
