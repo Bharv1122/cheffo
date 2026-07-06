@@ -69,7 +69,40 @@ export default async function handler(req: Request): Promise<Response> {
   const auth = await authorizeUser(req);
   if ('error' in auth) return auth.error;
 
-  // 2. Per-user daily rate limit (atomic check-and-increment in Postgres).
+  // 2. Premium gate (CHE-36). Chat completions power the premium "Ask Cheffo
+  // Doggo" assistant + AI personalization, so they require an active/trialing
+  // subscription — matching useSubscription's PREMIUM_STATUSES on the client.
+  // Image generation (`?type=image`) stays open to any signed-in user: the
+  // FREE "1 treat recipe" taste renders its photo through this same proxy, and
+  // free recipe TEXT is template-generated (never hits /api/llm). Without this,
+  // a free user could bypass the client paywall and call chat directly.
+  const isImageRequest = new URL(req.url).searchParams.get('type') === 'image';
+  if (!isImageRequest) {
+    try {
+      const { data: sub, error: subError } = await getSupabaseAdmin()
+        .from('subscriptions')
+        .select('status')
+        .eq('user_id', auth.userId)
+        .maybeSingle();
+      if (subError) {
+        // Consistent with the rate limiter below: a broken lookup shouldn't
+        // lock a paying user out of the assistant. Log and allow.
+        console.error('[llm] premium check failed, allowing:', subError.message);
+      } else {
+        const isPremium = sub?.status === 'active' || sub?.status === 'trialing';
+        if (!isPremium) {
+          return jsonError(
+            403,
+            'Ask Cheffo Doggo is a Premium feature — upgrade to chat with the AI assistant.'
+          );
+        }
+      }
+    } catch (premiumError) {
+      console.error('[llm] premium check threw, allowing:', premiumError);
+    }
+  }
+
+  // 3. Per-user daily rate limit (atomic check-and-increment in Postgres).
   const dailyLimit = Number(process.env.LLM_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
   try {
     const { data, error } = await getSupabaseAdmin().rpc('check_and_increment_llm_usage', {
@@ -88,13 +121,12 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('[llm] rate-limit check threw, allowing request:', rateError);
   }
 
-  // 3. Forward to the upstream provider. An `?type=image` request goes to the
+  // 4. Forward to the upstream provider. An `?type=image` request goes to the
   // OpenAI-compatible /images/generations endpoint; everything else is a chat
   // completion. Same host, same key — only the path differs.
   const body = await req.text();
   if (body.length > MAX_BODY_CHARS) return jsonError(413, 'Request body too large');
 
-  const isImageRequest = new URL(req.url).searchParams.get('type') === 'image';
   const upstreamPath = isImageRequest ? '/images/generations' : '/chat/completions';
 
   let upstream: Response;
