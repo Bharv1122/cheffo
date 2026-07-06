@@ -54,6 +54,11 @@ export default async function handler(req: Request): Promise<Response> {
       .from('approvals')
       .select('vet_name, vet_practice, vet_state')
       .eq('vet_email', approval.vet_email)
+      // Scope to THIS owner's prior approvals — the prefill is a convenience for
+      // a vet who reviews repeatedly for the same user. Without this, any user
+      // could surface another customer's vet's name/practice/state by putting
+      // that vet's email on their own request (service-role = no RLS backstop).
+      .eq('user_id', approval.user_id)
       .not('vet_name', 'is', null)
       .order('submitted_at', { ascending: false })
       .limit(1)
