@@ -178,7 +178,35 @@ const GRAMS_PER_CUP_BY_ID: Record<string, number> = {
   // Seeds (ground)
   flaxseed_ground: 130,
   chia_seeds: 170,
+  // Proteins — diced/cubed raw muscle meats ~140-150 g/cup, ground meats
+  // ~225 g/cup (packed), matching the raw prep state the recipes use.
+  // REVIEW-REQUIRED: chef can fine-tune these cup weights.
+  chicken_breast: 140,
+  turkey_breast: 140,
+  duck_breast: 140,
+  pork_loin: 140,
+  lamb: 150,
+  venison: 150,
+  salmon: 150,
+  whitefish: 145,
+  sardines_canned: 150,
+  mackerel_canned: 150,
+  chicken_liver: 150,
+  beef_liver: 150,
+  ground_turkey: 225,
+  ground_beef_lean: 225,
+  ground_chicken: 225,
+  cottage_cheese: 226, // USDA: 1 cup = 226 g
+  eggs: 243, // beaten whole egg; display uses egg COUNT, cups are the fallback
+  // Oils (~0.91-0.92 g/ml) and powders
+  olive_oil: 216,
+  coconut_oil: 218,
+  salmon_oil: 208,
+  eggshell_powder: 264, // ~5.5 g/tsp
 };
+
+// One large egg without shell ≈ 50 g — used to display eggs as a count.
+const GRAMS_PER_LARGE_EGG = 50;
 
 export function gramsPerCupFor(ingredientId?: string | null): number {
   if (ingredientId && GRAMS_PER_CUP_BY_ID[ingredientId] != null) {
@@ -246,6 +274,7 @@ export function formatImperialWeight(grams: number): string {
 
   if (lbs >= 1.8) return `${Math.round(lbs)} lbs`;
   if (lbs >= 0.9) return '1 lb';
+  if (lbs >= 0.65) return '¾ lb';
   if (lbs >= 0.4) return '½ lb';
   if (oz >= 1) return `${Math.round(oz)} oz`;
   return `${Math.max(1, Math.round(grams))} g`;
@@ -268,12 +297,26 @@ export function formatMetricIngredient(ingredient: Pick<RecipeIngredient, 'name'
 }
 
 export function formatVolumeIngredient(ingredient: Pick<RecipeIngredient, 'name' | 'amountGrams' | 'amountCups' | 'category'>): string {
-  const cups = ingredient.amountCups ?? gramsToCups(ingredient.amountGrams);
+  const lowerName = ingredient.name.toLowerCase();
+
+  // Eggs are counted, not measured ("2 eggs", not "½ cup eggs").
+  if (lowerName.includes('egg') && !lowerName.includes('eggshell')) {
+    const count = Math.max(0.5, Math.round((ingredient.amountGrams / GRAMS_PER_LARGE_EGG) * 2) / 2);
+    const noun = count <= 1 ? 'egg' : 'eggs';
+    const countLabel = Number.isInteger(count) ? String(count) : count === 0.5 ? '½' : `${Math.floor(count)}½`;
+    return `${countLabel} ${noun}`;
+  }
+
+  // Unrounded cups here — formatVolumeAmountFromCups picks the right unit
+  // and rounds there. gramsToCups' quarter-cup rounding would zero out
+  // tsp-scale amounts (e.g. 3 g fish oil → "a small amount").
+  const cups = ingredient.amountCups || ingredient.amountGrams / ML_PER_CUP;
   const volume = formatVolumeAmountFromCups(cups);
 
-  if (ingredient.category === 'protein' || ingredient.category === 'supplement') {
-    const weight = formatImperialWeight(ingredient.amountGrams);
-    return `${weight} ${ingredient.name} (about ${volume})`;
+  // Kitchen-measure first everywhere. Proteins keep the weight in parens
+  // for the grocery run (meat is bought by the pound, measured by the cup).
+  if (ingredient.category === 'protein') {
+    return `${volume} ${ingredient.name} (${formatImperialWeight(ingredient.amountGrams)})`;
   }
 
   return `${volume} ${ingredient.name}`;

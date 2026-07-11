@@ -96,7 +96,14 @@ export const RISKY_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
 ];
 
 export function checkToxic(text: string): { errors: string[]; warnings: string[] } {
-  const lower = text.toLowerCase();
+  // Negated mentions are safety LABELS, not ingredients: "Peanut Butter
+  // (xylitol-free)" must not trip the xylitol hard-block. Blank out
+  // "<term>-free", "<term> free", "no <term>", and "without <term>" before
+  // matching. (\bxylitol\b matches inside "xylitol-free" — hyphen is a word
+  // boundary — which made the PB Banana Bites template fail generation.)
+  const lower = text.toLowerCase()
+    .replace(/\b[a-z]+[\s-]free\b/g, ' ')
+    .replace(/\b(?:no|without)\s+[a-z]+\b/g, ' ');
   const errors: string[] = [];
   const warnings: string[] = [];
 

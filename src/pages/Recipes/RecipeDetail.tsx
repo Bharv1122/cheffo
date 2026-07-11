@@ -26,6 +26,7 @@ import { checkSingleIngredient } from '../../utils/safetyValidator';
 import { getRecipePhoto } from '../../utils/recipeInsights';
 import { computeSuggestedDoses } from '../../utils/supplementDosing';
 import { buildInstacartSearchUrl } from '../../utils/affiliate';
+import { isSupabaseConfigured } from '../../lib/supabase';
 import type { Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
 
 // Quick-select chips for the batch modal. The numeric input below lets the
@@ -262,6 +263,10 @@ export default function RecipeDetailPage() {
   const setBatchDays = setBatchDaysOverride;
   const [swapError, setSwapError] = useState<string | null>(null);
   const [swapSuccess, setSwapSuccess] = useState<string | null>(null);
+  // How many vet-approval requests exist for this recipe (any status);
+  // null until VetApprovalSection reports in. Drives the "send to your
+  // vet" callout, which only shows for recipes that never started the flow.
+  const [vetApprovalCount, setVetApprovalCount] = useState<number | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
 
   // useMemo dropped intentionally — React Compiler auto-memoizes, and the manual
@@ -612,6 +617,33 @@ export default function RecipeDetailPage() {
         </div>
       </section>
 
+      {/* Vet-approval callout — the flywheel's ignition. Shown on meal
+          recipes that have never had an approval request, once the section
+          below reports its count. (Strategy: the USER carries Cheffo to
+          their vet.) */}
+      {isSupabaseConfigured && vetApprovalCount === 0 && (recipe.type === 'full_meal' || recipe.type === 'batch_week') && (
+        <section className="mt-4 rounded-2xl border border-[#f2c8a0] bg-[#fff7ee] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-2">
+              <ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#a16b38]" />
+              <div>
+                <p className="font-semibold text-[#5b4a37]">Make it official — get your vet's sign-off</p>
+                <p className="mt-0.5 text-sm text-[#7e6b54]">
+                  Send this recipe to your own vet. Their review takes about 2 minutes, and the recipe earns an approved-by-your-vet badge.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => document.getElementById('vet-approval-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
+              Send to my vet
+            </Button>
+          </div>
+        </section>
+      )}
+
       <section className="mt-4 doggo-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-[1.35rem] font-semibold">Nutrition Facts</h2>
@@ -710,7 +742,9 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
-      <VetApprovalSection recipeId={recipe.id} supplements={recipe.supplements} />
+      <div id="vet-approval-section">
+        <VetApprovalSection recipeId={recipe.id} supplements={recipe.supplements} onLoaded={setVetApprovalCount} />
+      </div>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
         <article className="doggo-card p-5">

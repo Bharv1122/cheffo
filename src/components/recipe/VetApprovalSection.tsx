@@ -18,6 +18,10 @@ interface Props {
   // request form so the user only sends the ones they care about
   // reviewing. Required supplements are always included. (CHE-127)
   supplements?: SupplementItem[];
+  // Reports how many approval requests exist for this recipe (any status),
+  // so the recipe page can show a "send to your vet" callout only when the
+  // user has never started the flow.
+  onLoaded?: (approvalCount: number) => void;
 }
 
 function describeApproval(approval: ApprovalSummary): { tone: 'good' | 'warn' | 'bad' | 'neutral'; line: string } {
@@ -37,7 +41,7 @@ function describeApproval(approval: ApprovalSummary): { tone: 'good' | 'warn' | 
   return { tone: 'neutral', line: `Awaiting review from ${approval.vetEmail}` };
 }
 
-export function VetApprovalSection({ recipeId, supplements }: Props) {
+export function VetApprovalSection({ recipeId, supplements, onLoaded }: Props) {
   const [approvals, setApprovals] = useState<ApprovalSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -83,12 +87,13 @@ export function VetApprovalSection({ recipeId, supplements }: Props) {
     try {
       const rows = await listApprovalsForRecipe(recipeId);
       setApprovals(rows);
+      onLoaded?.(rows.length);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Could not load approvals.');
     } finally {
       setLoading(false);
     }
-  }, [recipeId]);
+  }, [recipeId, onLoaded]);
 
   useEffect(() => {
     void refresh();
