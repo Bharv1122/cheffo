@@ -45,7 +45,8 @@ export default function PrivacyPolicyPage() {
           <li>
             <strong>Technical data.</strong> A salted, hashed form of your IP address for rate-limiting public
             endpoints (we cannot reverse this back to your IP). Browser language and viewport for layout
-            decisions. We do not run third-party analytics or advertising trackers in v1.0.
+            decisions. We use Vercel Web Analytics — a cookieless, aggregate page-view counter that does not
+            track you across sites or store personal identifiers. We do not run advertising trackers.
           </li>
         </ul>
       </Section>
@@ -65,7 +66,7 @@ export default function PrivacyPolicyPage() {
         <p>We share data only with the services we need to operate the app:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Supabase</strong> — database hosting and authentication. Stores your account, dog profiles, recipes, and approvals.</li>
-          <li><strong>Vercel</strong> — application hosting and serverless functions.</li>
+          <li><strong>Vercel</strong> — application hosting, serverless functions, and cookieless aggregate page analytics.</li>
           <li><strong>Stripe</strong> — subscription billing and payment processing. Handles all card data directly.</li>
           <li><strong>Resend</strong> — transactional email (vet-approval emails, password reset).</li>
           <li><strong>Our language-model provider</strong> — processes your assistant chat messages and dog profile to generate responses. We do not allow the provider to train their models on your data.</li>
@@ -79,7 +80,7 @@ export default function PrivacyPolicyPage() {
           <li><strong>Encrypted at rest.</strong> Our database provider encrypts stored data.</li>
           <li><strong>Per-user row-level security.</strong> Each user can only read and modify their own data; this is enforced by the database itself, not just application code.</li>
           <li><strong>Server-side secrets.</strong> Provider API keys live only in server-side environment variables. The client never sees them.</li>
-          <li><strong>Passwords.</strong> Hashed by our authentication provider before storage. We check new passwords against the HaveIBeenPwned database to block known-breached passwords.</li>
+          <li><strong>Passwords.</strong> Hashed by our authentication provider before storage; we never see or store the plaintext.</li>
         </ul>
       </Section>
 

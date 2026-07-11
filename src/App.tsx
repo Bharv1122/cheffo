@@ -183,22 +183,12 @@ function AppLayout() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/pricing"
-            element={
-              <ProtectedRoute>
-                <Pricing />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/help"
-            element={
-              <ProtectedRoute>
-                <Help />
-              </ProtectedRoute>
-            }
-          />
+          {/* Public marketing/support pages — the landing page links here for
+              logged-out visitors, robots.txt/sitemap list them, and Pricing
+              already routes guests to signup on checkout. A ProtectedRoute
+              wrapper here was walling off the price list from prospects. */}
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/help" element={<Help />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
