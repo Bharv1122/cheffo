@@ -1,27 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://chef-doggo.vercel.app/</loc>
+    <loc>https://cheffodoggo.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://chef-doggo.vercel.app/pricing</loc>
+    <loc>https://cheffodoggo.com/pricing</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://chef-doggo.vercel.app/help</loc>
+    <loc>https://cheffodoggo.com/learn/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://cheffodoggo.com/learn/is-homemade-dog-food-safe/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chef-doggo.vercel.app/privacy</loc>
+    <loc>https://cheffodoggo.com/learn/how-to-balance-homemade-dog-food/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cheffodoggo.com/learn/lightly-cooked-vs-raw-vs-kibble/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cheffodoggo.com/learn/how-much-homemade-food-to-feed-my-dog/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cheffodoggo.com/learn/best-app-for-homemade-dog-food/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://cheffodoggo.com/help</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://cheffodoggo.com/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://chef-doggo.vercel.app/terms</loc>
+    <loc>https://cheffodoggo.com/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>

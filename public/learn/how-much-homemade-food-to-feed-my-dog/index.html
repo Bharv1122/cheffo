@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How Much Homemade Food Should I Feed My Dog? (Calorie Math + Chart) — Cheffo Doggo</title>
+  <meta name="description" content="How much homemade dog food to feed, using the calorie formula vets use: RER = 70 × (kg^0.75), adjusted for life stage and activity. Includes a starting-point chart by body weight." />
+  <link rel="canonical" href="https://cheffodoggo.com/learn/how-much-homemade-food-to-feed-my-dog/" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Cheffo Doggo" />
+  <meta property="og:title" content="How Much Homemade Food Should I Feed My Dog?" />
+  <meta property="og:description" content="The calorie math vets use (RER and MER), with a starting-point chart by body weight." />
+  <meta property="og:url" content="https://cheffodoggo.com/learn/how-much-homemade-food-to-feed-my-dog/" />
+  <meta property="og:image" content="https://cheffodoggo.com/cheffo-doggo-logo.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How much homemade food should I feed my dog?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Feed by calories, not cups. Start from resting energy requirement: RER = 70 × (body weight in kg)^0.75, then multiply by a life-stage factor — commonly around 1.6 for a typical neutered adult, higher for active dogs and puppies, lower for weight loss. A typical neutered 20 kg (44 lb) adult needs roughly 1,000–1,100 kcal per day as a starting point, then adjust based on weight and body condition over 2–4 weeks." }
+      },
+      {
+        "@type": "Question",
+        "name": "What is RER and MER for dogs?",
+        "acceptedAnswer": { "@type": "Answer", "text": "RER (resting energy requirement) is the calories a dog burns at rest: 70 × (kg^0.75). MER (maintenance energy requirement) adjusts RER for real life by multiplying by a factor: roughly 1.6 for neutered adults, 1.8 for intact adults, 2 or more for very active dogs, and higher still for growing puppies. These are veterinary starting points, not exact prescriptions — individual dogs vary." }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know if I'm feeding the right amount?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Use body condition, not the bowl: you should feel ribs easily under a thin fat layer and see a visible waist from above. Weigh your dog every week or two after a diet change. Trending up unintentionally, cut calories about 10 percent; trending down, add about 10 percent. The formula gets you close; the scale makes you right." }
+      },
+      {
+        "@type": "Question",
+        "name": "Is the 2-3% of body weight rule accurate for homemade dog food?",
+        "acceptedAnswer": { "@type": "Answer", "text": "The percent-of-body-weight rule is a rough shortcut from raw feeding, and it breaks down at the extremes — small dogs need more than it suggests and giant dogs less, because energy needs scale with metabolic weight (kg^0.75), not linearly. Calorie-based feeding with a body-condition check is more reliable." }
+      }
+    ]
+  }
+  </script>
+  <style>
+    :root { color-scheme: light; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #FFFBF5; color: #2b2118; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.65; }
+    a { color: #f97316; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px 20px 64px; }
+    header.site { display: flex; align-items: center; gap: 10px; padding-bottom: 20px; }
+    header.site img { width: 36px; height: 36px; border-radius: 10px; }
+    header.site a.brand { font-weight: 700; color: #2b2118; text-decoration: none; font-size: 17px; }
+    header.site nav { margin-left: auto; font-size: 14px; }
+    header.site nav a { color: #5f564d; text-decoration: none; margin-left: 14px; }
+    .crumb { font-size: 13px; color: #9c9288; margin-bottom: 6px; }
+    .crumb a { color: #9c9288; }
+    h1 { font-size: 30px; line-height: 1.25; margin: 6px 0 14px; }
+    h2 { font-size: 21px; margin: 30px 0 10px; }
+    p, ul, ol { margin-bottom: 14px; color: #3f362c; }
+    ul, ol { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    .tldr { background: #eaf6ea; border: 1px solid #bfe3c8; border-radius: 14px; padding: 14px 16px; margin-bottom: 22px; font-size: 15px; }
+    .tableWrap { overflow-x: auto; margin-bottom: 14px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; background: #fff; }
+    th, td { border: 1px solid #eadfce; padding: 9px 12px; text-align: left; }
+    th { background: #fff6ec; }
+    .formula { background: #fff; border: 1px solid #eadfce; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; font-size: 15px; }
+    .cta { background: #fff6ec; border: 1px solid #f7d9b8; border-radius: 16px; padding: 20px; margin-top: 34px; }
+    .cta a.btn { display: inline-block; margin-top: 10px; background: #f97316; color: #fff; text-decoration: none; font-weight: 600; padding: 10px 18px; border-radius: 12px; font-size: 15px; }
+    .related { margin-top: 30px; font-size: 15px; }
+    footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid #eadfce; font-size: 13px; color: #9c9288; }
+    footer a { color: #9c9288; margin-right: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <img src="/cheffo-doggo-logo.png" alt="Cheffo Doggo logo" />
+      <a class="brand" href="/">Cheffo Doggo</a>
+      <nav><a href="/learn/">Learn</a><a href="/pricing">Pricing</a><a href="/help">Help</a></nav>
+    </header>
+
+    <p class="crumb"><a href="/learn/">Learn</a> / Portions</p>
+    <h1>How much homemade food should I feed my dog?</h1>
+
+    <p class="tldr"><strong>Feed calories, not cups.</strong> Homemade food doesn't come with a feeding chart on the bag, so you borrow the math vets use — two formulas and a weekly weigh-in.</p>
+
+    <h2>The math vets actually use</h2>
+    <div class="formula">
+      <strong>Step 1 — RER</strong> (resting energy requirement):<br />
+      RER = 70 × (body weight in kg)<sup>0.75</sup><br /><br />
+      <strong>Step 2 — MER</strong> (maintenance, i.e. real life): multiply RER by a life-stage factor:<br />
+      ~1.6 typical neutered adult · ~1.8 intact adult · 2.0+ very active · higher for puppies · lower (vet-guided) for weight loss
+    </div>
+    <p>Worked example: a neutered 20 kg (44 lb) adult. 20<sup>0.75</sup> ≈ 9.5, so RER ≈ 70 × 9.5 ≈ <strong>660 kcal</strong>. Times 1.6 → <strong>≈ 1,060 kcal/day</strong>. That's the whole trick.</p>
+
+    <h2>Starting points by body weight</h2>
+    <p>Typical neutered adult, moderate activity (RER × 1.6), rounded:</p>
+    <div class="tableWrap">
+      <table>
+        <tr><th>Dog's weight</th><th>RER</th><th>Daily calories (starting point)</th></tr>
+        <tr><td>5 kg (11 lb)</td><td>≈ 235 kcal</td><td>≈ 375 kcal</td></tr>
+        <tr><td>10 kg (22 lb)</td><td>≈ 395 kcal</td><td>≈ 630 kcal</td></tr>
+        <tr><td>20 kg (44 lb)</td><td>≈ 660 kcal</td><td>≈ 1,060 kcal</td></tr>
+        <tr><td>30 kg (66 lb)</td><td>≈ 900 kcal</td><td>≈ 1,440 kcal</td></tr>
+        <tr><td>40 kg (88 lb)</td><td>≈ 1,110 kcal</td><td>≈ 1,780 kcal</td></tr>
+      </table>
+    </div>
+    <p><strong>These are starting points, not prescriptions.</strong> Two dogs of the same weight can differ by 20% or more in actual need. Treats count too — keep them under about 10% of daily calories.</p>
+
+    <h2>Why not "2–3% of body weight"?</h2>
+    <p>You'll see this rule all over raw-feeding forums. It's a shortcut that breaks at the extremes: energy needs scale with <em>metabolic</em> weight (kg<sup>0.75</sup>), not linearly — so the percent rule underfeeds small dogs and overfeeds giants. Calories are more work to think about once, and then they're just correct.</p>
+
+    <h2>The feedback loop that makes you right</h2>
+    <ul>
+      <li><strong>Weigh every 1–2 weeks</strong> after a diet change.</li>
+      <li><strong>Body-condition check:</strong> ribs easy to feel under a thin fat layer; visible waist from above; belly tucks up from the side.</li>
+      <li>Unintentionally gaining → cut ~10% of calories. Losing → add ~10%. Re-check in two weeks.</li>
+      <li>Puppies, pregnant/nursing dogs, and dogs with medical conditions: get your vet's numbers, not a website's — including ours.</li>
+    </ul>
+
+    <div class="cta">
+      <strong>Cheffo Doggo runs this math automatically.</strong> Tell it your dog's weight, age, and activity, and every recipe comes portioned in kitchen units — with batch scaling so you can cook once and feed all week. First treat recipe is free, no card needed.
+      <br /><a class="btn" href="/signup">Try Cheffo Doggo free</a>
+    </div>
+
+    <p class="related"><strong>Keep reading:</strong> <a href="/learn/how-to-balance-homemade-dog-food/">How to balance homemade dog food</a> · <a href="/learn/is-homemade-dog-food-safe/">Is homemade dog food safe?</a> · <a href="/learn/lightly-cooked-vs-raw-vs-kibble/">Lightly cooked vs raw vs kibble</a></p>
+
+    <footer>
+      <a href="/">Home</a><a href="/learn/">Learn</a><a href="/pricing">Pricing</a><a href="/help">Help center</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a>
+      <p style="margin-top:8px">Educational content, not veterinary advice. Always consult your veterinarian before changing your dog's diet.</p>
+    </footer>
+  </div>
+</body>
+</html>

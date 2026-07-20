@@ -158,6 +158,9 @@ export default function LandingPage() {
           </Link>
           <nav className="flex items-center gap-1 sm:gap-3 text-sm">
             <Link to="/pricing" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Pricing</Link>
+            {/* Plain <a>: /learn/ is a static page outside the SPA router —
+                a <Link> would client-route into the catch-all redirect. */}
+            <a href="/learn/" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Learn</a>
             <Link to="/help" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Help</Link>
             <Link to="/login" className="px-3 py-2 text-[#5f564d] hover:text-[#2b2118] font-medium">Sign in</Link>
             <Link
@@ -514,6 +517,7 @@ export default function LandingPage() {
             </div>
             <nav className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm sm:grid-cols-3">
               <Link to="/pricing" className="hover:text-white">Pricing</Link>
+              <a href="/learn/" className="hover:text-white">Learn</a>
               <Link to="/help" className="hover:text-white">Help center</Link>
               <Link to="/login" className="hover:text-white">Sign in</Link>
               <Link to="/privacy" className="hover:text-white">Privacy</Link>

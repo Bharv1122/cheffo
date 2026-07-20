@@ -4,6 +4,7 @@
 User-agent: *
 Allow: /
 Allow: /pricing
+Allow: /learn/
 Allow: /help
 Allow: /privacy
 Allow: /terms
@@ -31,4 +32,4 @@ Disallow: /vet-approve/
 # Server-side endpoints.
 Disallow: /api/
 
-Sitemap: https://chef-doggo.vercel.app/sitemap.xml
+Sitemap: https://cheffodoggo.com/sitemap.xml
