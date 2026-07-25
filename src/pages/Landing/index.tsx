@@ -120,13 +120,13 @@ function DemoVideo() {
   return (
     <div className="relative overflow-hidden rounded-3xl border border-[#eadfce] bg-[#21150e] shadow-[0_20px_45px_-24px_rgba(43,33,24,0.45)]">
       <video
-        key="cheffo-doggo-demo-v5"
+        key="cheffo-doggo-demo-v6"
         ref={videoRef}
-        src="/cheffo-doggo-demo-v5.mp4"
+        src="/cheffo-doggo-demo-v6.mp4"
         controls
         playsInline
         preload="auto"
-        poster="/demo-poster.png"
+        poster="/demo-poster-v2.png"
         className="block aspect-[16/10] w-full bg-[#21150e] object-contain"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
