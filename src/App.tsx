@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/layout/BottomNav';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -60,6 +60,21 @@ const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/vet-approve/', '/p
 
 function AppLayout() {
   const location = useLocation();
+
+  // First-touch attribution: remember where a visitor came from (?src=card on
+  // the printed QR cards, ?src=fb on social posts) so signup can stamp it on
+  // the account's metadata. First value wins — the channel that brought them
+  // in keeps the credit.
+  useEffect(() => {
+    try {
+      const src = new URLSearchParams(window.location.search).get('src');
+      if (src && src.trim() && !localStorage.getItem('cheffo_src')) {
+        localStorage.setItem('cheffo_src', src.trim().slice(0, 40));
+      }
+    } catch {
+      // localStorage unavailable (private mode) — attribution is best-effort
+    }
+  }, []);
 
   const isAuthPath = AUTH_PATHS.some(path => location.pathname.startsWith(path));
   const showBottomNav =

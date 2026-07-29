@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
@@ -9,7 +9,19 @@ import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 
 export default function NewProfilePage() {
   const navigate = useNavigate();
-  const { profiles, createProfile } = useDogProfiles();
+  const { profiles, loading, createProfile } = useDogProfiles();
+
+  // Consume the fresh-signup flag (set by the signup page) so a later visit
+  // to /signup while logged in goes Home like before.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('cheffo:post-signup');
+    } catch {
+      // sessionStorage unavailable — nothing to clear
+    }
+  }, []);
+
+  const isFirstDog = !loading && profiles.length === 0;
 
   return (
     <>
@@ -20,6 +32,11 @@ export default function NewProfilePage() {
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-[#f4ddc1] bg-[#fff8ee] p-4">
           <Sparkles size={18} className="mt-0.5 shrink-0 text-[#f97316]" aria-hidden="true" />
           <div className="space-y-2 text-sm text-[#7e6b54]">
+            {isFirstDog && (
+              <p className="font-semibold text-[#5b4a37]">
+                Let&apos;s meet your dog — about 30 seconds, and your first treat recipe is on the house. 🦴
+              </p>
+            )}
             <p>
               <strong className="font-semibold text-[#5b4a37]">Why we ask:</strong>{' '}
               Cheffo uses weight, age, and allergies to personalize portions and run safety checks on every recipe. Your data stays private and is never shared.

@@ -18,7 +18,17 @@ export default function SignupPage() {
   const [message, setMessage] = useState('');
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    // A brand-new signup skips Home and lands directly on the dog-profile
+    // form — the required first step (dismissible welcome modals weren't
+    // enough; new users bounced from Home without creating a profile).
+    // Already-signed-in visitors to /signup still go Home.
+    let postSignup = false;
+    try {
+      postSignup = sessionStorage.getItem('cheffo:post-signup') === '1';
+    } catch {
+      // sessionStorage unavailable — fall back to Home
+    }
+    return <Navigate to={postSignup ? '/profiles/new' : '/'} replace />;
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -50,6 +60,14 @@ export default function SignupPage() {
     if (needsEmailVerification) {
       setMessage('Account created! Please check your email to verify your account before logging in.');
     } else {
+      // Auto-confirm is on, so the session lands immediately — flag this as a
+      // fresh signup so the authenticated redirect above targets the
+      // dog-profile form instead of Home.
+      try {
+        sessionStorage.setItem('cheffo:post-signup', '1');
+      } catch {
+        // sessionStorage unavailable — user lands on Home instead
+      }
       setMessage('Account created! You can now start using Cheffo Doggo.');
     }
   }

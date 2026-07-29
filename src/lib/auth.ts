@@ -63,12 +63,20 @@ export async function signInWithEmailPassword(email: string, password: string): 
   };
 }
 
-export async function signUpWithEmailPassword(email: string, password: string): Promise<AuthResult> {
+export async function signUpWithEmailPassword(
+  email: string,
+  password: string,
+  metadata?: Record<string, string>
+): Promise<AuthResult> {
   if (!isSupabaseConfigured || !supabase) {
     return missingConfigResult();
   }
 
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    ...(metadata ? { options: { data: metadata } } : {}),
+  });
   return {
     user: data.user,
     session: data.session,

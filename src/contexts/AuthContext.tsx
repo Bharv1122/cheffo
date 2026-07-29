@@ -67,7 +67,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string) {
-    const { session: nextSession, error } = await signUpWithEmailPassword(email, password);
+    // First-touch attribution captured in App (?src= on any URL) — stamped
+    // into the auth user's metadata so we can tell which channel signups
+    // come from (auth.users.raw_user_meta_data->>'signup_source').
+    let signupSource: string | null = null;
+    try {
+      signupSource = localStorage.getItem('cheffo_src');
+    } catch {
+      // localStorage unavailable — attribution is best-effort
+    }
+    const { session: nextSession, error } = await signUpWithEmailPassword(
+      email,
+      password,
+      signupSource ? { signup_source: signupSource } : undefined
+    );
     return {
       error,
       needsEmailVerification: !nextSession,
