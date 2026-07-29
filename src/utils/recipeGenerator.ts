@@ -38,6 +38,10 @@ export interface GeneratorInput {
   budgetMode?: boolean;
   pantryIngredientIds?: string[];
   forceTemplateId?: string;
+  // Skip the AI food photo. The image proxy (/api/llm?type=image) is auth-gated,
+  // so a logged-out visitor would always 401 into the stock-photo fallback after
+  // a wasted round-trip. The guest treat preview on the landing page sets this.
+  skipImage?: boolean;
 }
 
 interface RestrictionMatch {
@@ -337,7 +341,9 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     updatedAt: now,
   };
 
-  const imageUrl = (await generateRecipeImage(baseRecipe)) ?? undefined;
+  const imageUrl = input.skipImage
+    ? undefined
+    : (await generateRecipeImage(baseRecipe)) ?? undefined;
   return {
     ...baseRecipe,
     imageUrl,

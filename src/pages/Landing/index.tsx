@@ -17,6 +17,7 @@ import {
   Clock,
   Snowflake,
 } from 'lucide-react';
+import { GuestTreat } from '../../components/landing/GuestTreat';
 
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
@@ -175,27 +176,42 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="px-4 py-16 sm:py-24">
+      <section className="px-4 py-8 sm:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <p className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf6ea] px-3 py-1 text-xs font-semibold text-[#2f8e56]">
             <Leaf size={12} aria-hidden="true" />
             Real human-food ingredients
           </p>
-          <h1 className="mt-5 text-4xl font-bold leading-tight text-[#2b2118] sm:text-5xl">
+          <h1 className="mt-4 text-3xl font-bold leading-tight text-[#2b2118] sm:mt-5 sm:text-5xl">
             From ultra-processed kibble<br className="hidden sm:inline" />{' '}
             to <span className="text-[#f97316]">homemade human food.</span>
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-[#5f564d]">
+          <p className="mt-3 text-base leading-relaxed text-[#5f564d] sm:mt-4 sm:text-lg">
             Cheffo Doggo turns the same fresh ingredients you cook with — lean chicken, salmon,
             sweet potato, leafy greens — into personalized, vet-informed meals for your dog.
             No "meat by-products," no preservatives, no mystery.
           </p>
-          <p className="mt-3 text-base font-medium text-[#3a302a]">
+          {/* Guest funnel: let a stranger see a real recipe for their own dog
+              before we ask for anything. Runs entirely client-side (treat text
+              is template-generated), so it costs nothing per visitor. This is
+              the Cheffo twin of the Recipe Reborn guest scan, which is the only
+              mechanic that has converted a cold stranger.
+
+              It sits directly under the headline so it clears the fold on a
+              375x812 phone — the batch-cooking line and the brand quote below
+              are still here, just moved under the box rather than in front of
+              it. Show first, sell second. */}
+          <div className="mt-5 sm:mt-8">
+            <GuestTreat />
+          </div>
+
+          <p className="mt-6 text-base font-medium text-[#3a302a]">
             And homemade doesn’t mean cooking every night — <span className="text-[#f97316] font-semibold">batch a whole week in one session</span>, portion, freeze, and serve.
           </p>
           <p className="mt-2 italic text-[#7f7469]">
             "Real food first. Supplements only when food can't get there."
           </p>
+
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               to="/signup"
