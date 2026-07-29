@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { KeyRound, Mail } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
 import { AuthLayout } from './AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
@@ -12,7 +12,7 @@ export default function SignupPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -36,11 +36,6 @@ export default function SignupPage() {
 
     if (password.length < 8) {
       setError('Use at least 8 characters for better security.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
       return;
     }
 
@@ -97,27 +92,29 @@ export default function SignupPage() {
           required
         />
 
+        {/* Confirm-password removed (conversion killer, Beth-approved — same
+            call as Recipe Reborn); the show/hide toggle covers typo safety. */}
         <Input
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           label="Password"
           placeholder="At least 8 characters"
           icon={<KeyRound size={16} />}
+          trailing={
+            <button
+              type="button"
+              onClick={() => setShowPassword(current => !current)}
+              className="text-[#78716C] hover:text-[#1C1917]"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
           value={password}
           onChange={event => setPassword(event.target.value)}
           autoComplete="new-password"
           required
           hint="Tip: use a unique password you do not reuse elsewhere."
-        />
-
-        <Input
-          type="password"
-          label="Confirm password"
-          placeholder="Re-enter your password"
-          icon={<KeyRound size={16} />}
-          value={confirmPassword}
-          onChange={event => setConfirmPassword(event.target.value)}
-          autoComplete="new-password"
-          required
         />
 
         {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}

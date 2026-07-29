@@ -5,9 +5,11 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   hint?: string;
   icon?: React.ReactNode;
+  /** Right-side adornment (e.g. a show/hide password toggle button) */
+  trailing?: React.ReactNode;
 }
 
-export function Input({ label, error, hint, icon, className = '', id, ...props }: InputProps) {
+export function Input({ label, error, hint, icon, trailing, className = '', id, ...props }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
   return (
     <div className="flex flex-col gap-1">
@@ -29,9 +31,13 @@ export function Input({ label, error, hint, icon, className = '', id, ...props }
             'focus:outline-none focus:ring-2 focus:ring-[#F97316] focus:border-[#F97316]',
             error ? 'border-red-400' : 'border-[#E7E5E4]',
             icon ? 'pl-9' : '',
+            trailing ? 'pr-10' : '',
             className,
           ].join(' ')}
         />
+        {trailing && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#78716C]">{trailing}</span>
+        )}
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
       {hint && !error && <p className="text-xs text-[#78716C]">{hint}</p>}
