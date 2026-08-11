@@ -194,7 +194,9 @@ export default function CalculatorPage() {
                 <div key={label} className="flex items-center justify-between border border-[#E7E5E4] rounded-xl p-3">
                   <div>
                     <p className="text-sm font-semibold text-[#1C1917]">{label}</p>
-                    <p className="text-xs text-[#78716C]">{batch.numberOfMeals} meals · {batch.numberOfContainers} containers</p>
+                    <p className="text-xs text-[#78716C]">
+                      {batch.numberOfMeals} {batch.numberOfMeals === 1 ? 'meal' : 'meals'} · {batch.numberOfContainers} {batch.numberOfContainers === 1 ? 'container' : 'containers'}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-[#F97316]">{formatGrams(batch.totalYieldGrams)}</p>

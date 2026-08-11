@@ -15,10 +15,10 @@ export interface UseApprovalsResult {
   error: string | null;
   // True when this recipe has at least one approved / approved_with_notes
   // approval — i.e. is "Vet Approved" in the badge sense.
-  isApproved: (recipeId: string) => boolean;
+  isApproved: (recipeId: string, contentUpdatedAt?: string) => boolean;
   // Most-recent positive (approved/approved_with_notes) approval for a recipe,
   // or null. Drives the "Approved by Dr. X DVM" badge.
-  primaryApprovalForRecipe: (recipeId: string) => ApprovalSummary | null;
+  primaryApprovalForRecipe: (recipeId: string, contentUpdatedAt?: string) => ApprovalSummary | null;
   // Positive approvals submitted strictly after the given ISO timestamp. Used
   // by Home to show a banner for newly-arrived approvals since last-seen. A
   // null timestamp returns all of them.
@@ -79,19 +79,25 @@ export function useApprovals(): UseApprovalsResult {
   }, [approvals]);
 
   const isApproved = useCallback(
-    (recipeId: string): boolean => {
+    (recipeId: string, contentUpdatedAt?: string): boolean => {
       const list = byRecipeId.get(recipeId);
       if (!list) return false;
-      return list.some((a) => POSITIVE_STATUSES.has(a.status));
+      return list.some((a) =>
+        POSITIVE_STATUSES.has(a.status) &&
+        (!contentUpdatedAt || Boolean(a.submittedAt && a.submittedAt >= contentUpdatedAt))
+      );
     },
     [byRecipeId]
   );
 
   const primaryApprovalForRecipe = useCallback(
-    (recipeId: string): ApprovalSummary | null => {
+    (recipeId: string, contentUpdatedAt?: string): ApprovalSummary | null => {
       const list = byRecipeId.get(recipeId);
       if (!list) return null;
-      const positives = list.filter((a) => POSITIVE_STATUSES.has(a.status));
+      const positives = list.filter((a) =>
+        POSITIVE_STATUSES.has(a.status) &&
+        (!contentUpdatedAt || Boolean(a.submittedAt && a.submittedAt >= contentUpdatedAt))
+      );
       if (positives.length === 0) return null;
       // Most recently submitted positive approval wins.
       return positives

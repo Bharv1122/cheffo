@@ -29,12 +29,19 @@ const TREATS = [
 export default function TreatsPage() {
   const navigate = useNavigate();
   const { activeProfile, profiles } = useDogProfiles();
-  const { saveRecipe } = useRecipes();
+  const { recipes, saveRecipe } = useRecipes();
   const [activeTab, setActiveTab] = useState<TreatTab>('training');
+  const [sortOrder, setSortOrder] = useState<'featured' | 'alphabetical'>('featured');
+  const [showAll, setShowAll] = useState(false);
   const [loadingTreat, setLoadingTreat] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const visibleTreats = useMemo(() => TREATS.filter(treat => treat.category === activeTab), [activeTab]);
+  const visibleTreats = useMemo(() => {
+    const selected = showAll ? TREATS : TREATS.filter(treat => treat.category === activeTab);
+    return sortOrder === 'alphabetical'
+      ? [...selected].sort((a, b) => a.name.localeCompare(b.name))
+      : selected;
+  }, [activeTab, showAll, sortOrder]);
 
   async function handleViewTreatRecipe(templateId: string, name: string) {
     if (!activeProfile) {
@@ -46,6 +53,13 @@ export default function TreatsPage() {
     setError(null);
     try {
       setLoadingTreat(name);
+      const existing = recipes.find(recipe =>
+        recipe.dogProfileId === activeProfile.id && recipe.sourceTemplateId === templateId
+      );
+      if (existing) {
+        navigate(`/recipes/${existing.id}`);
+        return;
+      }
       const generated = await generateRecipe({
         dog: activeProfile,
         recipeType: 'treat',
@@ -74,7 +88,7 @@ export default function TreatsPage() {
               <h4 className="mt-2 text-lg font-semibold">Carrot & Pumpkin Spring Snacks</h4>
               <p className="mt-1 text-sm text-[#7b7065]">Bright, crunchy, and full of seasonal goodness.</p>
               <Button size="sm" className="mt-3 w-full" onClick={() => void handleViewTreatRecipe('treat_pumpkin_oat_biscuits', 'Carrot & Pumpkin Spring Snacks')}>
-                View Recipe
+                Open or create recipe
               </Button>
             </div>
           </section>
@@ -86,7 +100,7 @@ export default function TreatsPage() {
               <p className="mt-2 text-lg font-semibold">Pup's Party Bowl</p>
               <p className="text-sm text-[#7b7065]">A festive, dog-safe bowl made for celebrations.</p>
               <Button size="sm" className="mt-3 w-full" onClick={() => void handleViewTreatRecipe('treat_birthday_bowl', 'Pup\'s Party Bowl')}>
-                View Recipe
+                Open or create recipe
               </Button>
             </div>
           </section>
@@ -111,7 +125,7 @@ export default function TreatsPage() {
             <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#6f6459]">
               <span>🛡️ Real ingredients</span>
               <span>🧡 Made with love</span>
-              <span>✅ Vet-informed</span>
+              <span>✅ Ingredient checked</span>
             </div>
           </div>
           <img src="/cheffo-doggo-logo.png" alt="Cheffo Doggo mascot" className="mx-auto h-56 w-56 object-contain" />
@@ -143,17 +157,29 @@ export default function TreatsPage() {
                 'rounded-xl px-4 py-2 text-sm font-semibold',
                 tab.key === activeTab ? 'bg-[#fff0de] text-[#f97316]' : 'text-[#7d7268] hover:bg-[#fff8ef]',
               ].join(' ')}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setShowAll(false);
+              }}
             >
               {tab.label}
             </button>
           ))}
           <div className="ml-auto">
-            <button className="rounded-xl border border-[#eadfce] bg-white px-4 py-2 text-sm text-[#7a6f64]">Sort by Newest</button>
+            <label className="sr-only" htmlFor="treat-sort">Sort treats</label>
+            <select
+              id="treat-sort"
+              value={sortOrder}
+              onChange={event => setSortOrder(event.target.value as 'featured' | 'alphabetical')}
+              className="rounded-xl border border-[#eadfce] bg-white px-4 py-2 text-sm text-[#7a6f64]"
+            >
+              <option value="featured">Featured order</option>
+              <option value="alphabetical">A–Z</option>
+            </select>
           </div>
         </div>
 
-        <p className="mt-3 text-sm text-[#8f857a]">Showing {visibleTreats.length} recipes</p>
+        <p className="mt-3 text-sm text-[#8f857a]">Showing {visibleTreats.length} {visibleTreats.length === 1 ? 'recipe' : 'recipes'}</p>
 
         {visibleTreats.length === 0 ? (
           <div className="mt-3 rounded-2xl border border-dashed border-[#f2c8a0] bg-[#fffaf4] p-6 text-center">
@@ -181,14 +207,20 @@ export default function TreatsPage() {
                   loading={loadingTreat === treat.name}
                   onClick={() => void handleViewTreatRecipe(treat.templateId, treat.name)}
                 >
-                  View Recipe
+                  {loadingTreat === treat.name ? 'Creating and saving…' : 'Open or create recipe'}
                 </Button>
               </article>
             ))}
           </div>
         )}
 
-        <button className="mt-5 w-full rounded-2xl border border-dashed border-[#f2c8a0] py-3 text-sm font-semibold text-[#f97316]">+ Load more tasty treats</button>
+        <button
+          type="button"
+          className="mt-5 w-full rounded-2xl border border-dashed border-[#f2c8a0] py-3 text-sm font-semibold text-[#f97316]"
+          onClick={() => setShowAll(current => !current)}
+        >
+          {showAll ? 'Show selected category only' : `Show all ${TREATS.length} treats`}
+        </button>
       </section>
     </AppShell>
   );

@@ -48,7 +48,7 @@ export default function NewProfilePage() {
             )}
             <p>
               <strong className="font-semibold text-[#5b4a37]">Why we ask:</strong>{' '}
-              Cheffo uses weight, age, and allergies to personalize portions and run safety checks on every recipe. Your data stays private and is never shared.
+              Cheffo uses weight, age, and allergies to personalize portions and run safety checks. Your data is processed only to provide the service, as described in our Privacy Policy.
             </p>
             <p className="text-xs text-[#9c8568]">{SHORT_VET_DISCLAIMER}</p>
           </div>

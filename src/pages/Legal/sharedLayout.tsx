@@ -24,12 +24,6 @@ export function LegalLayout({ title, effectiveDate, children }: LegalLayoutProps
           <p className="mt-2 text-sm text-[#7f7469]">Effective date: {effectiveDate}</p>
         </header>
 
-        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <strong className="font-semibold">v1 draft — not yet attorney-reviewed.</strong>{' '}
-          We recommend a licensed attorney in your jurisdiction review and revise these terms before relying on
-          them in a public launch.
-        </div>
-
         <article className="prose mt-8 space-y-6 text-[#2b2118] leading-relaxed">
           {children}
         </article>

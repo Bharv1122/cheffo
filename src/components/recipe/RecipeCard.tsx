@@ -5,7 +5,7 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { formatRecipeType } from '../../utils/formatting';
-import { formatIngredientByPreference } from '../../utils/calculator';
+import { formatIngredientByPreference, recipeGramsPerCup } from '../../utils/calculator';
 import { detectRecipeAllergens, getRecipePhoto, type CommonAllergen } from '../../utils/recipeInsights';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
 import type { Recipe } from '../../types/recipe';
@@ -67,6 +67,10 @@ export function RecipeCard({ recipe, dogName, onToggleFavorite }: Props) {
   const allergenSafety = recipe.allergenSafety;
   const derivedMatchedIngredients = findIngredientMatchesByTerms(recipe, allergenSafety?.checkedTerms ?? []);
   const hasAllergenWarning = allergenSafety?.allergenFree === false || derivedMatchedIngredients.length > 0;
+  // Derived from this bowl's real density rather than the saved cupsPerMeal,
+  // which assumes a flat 240 g/cup. Must match the recipe detail page or the
+  // card and the page it links to quote different scoop sizes.
+  const cupsPerMeal = recipe.serving.gramsPerMeal / recipeGramsPerCup(recipe.ingredients);
 
   return (
     <Card hoverable onClick={() => navigate(`/recipes/${recipe.id}`)} className="overflow-hidden" padding="none">
@@ -156,7 +160,7 @@ export function RecipeCard({ recipe, dogName, onToggleFavorite }: Props) {
             <>
               <span className="flex items-center gap-1">
                 <Utensils size={13} />
-                {recipe.serving.mealsPerDay}x/day · {recipe.serving.cupsPerMeal}c per meal
+                {recipe.serving.mealsPerDay}x/day · {cupsPerMeal.toFixed(1)}c per meal
               </span>
               <span className="flex items-center gap-1">
                 <ChefHat size={13} />

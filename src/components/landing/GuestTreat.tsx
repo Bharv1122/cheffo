@@ -16,7 +16,7 @@ const LIFE_STAGES: Array<{ value: LifeStage; label: string }> = [
 ];
 
 /**
- * The logged-out funnel: a real, personalized treat recipe with no account.
+ * The logged-out funnel: a personalized treat preview with no account.
  *
  * Everything here runs in the browser — Cheffo generates treat text from vetted
  * templates client-side, so this costs nothing per visitor and has no abuse
@@ -174,10 +174,10 @@ export function GuestTreat() {
       className="mx-auto max-w-2xl rounded-3xl border border-[#eadfce] bg-white p-5 text-left shadow-xl sm:p-7"
     >
       <h2 className="text-center text-xl font-bold text-[#2b2118]">
-        See a real recipe for your dog — free, no signup
+        Preview a personalized treat idea — free, no signup
       </h2>
       <p className="mt-1 text-center text-sm text-[#7f7469]">
-        Tell us two things and Cheffo builds an actual treat recipe, portioned for your dog.
+        See the recipe title and ingredients now. A free account unlocks exact amounts, portions, and every step.
       </p>
 
       {/* Side by side even on phones — stacking these pushed the submit button
@@ -249,7 +249,7 @@ export function GuestTreat() {
         ) : (
           <>
             <ChefHat size={18} aria-hidden="true" />
-            Make {dogLabel} a free treat
+            Preview {dogLabel}&rsquo;s treat
           </>
         )}
       </button>

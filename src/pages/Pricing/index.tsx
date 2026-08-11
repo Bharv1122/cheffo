@@ -27,7 +27,7 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 
 export default function PricingPage() {
   const { user, isAuthenticated } = useAuth();
-  const { isPremium } = useSubscription();
+  const { isPremium, loading: subscriptionLoading } = useSubscription();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [submitting, setSubmitting] = useState<Plan | null>(null);
@@ -66,6 +66,27 @@ export default function PricingPage() {
     }
   }
 
+  if (isAuthenticated && subscriptionLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#fffbf5] px-4" role="status">
+        <p className="rounded-2xl border border-[#eadfce] bg-white px-6 py-4 text-sm text-[#7f7469]">Checking your plan…</p>
+      </div>
+    );
+  }
+
+  if (isPremium) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#fffbf5] px-4">
+        <section className="doggo-card max-w-md p-7 text-center">
+          <Sparkles className="mx-auto text-[#f97316]" aria-hidden="true" />
+          <h1 className="mt-3 text-2xl font-semibold text-[#2b2118]">You're already on Premium</h1>
+          <p className="mt-2 text-sm text-[#7f7469]">Manage invoices, payment details, or cancellation from Settings.</p>
+          <Button className="mt-5" onClick={() => navigate('/settings')}>Manage subscription</Button>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#fffbf5] py-12 px-4">
       <div className="mx-auto max-w-3xl">
@@ -76,7 +97,7 @@ export default function PricingPage() {
         <header className="mt-6 text-center">
           <h1 className="text-3xl font-bold text-[#2b2118]">Cheffo Doggo Premium</h1>
           <p className="mt-2 text-[#7f7469]">
-            Real food first. Supplements only when food can't get there. Vet-informed recipes built for your dog.
+            Real food first, with personalized portion math, ingredient checks, and tools for your own veterinarian to review.
           </p>
         </header>
 

@@ -24,11 +24,17 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { statusLabel: subscriptionStatusLabel, isPremium, refresh: refreshSubscription } = useSubscription();
+  const {
+    statusLabel: subscriptionStatusLabel,
+    isPremium,
+    billingProblem,
+    refresh: refreshSubscription,
+  } = useSubscription();
   const [searchParams] = useSearchParams();
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
   const [openingPortal, setOpeningPortal] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
@@ -74,6 +80,7 @@ export default function SettingsPage() {
   async function handleExport() {
     setExporting(true);
     setExportError(null);
+    setExportSuccess(null);
     try {
       const response = await fetch('/api/account/export', {
         method: 'POST',
@@ -95,6 +102,7 @@ export default function SettingsPage() {
       anchor.click();
       document.body.removeChild(anchor);
       URL.revokeObjectURL(url);
+      setExportSuccess(`${fileName} downloaded successfully.`);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : 'Could not export your data.');
     } finally {
@@ -160,7 +168,32 @@ export default function SettingsPage() {
               {portalError}
             </p>
           )}
-          {isPremium ? (
+          {billingProblem ? (
+            /* Card trouble takes precedence over both the "you're premium" copy
+               and the upsell. An unpaid customer needs to FIX the card they
+               already have on file — sending them to a fresh checkout would
+               make a second subscription. */
+            <>
+              <p
+                className={
+                  billingProblem.inGracePeriod
+                    ? 'mt-1 rounded-xl border border-[#f4ddc1] bg-[#fff8ee] px-3 py-2 text-sm text-[#7e6b54]'
+                    : 'mt-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700'
+                }
+              >
+                <strong className="font-semibold">{billingProblem.title}.</strong>{' '}
+                {billingProblem.body}
+              </p>
+              <Button
+                className="mt-4"
+                icon={<CreditCard size={16} />}
+                loading={openingPortal}
+                onClick={handleOpenBillingPortal}
+              >
+                Update payment method
+              </Button>
+            </>
+          ) : isPremium ? (
             <>
               <p className="mt-1 text-sm text-[#6f6459]">
                 You're on Cheffo Doggo Premium. Update payment method, view invoices, or cancel anytime.
@@ -227,6 +260,11 @@ export default function SettingsPage() {
           {exportError && (
             <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {exportError}
+            </p>
+          )}
+          {exportSuccess && (
+            <p className="mt-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">
+              {exportSuccess}
             </p>
           )}
           <Button

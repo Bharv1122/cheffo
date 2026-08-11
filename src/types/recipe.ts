@@ -12,6 +12,10 @@ export interface RecipeIngredient {
   amountCups?: number;
   amountOz?: number;
   amountMl?: number;
+  // Pantry/chat foods may not have a catalog id. Persist the calorie-density
+  // estimate used to build them so later swaps, exports, and QA checks can
+  // recompute nutrition instead of treating the food as zero calories.
+  estimatedCaloriesPerGram?: number;
   groceryFriendlyAmount: string;
   displayMetric?: string;
   displayVolume?: string;
@@ -89,6 +93,8 @@ export interface Recipe {
   name: string;
   description: string;
   type: RecipeType;
+  // Stable origin for duplicate detection. Older recipes may not have it.
+  sourceTemplateId?: string;
   ingredients: RecipeIngredient[];
   instructions: CookingStep[];
   nutrition: NutritionEstimate;
@@ -109,6 +115,9 @@ export interface Recipe {
   isFavorite: boolean;
   scaleFactor: 1 | 2 | 3 | 4;
   transitionGuide?: string[];
+  // Changes only when recipe content changes (not favorites). Vet approvals
+  // older than this timestamp must not remain attached to a modified recipe.
+  contentUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

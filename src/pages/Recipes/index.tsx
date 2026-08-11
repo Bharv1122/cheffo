@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, Plus, Trash2 } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { PageLoadingSkeleton } from '../../components/ui/PageLoadingSkeleton';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useApprovals } from '../../hooks/useApprovals';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
@@ -60,14 +61,16 @@ function matchesTab(recipe: Recipe, tab: RecipeTab): boolean {
 
 export default function RecipesPage() {
   const navigate = useNavigate();
-  const { recipes, toggleFavorite, deleteRecipe } = useRecipes();
+  const { recipes, loading, error, toggleFavorite, deleteRecipe } = useRecipes();
   const { isApproved } = useApprovals();
   const { unitPreference } = useUnitPreference();
   const [activeTab, setActiveTab] = useState<RecipeTab>('all');
 
   const filteredRecipes = useMemo(
     () => recipes.filter(recipe =>
-      activeTab === 'vet_approved' ? isApproved(recipe.id) : matchesTab(recipe, activeTab)
+      activeTab === 'vet_approved'
+        ? isApproved(recipe.id, recipe.contentUpdatedAt ?? recipe.createdAt)
+        : matchesTab(recipe, activeTab)
     ),
     [activeTab, recipes, isApproved]
   );
@@ -78,6 +81,22 @@ export default function RecipesPage() {
     () => [...recipes].sort(byMostRecent).slice(0, 3).map(toFeaturedCard),
     [recipes]
   );
+
+  if (loading) {
+    return <AppShell active="recipes"><PageLoadingSkeleton label="Loading your recipes" /></AppShell>;
+  }
+
+  if (error) {
+    return (
+      <AppShell active="recipes">
+        <section className="doggo-card p-6 text-center">
+          <h1 className="text-xl font-semibold text-[#2b2118]">We couldn't load your recipes</h1>
+          <p className="mt-2 text-sm text-[#7f7469]">{error}</p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>Try again</Button>
+        </section>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -117,8 +136,8 @@ export default function RecipesPage() {
             <h1 className="doggo-section-title">Find the Perfect Recipe 💗</h1>
             <p className="mt-2 text-[1.2rem] text-[#7f7469]">Wholesome, homemade meals your dog will love.</p>
             <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#675d54]">
-              <span>🛡️ Vet-informed every time</span>
-              <span>✨ Balanced nutrition in every bite</span>
+              <span>🛡️ Ingredient safety checks</span>
+              <span>✨ Portion and calorie estimates</span>
               <span>🧡 Made with love and real ingredients</span>
             </div>
           </div>

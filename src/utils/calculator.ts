@@ -6,6 +6,7 @@ import type {
   RecipeIngredient,
   UnitPreference,
 } from '../types/recipe';
+import { findIngredientByName } from '../data/ingredients';
 
 // ── RER / DER ─────────────────────────────────────────────────────────────────
 // All results are ESTIMATES. Label them clearly in the UI.
@@ -215,6 +216,50 @@ export function gramsPerCupFor(ingredientId?: string | null): number {
   return ML_PER_CUP;
 }
 
+// Density lookup that also works for recipes whose ingredients carry SYNTHETIC
+// ids — "chat:sweet-potatoes" from the assistant converter, "pantry:bone_broth"
+// from pantry mode. Those never hit the density map, so they silently fell back
+// to water density (240 g/cup) and displayed the wrong volume. Resolving the
+// free-text name against the catalog (which matches aliases and plurals) fixes
+// them at render time, including recipes already saved with a synthetic id.
+export function gramsPerCupForIngredient(ingredientId?: string | null, name?: string | null): number {
+  if (ingredientId && GRAMS_PER_CUP_BY_ID[ingredientId] != null) {
+    return GRAMS_PER_CUP_BY_ID[ingredientId];
+  }
+
+  if (name) {
+    const catalogId = findIngredientByName(name)?.id;
+    if (catalogId && GRAMS_PER_CUP_BY_ID[catalogId] != null) {
+      return GRAMS_PER_CUP_BY_ID[catalogId];
+    }
+  }
+
+  return ML_PER_CUP;
+}
+
+// Weighted grams-per-cup for a whole bowl, derived from what's actually in it.
+// The serving/batch cup figures used to assume a flat 240 g/cup (water), which
+// is wrong for any real mix: a turkey + carrot + sweet-potato bowl runs ~195
+// g/cup, so "1.8 cups/day" understated the real scoop by ~20% AND disagreed
+// with the sum of the per-ingredient cups printed right below it. Deriving the
+// density from the ingredient list makes those two numbers reconcile.
+export function recipeGramsPerCup(
+  ingredients: Array<Pick<RecipeIngredient, 'ingredientId' | 'name' | 'amountGrams'>>
+): number {
+  let totalGrams = 0;
+  let totalCups = 0;
+
+  for (const ingredient of ingredients) {
+    const grams = ingredient.amountGrams;
+    if (!Number.isFinite(grams) || grams <= 0) continue;
+    totalGrams += grams;
+    totalCups += grams / gramsPerCupForIngredient(ingredient.ingredientId, ingredient.name);
+  }
+
+  if (totalCups <= 0) return ML_PER_CUP;
+  return totalGrams / totalCups;
+}
+
 // Cups conversion that accounts for ingredient density. Pass the per-ingredient
 // grams-per-cup (via gramsPerCupFor) so dry/light ingredients convert correctly;
 // omitting it falls back to water density for backward compatibility.
@@ -268,15 +313,25 @@ export function formatVolumeAmountFromCups(cups: number): string {
   return formatFractional(teaspoons, 'tsp');
 }
 
+// Imperial weight for the grocery run. Rounds CONTINUOUSLY rather than snapping
+// to a coarse ladder: the old version collapsed everything from 0.9 to 1.8 lb
+// onto the single label "1 lb" (and 0.4–0.65 lb onto "½ lb"), so a recipe
+// calling for 1½ lb of ground turkey told the shopper to buy 1 lb and the dog
+// got a third less protein than the recipe was portioned for.
 export function formatImperialWeight(grams: number): string {
-  const lbs = grams / 453.592;
+  if (!Number.isFinite(grams) || grams <= 0) return '0 g';
+
   const oz = grams / 28.35;
 
-  if (lbs >= 1.8) return `${Math.round(lbs)} lbs`;
-  if (lbs >= 0.9) return '1 lb';
-  if (lbs >= 0.65) return '¾ lb';
-  if (lbs >= 0.4) return '½ lb';
-  if (oz >= 1) return `${Math.round(oz)} oz`;
+  // A pound and up: quarter-pound steps (±2 oz), which is how meat is sold.
+  // 15.5 oz rather than 16 so anything that rounds to a pound reads "1 lb"
+  // instead of "16 oz".
+  if (oz >= 15.5) {
+    return formatFractional(grams / 453.592, 'lb');
+  }
+
+  const wholeOz = Math.round(oz);
+  if (wholeOz >= 1) return `${wholeOz} oz`;
   return `${Math.max(1, Math.round(grams))} g`;
 }
 
@@ -333,14 +388,10 @@ export function formatIngredientByPreference(
   return ingredient.displayVolume ?? formatVolumeIngredient(ingredient);
 }
 
-// Grocery-friendly legacy label (kept for backward compatibility)
+// Grocery-friendly legacy label (kept for backward compatibility). Shares the
+// single rounding ladder in formatImperialWeight so the shopping list and the
+// weight in the ingredient card can never disagree — they used to have separate
+// ladders that both under-reported by up to ~45%.
 export function groceryLabel(grams: number, ingredientName: string): string {
-  const lbs = grams / 453.592;
-  const oz = grams / 28.35;
-
-  if (lbs >= 1.8) return `about ${Math.round(lbs)} lbs ${ingredientName}`;
-  if (lbs >= 0.9) return `about 1 lb ${ingredientName}`;
-  if (lbs >= 0.4) return `about ½ lb ${ingredientName}`;
-  if (oz >= 10) return `about ${Math.round(oz)} oz ${ingredientName}`;
-  return `about ${Math.round(grams)}g ${ingredientName}`;
+  return `about ${formatImperialWeight(grams)} ${ingredientName}`;
 }

@@ -89,7 +89,14 @@ export default async function handler(req: Request): Promise<Response> {
         // lock a paying user out of the assistant. Log and allow.
         console.error('[llm] premium check failed, allowing:', subError.message);
       } else {
-        const isPremium = sub?.status === 'active' || sub?.status === 'trialing';
+        // `past_due` is included on purpose: it's the dunning grace window for
+        // a paying customer whose card just failed. This MUST match
+        // useSubscription's PREMIUM_STATUSES + GRACE_STATUSES on the client —
+        // otherwise the app tells them they still have access while the
+        // assistant 403s at them. Stripe settles past_due to canceled/unpaid
+        // within ~2 weeks, and neither of those is allowed here.
+        const isPremium =
+          sub?.status === 'active' || sub?.status === 'trialing' || sub?.status === 'past_due';
         if (!isPremium) {
           return jsonError(
             403,

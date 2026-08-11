@@ -2,11 +2,11 @@ import React from 'react';
 import { LegalLayout, Section } from './sharedLayout';
 
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
-const GOVERNING_LAW_STATE = 'the State of [your state]'; // TODO: Beth — set this before public launch (typically your business's state of incorporation).
+const GOVERNING_LAW_STATE = 'the State of California';
 
 export default function TermsPage() {
   return (
-    <LegalLayout title="Terms of Service" effectiveDate="May 25, 2026">
+    <LegalLayout title="Terms of Service" effectiveDate="August 10, 2026">
       <Section title="Acceptance">
         <p>
           By creating a Cheffo Doggo account or otherwise using our website, mobile apps, or services
@@ -64,7 +64,7 @@ export default function TermsPage() {
           </li>
           <li>
             <strong>14-day money-back guarantee.</strong> If you're not satisfied within 14 days of your initial
-            Premium purchase, email <a className="text-[#f97316] underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+            Premium purchase, email <a className="text-[#f97316] underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>{' '}
             for a full refund. No questions asked. This guarantee applies to your first purchase only.
           </li>
           <li>

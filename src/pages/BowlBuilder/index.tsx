@@ -26,14 +26,21 @@ function recipeTypeToPaywallFeature(type: RecipeType): PaywallFeature {
 export default function BowlBuilderPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const requestedTypeParam = searchParams.get('type');
+  const requestedType: RecipeType | null = requestedTypeParam &&
+    ['full_meal', 'batch_week', 'topper', 'pantry', 'treat'].includes(requestedTypeParam)
+      ? requestedTypeParam as RecipeType
+      : null;
   // Set by /profiles/new after the user saves their very first dog (CHE-24)
   // so we can greet them with a "Now let's make a recipe for X" line instead
   // of dropping them on a generic form.
   const welcomeDogName = searchParams.get('welcome');
-  const { saveRecipe } = useRecipes();
+  const { recipes, saveRecipe } = useRecipes();
   const { activeProfile, profiles, loading: profilesLoading } = useDogProfiles();
 
-  const [chosenType, setChosenType] = useState<RecipeType | null>(null);
+  const [chosenType, setChosenType] = useState<RecipeType | null>(() =>
+    requestedType && requestedType !== 'pantry' ? requestedType : null
+  );
   const [dogId, setDogId] = useState(activeProfile?.id ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -54,10 +61,14 @@ export default function BowlBuilderPage() {
   // First-run onboarding: if the user has no dog profiles yet, bounce them to
   // profile creation. Replaces the wizard's first-step handholding. (CHE-125)
   useEffect(() => {
+    if (requestedType === 'pantry') {
+      navigate('/pantry', { replace: true });
+      return;
+    }
     if (!profilesLoading && profiles.length === 0) {
       navigate('/profiles/new', { replace: true });
     }
-  }, [profilesLoading, profiles.length, navigate]);
+  }, [profilesLoading, profiles.length, navigate, requestedType]);
 
   async function handleGenerate() {
     // Subscription state not loaded yet — ignore the click rather than firing
@@ -79,6 +90,15 @@ export default function BowlBuilderPage() {
         // Batch recipes always feed for a week. Other types make a single meal.
         batchDuration: recipeType === 'batch_week' ? '7day' : '1day',
       });
+      const existing = recipes.find(savedRecipe =>
+        savedRecipe.dogProfileId === recipe.dogProfileId &&
+        savedRecipe.type === recipe.type &&
+        savedRecipe.sourceTemplateId === recipe.sourceTemplateId
+      );
+      if (existing) {
+        navigate(`/recipes/${existing.id}`);
+        return;
+      }
       const saved = await saveRecipe(recipe);
       navigate(`/recipes/${saved.id}`);
     } catch (e) {
@@ -104,7 +124,7 @@ export default function BowlBuilderPage() {
         <div className="mb-4">
           <h2 className="text-lg font-bold text-[#1C1917]">Build Your Bowl</h2>
           <p className="text-sm text-[#78716C] mt-1">
-            Pick a recipe type and Cheffo Doggo chooses balanced, dog-safe ingredients and builds the full recipe — portions, shopping list, and steps.
+            Pick a recipe type and Cheffo Doggo chooses ingredient-checked foods and builds a personalized plan — portions, shopping list, and steps.
           </p>
         </div>
 
@@ -124,7 +144,17 @@ export default function BowlBuilderPage() {
           {/* Recipe type */}
           <Card>
             <h3 className="font-semibold text-[#1C1917] text-sm mb-3">What kind of recipe?</h3>
-            <RecipeTypeSelector selected={recipeType} onSelect={t => setChosenType(t)} highlightFreeTreat={highlightFreeTreat} />
+            <RecipeTypeSelector
+              selected={recipeType}
+              onSelect={type => {
+                if (type === 'pantry') {
+                  navigate('/pantry');
+                  return;
+                }
+                setChosenType(type);
+              }}
+              highlightFreeTreat={highlightFreeTreat}
+            />
           </Card>
 
           {recipeType === 'batch_week' && (

@@ -5,6 +5,22 @@ import { generateId, storageGet, storageSet } from '../utils/storage';
 import type { Recipe } from '../types/recipe';
 import type { Json, SavedRecipeInsert, SavedRecipeRow } from '../types/database';
 
+function normalizeStoredRecipeType(recipe: Recipe, rowType: Recipe['type']): Recipe['type'] {
+  // Older saves were written with `pantry` in the indexed row even when the
+  // JSON body was a full meal/topper. Prefer a trustworthy JSON type first,
+  // then recover the type from durable recipe traits for the affected rows.
+  if (recipe.type && recipe.type !== 'pantry') return recipe.type;
+
+  const searchable = [recipe.name, recipe.description, ...(recipe.safetyNotes ?? [])].join(' ').toLowerCase();
+  const hasSyntheticPantryFoods = recipe.ingredients?.some(item => item.ingredientId.startsWith('pantry:'));
+  if (hasSyntheticPantryFoods || /pantry-style|pantry recipe/.test(searchable)) return 'pantry';
+  if (recipe.nutrition?.treatContentPerServing != null || /treats should|treat recipe/.test(searchable)) return 'treat';
+  if (/this topper|fresh topper|topper recipe/.test(searchable)) return 'topper';
+  if ((recipe.batch?.numberOfContainers ?? 0) >= 7 || /weekly batch|feed all week|batch recipe/.test(searchable)) return 'batch_week';
+  if ((recipe.supplements?.length ?? 0) > 0) return 'full_meal';
+  return rowType;
+}
+
 function toRecipe(row: SavedRecipeRow): Recipe {
   const recipe = row.recipe_data as unknown as Recipe;
   return {
@@ -13,7 +29,7 @@ function toRecipe(row: SavedRecipeRow): Recipe {
     dogProfileId: row.dog_profile_id,
     name: row.name,
     description: row.description,
-    type: row.type,
+    type: normalizeStoredRecipeType(recipe, row.type),
     isFavorite: row.is_favorite,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -147,10 +163,18 @@ export function useRecipes() {
     const nextRecipe = recipesRef.current.find(recipe => recipe.id === id);
     if (!nextRecipe) return;
 
+    const contentKeys = new Set<keyof Recipe>([
+      'name', 'description', 'type', 'ingredients', 'instructions', 'nutrition',
+      'serving', 'batch', 'supplements', 'storage', 'shoppingList', 'safetyNotes',
+      'allergenSafety', 'transitionGuide',
+    ]);
+    const contentChanged = (Object.keys(data) as Array<keyof Recipe>).some(key => contentKeys.has(key));
+    const nowIso = new Date().toISOString();
     const updated: Recipe = {
       ...nextRecipe,
       ...data,
-      updatedAt: new Date().toISOString(),
+      contentUpdatedAt: contentChanged ? nowIso : nextRecipe.contentUpdatedAt ?? nextRecipe.createdAt,
+      updatedAt: nowIso,
     };
 
     const client = supabase;

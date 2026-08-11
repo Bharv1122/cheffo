@@ -16,6 +16,7 @@ import {
 import { Logo } from './Logo';
 import { Button } from '../ui/Button';
 import { FloatingChatHead } from '../chat/FloatingChatHead';
+import { PaymentProblemBanner } from '../billing/PaymentProblemBanner';
 import { useAuth } from '../../contexts/AuthContext';
 
 type MainNavKey = 'home' | 'recipes' | 'dogs' | 'treats' | 'assistant' | 'settings';
@@ -39,6 +40,7 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
   const navigate = useNavigate();
   const { user, signOut, isSupabaseEnabled } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const displayName = user?.email?.split('@')[0] ?? 'Guest';
 
@@ -69,17 +71,41 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
             <p className="ml-12 -mt-1 hidden text-xs text-[#8b8378] sm:block">Homemade Dog Food Made Simple</p>
           </Link>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          <div className="relative ml-auto flex items-center gap-2 sm:gap-3">
             <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/bowl-builder')} className="max-md:hidden">
               Start New Bowl
             </Button>
             <button
               type="button"
               aria-label="Notifications"
+              aria-expanded={notificationsOpen}
+              aria-haspopup="dialog"
+              onClick={() => setNotificationsOpen(current => !current)}
               className="hidden h-11 w-11 place-items-center rounded-full border border-[#eadfce] bg-white text-[#7f7469] md:grid"
             >
               <Bell size={18} aria-hidden="true" />
             </button>
+            {notificationsOpen && (
+              <div
+                role="dialog"
+                aria-label="Notifications"
+                className="absolute right-12 top-14 z-50 hidden w-72 rounded-2xl border border-[#eadfce] bg-white p-4 text-left shadow-xl md:block"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-[#2b2118]">Notifications</p>
+                  <button
+                    type="button"
+                    aria-label="Close notifications"
+                    className="text-[#8b8378] hover:text-[#2b2118]"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="mt-3 text-sm text-[#7f7469]">You're all caught up.</p>
+                <p className="mt-1 text-xs leading-relaxed text-[#9a9186]">Vet-review updates and important account notices will appear here.</p>
+              </div>
+            )}
             <Link
               to="/settings"
               className="flex items-center gap-2 rounded-full border border-[#eadfce] bg-white px-2 py-1.5 hover:bg-[#fff8ef] transition-colors"
@@ -204,11 +230,16 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
             <p className="mt-2 text-xs leading-relaxed text-[#63846d]">
               Cheffo Doggo provides educational guidance only. For medical conditions, consult a licensed vet.
             </p>
-            <button className="mt-3 text-xs font-semibold text-[#2f8e56]">Learn more →</button>
+            <button type="button" onClick={() => navigate('/help')} className="mt-3 text-xs font-semibold text-[#2f8e56]">Learn more →</button>
           </div>
         </aside>
 
-        <main className="min-w-0">{children}</main>
+        <main className="min-w-0">
+          {/* Dunning: a failed card is surfaced on every signed-in page, not
+              buried in Settings where a customer has no reason to look. */}
+          <PaymentProblemBanner />
+          {children}
+        </main>
 
         {rightRail && <aside className="hidden min-w-0 space-y-4 xl:block">{rightRail}</aside>}
       </div>

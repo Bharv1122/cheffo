@@ -57,7 +57,7 @@ export function UpgradeModal({ open, onClose, feature }: UpgradeModalProps) {
     >
       <p className="text-base font-semibold text-[#2b2118]">{headline}</p>
       <p className="mt-2 text-sm text-[#6f6459]">
-        Real food first, supplements only when food can't get there. Vet-informed recipes built for your dog.
+        Real food first, with personalized portion math, ingredient checks, and tools for your own veterinarian to review.
       </p>
       <ul className="mt-4 space-y-2 text-sm text-[#3a302a]">
         {HIGHLIGHTS.map(h => (

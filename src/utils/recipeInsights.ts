@@ -1,6 +1,6 @@
 import { getIngredientById } from '../data/ingredients';
 import { getIngredientMacroSplit } from '../data/ingredientMacros';
-import type { Recipe } from '../types/recipe';
+import type { NutritionEstimate, Recipe, RecipeIngredient } from '../types/recipe';
 
 export type RecipePhotoKind = 'chicken' | 'beef' | 'fish' | 'veggie' | 'treats';
 export type CommonAllergen = 'chicken' | 'beef' | 'dairy' | 'wheat' | 'soy' | 'eggs';
@@ -125,6 +125,122 @@ export function detectRecipeAllergens(recipe: Recipe): CommonAllergen[] {
   return Array.from(new Set(found));
 }
 
+export function getIngredientCalories(ingredient: RecipeIngredient): number {
+  const source = getIngredientById(ingredient.ingredientId);
+  const caloriesPerGram = source?.caloriesPerGram ?? ingredient.estimatedCaloriesPerGram ?? 0;
+  return Number.isFinite(caloriesPerGram) && caloriesPerGram > 0
+    ? caloriesPerGram * ingredient.amountGrams
+    : 0;
+}
+
+export function recalculateRecipeNutrition(
+  recipe: Recipe,
+  ingredients: RecipeIngredient[] = recipe.ingredients,
+): NutritionEstimate {
+  const totalCalories = ingredients.reduce((sum, ingredient) => sum + getIngredientCalories(ingredient), 0);
+
+  if (recipe.type === 'treat') {
+    const servingsInBatch = recipe.serving.gramsPerMeal > 0
+      ? Math.max(1, recipe.batch.totalYieldGrams / recipe.serving.gramsPerMeal)
+      : 1;
+    return {
+      ...recipe.nutrition,
+      treatContentPerServing: Math.max(1, Math.round(totalCalories / servingsInBatch)),
+    };
+  }
+
+  const numberOfMeals = Math.max(1, recipe.batch.numberOfMeals || recipe.serving.mealsPerDay);
+  const caloriesPerServing = Math.max(1, Math.round(totalCalories / numberOfMeals));
+  return {
+    caloriesPerServing,
+    caloriesPerDay: Math.max(1, Math.round(caloriesPerServing * recipe.serving.mealsPerDay)),
+    isEstimate: true,
+  };
+}
+
+export interface RecipePlanningReview {
+  status: 'passed' | 'needs_attention' | 'limited_use';
+  title: string;
+  summary: string;
+  issues: string[];
+}
+
+export function reviewRecipePlanning(recipe: Recipe): RecipePlanningReview {
+  const issues: string[] = [];
+  const actualNutrition = recalculateRecipeNutrition(recipe);
+  const storedDaily = Math.max(1, recipe.nutrition.caloriesPerDay);
+  const calorieDelta = Math.abs(actualNutrition.caloriesPerDay - storedDaily) / storedDaily;
+  const ingredientYield = recipe.ingredients.reduce((sum, ingredient) => sum + ingredient.amountGrams, 0);
+  const yieldDelta = recipe.batch.totalYieldGrams > 0
+    ? Math.abs(ingredientYield - recipe.batch.totalYieldGrams) / recipe.batch.totalYieldGrams
+    : 1;
+
+  if (calorieDelta > 0.1) {
+    issues.push(`Ingredient calories and the saved daily estimate differ by ${Math.round(calorieDelta * 100)}%.`);
+  }
+  if (yieldDelta > 0.02) {
+    issues.push(`Ingredient weight and batch yield differ by ${Math.round(yieldDelta * 100)}%.`);
+  }
+
+  if (recipe.type === 'full_meal' || recipe.type === 'batch_week') {
+    const macros = getNutritionMacroBreakdown(recipe);
+    const protein = macros.find(item => item.key === 'protein')?.percentage ?? 0;
+    const fat = macros.find(item => item.key === 'fat')?.percentage ?? 0;
+    if (protein < 18) {
+      issues.push(`Protein is ${protein}% of estimated calories; Cheffo's planning minimum is 18%.`);
+    }
+    if (fat < 10 || fat > 35) {
+      issues.push(`Fat is ${fat}% of estimated calories; Cheffo's planning range is 10–35%.`);
+    }
+
+    const supplementNames = recipe.supplements.map(item => item.name.toLowerCase()).join(' ');
+    if (!/calcium/.test(supplementNames)) issues.push('The required calcium checklist item is missing.');
+    if (!/(multi|vitamin|mineral)/.test(supplementNames)) issues.push('The vitamin/mineral checklist item is missing.');
+
+    return issues.length > 0
+      ? {
+          status: 'needs_attention',
+          title: 'Needs attention before feeding',
+          summary: 'One or more planning checks failed. Regenerate this recipe or send it to your veterinarian before using it.',
+          issues,
+        }
+      : {
+          status: 'passed',
+          title: 'Planning checks passed',
+          summary: 'Calories, yield, macro estimates, and required supplement checklist are internally consistent. Veterinary review is still required before long-term feeding.',
+          issues: [],
+        };
+  }
+
+  if (recipe.type === 'pantry') {
+    return {
+      status: 'limited_use',
+      title: 'Occasional meal only',
+      summary: 'Pantry recipes are ingredient- and calorie-checked, but they do not include a complete calcium, vitamin, and mineral formulation.',
+      issues: [
+        'A veterinarian or board-certified veterinary nutritionist must confirm a calcium source and exact dose before ongoing use.',
+        ...issues,
+      ],
+    };
+  }
+
+  return issues.length > 0
+    ? {
+        status: 'needs_attention',
+        title: 'Recipe math needs attention',
+        summary: 'The ingredient totals do not match the saved portion plan. Regenerate this recipe before using it.',
+        issues,
+      }
+    : {
+        status: 'limited_use',
+        title: recipe.type === 'treat' ? 'Treat use only' : 'Topper use only',
+        summary: recipe.type === 'treat'
+          ? 'Ingredient safety and the 10% treat-calorie cap are checked. This is not a meal replacement.'
+          : 'Ingredient safety and portion math are checked. This is designed to complement complete food, not replace it.',
+        issues: [],
+      };
+}
+
 export function getNutritionMacroBreakdown(recipe: Recipe): Array<{ key: 'protein' | 'fat' | 'carb'; label: string; calories: number; percentage: number }> {
   const caloriesByMacro = {
     protein: 0,
@@ -133,12 +249,9 @@ export function getNutritionMacroBreakdown(recipe: Recipe): Array<{ key: 'protei
   };
 
   for (const ingredient of recipe.ingredients) {
-    const source = getIngredientById(ingredient.ingredientId);
-    const caloriesPerGram = source?.caloriesPerGram ?? 0;
+    const calories = getIngredientCalories(ingredient);
 
-    if (caloriesPerGram <= 0 || !Number.isFinite(caloriesPerGram)) continue;
-
-    const calories = ingredient.amountGrams * caloriesPerGram;
+    if (calories <= 0 || !Number.isFinite(calories)) continue;
     // Split each ingredient's calories across macros by its composition, so a
     // fatty protein (salmon, lamb) contributes to both protein AND fat rather
     // than dumping 100% of its calories into a single bucket.

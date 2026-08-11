@@ -15,7 +15,7 @@ const OPTIONS: Option[] = [
     type: 'full_meal',
     icon: <UtensilsCrossed size={24} />,
     label: 'Full Homemade Meal',
-    description: 'A complete balanced meal with supplements, shopping list, and vet guidance.',
+    description: 'A personalized homemade meal plan with portion math, supplement checklist, shopping list, and vet-review tools.',
   },
   {
     type: 'batch_week',
@@ -62,6 +62,7 @@ export function RecipeTypeSelector({ selected, onSelect, highlightFreeTreat }: P
         <button
           key={opt.type}
           type="button"
+          aria-pressed={selected === opt.type}
           onClick={() => onSelect(opt.type)}
           className={[
             'w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all duration-150',

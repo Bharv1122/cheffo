@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Edit2, Plus, Trash2 } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { PageLoadingSkeleton } from '../../components/ui/PageLoadingSkeleton';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useRecipes } from '../../hooks/useRecipes';
 import type { DogProfile } from '../../types/dog';
@@ -158,8 +159,8 @@ function DogProfileBlock({
 
 export default function DogProfilesPage() {
   const navigate = useNavigate();
-  const { profiles, deleteProfile } = useDogProfiles();
-  const { getRecipesByDog } = useRecipes();
+  const { profiles, loading: profilesLoading, error: profilesError, deleteProfile } = useDogProfiles();
+  const { loading: recipesLoading, getRecipesByDog } = useRecipes();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const goalsByDog = useMemo(() => {
@@ -185,6 +186,22 @@ export default function DogProfilesPage() {
     } finally {
       setDeletingId(null);
     }
+  }
+
+  if (profilesLoading || recipesLoading) {
+    return <AppShell active="dogs"><PageLoadingSkeleton label="Loading your dog profiles" cards={2} /></AppShell>;
+  }
+
+  if (profilesError) {
+    return (
+      <AppShell active="dogs">
+        <section className="doggo-card p-6 text-center">
+          <h1 className="text-xl font-semibold text-[#2b2118]">We couldn't load your dog profiles</h1>
+          <p className="mt-2 text-sm text-[#7f7469]">{profilesError}</p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>Try again</Button>
+        </section>
+      </AppShell>
+    );
   }
 
   return (
@@ -235,12 +252,12 @@ export default function DogProfilesPage() {
         <img src="/cheffo-doggo-logo.png" alt="Cheffo Doggo mascot" className="mx-auto h-40 w-40 object-contain" />
         <div>
           <h3 className="text-[1.4rem] font-semibold">Cheffo Doggo is here for you!</h3>
-          <p className="mt-1 text-sm text-[#7f7469]">Every dog is unique, and I'm here to help you create meals that are safe, balanced, and made with love.</p>
+          <p className="mt-1 text-sm text-[#7f7469]">Every dog is unique, and I'm here to help you create personalized meal plans that are ready for your veterinarian to review.</p>
           <Button variant="secondary" size="sm" className="mt-2" onClick={() => navigate('/assistant')}>Ask Cheffo Doggo</Button>
         </div>
         <div className="rounded-2xl border border-[#d6ebda] bg-[#f2fbf4] p-4 text-sm text-[#4d8b62]">
           <p className="font-semibold">Safety first, always ✅</p>
-          <p className="mt-1 text-xs text-[#5f8b6a]">All recipes use safe, vet-recommended ingredients and are checked against a toxic food database.</p>
+          <p className="mt-1 text-xs text-[#5f8b6a]">Ingredients are checked against common dog toxins and the restrictions saved in each dog's profile.</p>
         </div>
       </section>
     </AppShell>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChefHat, ChevronDown, Heart, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, FileText } from 'lucide-react';
+import { ChefHat, ChevronDown, Heart, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -18,12 +18,20 @@ import {
   formatIngredientByPreference,
   formatMetricIngredient,
   formatVolumeIngredient,
+  formatVolumeAmountFromCups,
   gramsToCups,
-  gramsPerCupFor,
+  gramsToOz,
+  gramsPerCupForIngredient,
   groceryLabel,
+  recipeGramsPerCup,
 } from '../../utils/calculator';
 import { checkSingleIngredient } from '../../utils/safetyValidator';
-import { getRecipePhoto } from '../../utils/recipeInsights';
+import {
+  getNutritionMacroBreakdown,
+  getRecipePhoto,
+  recalculateRecipeNutrition,
+  reviewRecipePlanning,
+} from '../../utils/recipeInsights';
 import { computeSuggestedDoses } from '../../utils/supplementDosing';
 import { buildInstacartSearchUrl } from '../../utils/affiliate';
 import { isSupabaseConfigured } from '../../lib/supabase';
@@ -35,78 +43,50 @@ const BATCH_QUICK_DAYS: number[] = [1, 3, 5, 7, 14];
 const BATCH_MIN_DAYS = 1;
 const BATCH_MAX_DAYS = 60;
 
-// AAFCO adult maintenance minimums on a calorie basis (calories from macro / total).
-// Puppies (and pregnant/lactating) need higher protein + fat; we surface a note
-// rather than block, since recipe generation already handles life-stage upstream.
-const AAFCO_TARGETS = {
-  adult: { proteinMinPct: 18, proteinMaxPct: 32, fatMinPct: 11, fatMaxPct: 35 },
-  puppy: { proteinMinPct: 22, proteinMaxPct: 32, fatMinPct: 18, fatMaxPct: 35 },
-};
-
-// Category-level macro splits (fraction of calories from protein / fat / carb).
-// These are coarse averages: real meats range from chicken-breast (~85/15/0) to
-// eggs (~33/67/0), but lumping all whole proteins at ~50/45/5 gets us from
-// "biologically impossible 0g fat" to "useful estimate." Per-ingredient overrides
-// can be added later if more precision is needed; for now this matches what most
-// home cooks would see on a nutrition label.
-const MACRO_SPLITS: Record<RecipeIngredient['category'], { protein: number; fat: number; carbs: number }> = {
-  protein: { protein: 0.50, fat: 0.45, carbs: 0.05 },
-  carb: { protein: 0.12, fat: 0.08, carbs: 0.80 },
-  vegetable: { protein: 0.20, fat: 0.05, carbs: 0.75 },
-  fat: { protein: 0.05, fat: 0.95, carbs: 0.00 },
-  supplement: { protein: 0.30, fat: 0.40, carbs: 0.30 },
-  treat: { protein: 0.12, fat: 0.08, carbs: 0.80 },
+// Internal planning ranges used as a consistency check. These are deliberately
+// not called AAFCO targets: AAFCO completeness requires nutrient amounts,
+// calorie density, life-stage data, and laboratory/formulation review—not just
+// three estimated macro percentages.
+const PLANNING_RANGES = {
+  adult: { proteinMinPct: 18, fatMinPct: 10, fatMaxPct: 35 },
+  puppy: { proteinMinPct: 22, fatMinPct: 15, fatMaxPct: 35 },
 };
 
 function getNutritionBreakdown(recipe: Recipe) {
-  const categoryCalories = recipe.ingredients.reduce(
-    (acc, ingredient) => {
-      const source = getIngredientById(ingredient.ingredientId);
-      const calories = source ? source.caloriesPerGram * ingredient.amountGrams : 0;
-      const split = MACRO_SPLITS[ingredient.category] ?? MACRO_SPLITS.carb;
-
-      acc.protein += calories * split.protein;
-      acc.fat += calories * split.fat;
-      acc.carbs += calories * split.carbs;
-
-      if (ingredient.category === 'carb' || ingredient.category === 'vegetable') {
-        acc.fiberGrams += ingredient.amountGrams * 0.03;
-      }
-
-      return acc;
-    },
-    { protein: 0, fat: 0, carbs: 0, fiberGrams: 0 }
-  );
-
-  const recipeTotalCalories = Math.max(1, categoryCalories.protein + categoryCalories.fat + categoryCalories.carbs);
+  const macroBreakdown = getNutritionMacroBreakdown(recipe);
+  const macroPct = (key: 'protein' | 'fat' | 'carb') =>
+    macroBreakdown.find(item => item.key === key)?.percentage ?? 0;
+  const recalculated = recalculateRecipeNutrition(recipe);
   // For treats, scale macros to the ACTUAL per-serving energy content (not the
   // safe-budget figure stored in caloriesPerServing). Older treats without the
   // content field fall back to caloriesPerServing.
   const caloriesPerCup = Math.max(
     1,
     recipe.type === 'treat'
-      ? recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing
-      : recipe.nutrition.caloriesPerServing
+      ? recalculated.treatContentPerServing ?? recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing
+      : recalculated.caloriesPerServing
   );
-  const scale = caloriesPerCup / recipeTotalCalories;
-
-  const proteinCalPerCup = categoryCalories.protein * scale;
-  const fatCalPerCup = categoryCalories.fat * scale;
-  const carbCalPerCup = categoryCalories.carbs * scale;
-  const fiberPerCup = Math.max(0.5, categoryCalories.fiberGrams * scale);
+  const proteinPct = macroPct('protein');
+  const fatPct = macroPct('fat');
+  const carbsPct = macroPct('carb');
+  const proteinCalPerCup = caloriesPerCup * proteinPct / 100;
+  const fatCalPerCup = caloriesPerCup * fatPct / 100;
+  const carbCalPerCup = caloriesPerCup * carbsPct / 100;
+  const totalFiber = recipe.ingredients.reduce((sum, ingredient) =>
+    ingredient.category === 'carb' || ingredient.category === 'vegetable'
+      ? sum + ingredient.amountGrams * 0.03
+      : sum
+  , 0);
+  const fiberPerCup = Math.max(0.5, totalFiber / Math.max(1, recipe.batch.numberOfMeals));
 
   const proteinGrams = Math.round((proteinCalPerCup / 4) * 10) / 10;
   const fatGrams = Math.round((fatCalPerCup / 9) * 10) / 10;
   const carbsGrams = Math.round((carbCalPerCup / 4) * 10) / 10;
 
-  const proteinPct = Math.round((proteinCalPerCup / caloriesPerCup) * 100);
-  const fatPct = Math.round((fatCalPerCup / caloriesPerCup) * 100);
-  const carbsPct = Math.round((carbCalPerCup / caloriesPerCup) * 100);
-
   // caloriesPerServing is per MEAL, not per cup — multiplying by cupsPerMeal
   // again overstated the day total by ~2× (60lb dog showed 2627 vs real 1194).
   // The generator already stores the correct daily figure; display that.
-  const caloriesPerDay = recipe.nutrition.caloriesPerDay;
+  const caloriesPerDay = recalculated.caloriesPerDay;
 
   return {
     caloriesPerCup,
@@ -133,20 +113,20 @@ interface NutritionBreakdown {
   carbsPct: number;
 }
 
-interface AafcoCheckResult {
+interface PlanningCheckResult {
   proteinOk: boolean;
   fatOk: boolean;
   proteinTarget: string;
   fatTarget: string;
 }
 
-function evaluateAafco(n: NutritionBreakdown, lifeStage: 'puppy' | 'adult' | 'senior'): AafcoCheckResult {
+function evaluatePlanningRanges(n: NutritionBreakdown, lifeStage: 'puppy' | 'adult' | 'senior'): PlanningCheckResult {
   // Seniors follow the adult range; puppies get the higher targets.
-  const t = lifeStage === 'puppy' ? AAFCO_TARGETS.puppy : AAFCO_TARGETS.adult;
+  const t = lifeStage === 'puppy' ? PLANNING_RANGES.puppy : PLANNING_RANGES.adult;
   return {
-    proteinOk: n.proteinPct >= t.proteinMinPct && n.proteinPct <= t.proteinMaxPct,
+    proteinOk: n.proteinPct >= t.proteinMinPct,
     fatOk: n.fatPct >= t.fatMinPct && n.fatPct <= t.fatMaxPct,
-    proteinTarget: `${t.proteinMinPct}–${t.proteinMaxPct}%`,
+    proteinTarget: `≥${t.proteinMinPct}%`,
     fatTarget: `${t.fatMinPct}–${t.fatMaxPct}%`,
   };
 }
@@ -166,13 +146,24 @@ function ingredientCategoryToShoppingCategory(category: RecipeIngredient['catego
   return 'produce';
 }
 
+function replaceIngredientReference(value: string | undefined, previousName: string, nextName: string): string | undefined {
+  if (!value) return value;
+  const escaped = previousName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(new RegExp(escaped, 'gi'), nextName);
+}
+
 function rebuildIngredientDisplay(ingredient: RecipeIngredient): RecipeIngredient {
   // Recompute volume from grams using THIS ingredient's density. Must NOT reuse
   // a carried-over amountCups: after a swap the spread keeps the OLD
   // ingredient's amountCups, so `?? gramsToCups(...)` would leave the previous
   // ingredient's volume (e.g. 180g oats = 2 cups sticking to a rice swap that
-  // should be ~1.1 cups). Recompute density-aware via gramsPerCupFor(id).
-  const derivedCups = gramsToCups(ingredient.amountGrams, gramsPerCupFor(ingredient.ingredientId));
+  // should be ~1.1 cups). Recompute density-aware via gramsPerCupForIngredient,
+  // which falls back to the ingredient NAME so chat-/pantry-built recipes
+  // (synthetic "chat:"/"pantry:" ids) don't silently use water density.
+  const derivedCups = gramsToCups(
+    ingredient.amountGrams,
+    gramsPerCupForIngredient(ingredient.ingredientId, ingredient.name)
+  );
   const amountCups = ingredient.category === 'supplement' ? ingredient.amountCups : derivedCups;
   const amountMl = amountCups ? cupsToMl(amountCups) : Math.max(1, Math.round(ingredient.amountGrams));
   const displayBase = {
@@ -263,6 +254,7 @@ export default function RecipeDetailPage() {
   const setBatchDays = setBatchDaysOverride;
   const [swapError, setSwapError] = useState<string | null>(null);
   const [swapSuccess, setSwapSuccess] = useState<string | null>(null);
+  const [swapUndoSnapshot, setSwapUndoSnapshot] = useState<Recipe | null>(null);
   // How many vet-approval requests exist for this recipe (any status);
   // null until VetApprovalSection reports in. Drives the "send to your
   // vet" callout, which only shows for recipes that never started the flow.
@@ -272,12 +264,10 @@ export default function RecipeDetailPage() {
   // useMemo dropped intentionally — React Compiler auto-memoizes, and the manual
   // useMemo here triggered its preserve-manual-memoization warning on `recipe`.
   const nutrition = recipe ? getNutritionBreakdown(recipe) : null;
-  // AAFCO maintenance targets only apply to complete meals — skip for treats,
-  // which by definition are supplemental and shouldn't be evaluated as the
-  // dog's full nutrition.
-  const aafco = nutrition && recipe && recipe.type !== 'treat'
-    ? evaluateAafco(nutrition, dogProfile?.lifeStage ?? 'adult')
+  const planningRanges = nutrition && recipe && (recipe.type === 'full_meal' || recipe.type === 'batch_week')
+    ? evaluatePlanningRanges(nutrition, dogProfile?.lifeStage ?? 'adult')
     : null;
+  const planningReview = recipe ? reviewRecipePlanning(recipe) : null;
 
   if (!recipe) {
     // Don't flash "Recipe not found" while recipes are still hydrating —
@@ -339,6 +329,13 @@ export default function RecipeDetailPage() {
         prepNote: swap.prepNotes,
       });
     });
+    const previousIngredient = currentRecipe.ingredients[index];
+    const nextInstructions = currentRecipe.instructions.map(step => ({
+      ...step,
+      instruction: replaceIngredientReference(step.instruction, previousIngredient.name, swap.name) ?? step.instruction,
+      tip: replaceIngredientReference(step.tip, previousIngredient.name, swap.name),
+    }));
+    const nextNutrition = recalculateRecipeNutrition(currentRecipe, nextIngredients);
 
     const replacedNames = new Set(currentRecipe.ingredients.map(ingredient => ingredient.name.toLowerCase()));
     const updatedShoppingIngredients: ShoppingListItem[] = nextIngredients.map(ingredient => ({
@@ -357,12 +354,38 @@ export default function RecipeDetailPage() {
     setSwapError(null);
     try {
       await updateRecipe(currentRecipe.id, {
+        name: replaceIngredientReference(currentRecipe.name, previousIngredient.name, swap.name) ?? currentRecipe.name,
+        description: replaceIngredientReference(currentRecipe.description, previousIngredient.name, swap.name) ?? currentRecipe.description,
         ingredients: nextIngredients,
+        instructions: nextInstructions,
+        nutrition: nextNutrition,
         shoppingList: [...updatedShoppingIngredients, ...preservedShoppingItems],
+        allergenSafety: {
+          checkedTerms: currentRecipe.allergenSafety?.checkedTerms ?? [],
+          allergenFree: true,
+          warning: undefined,
+          matchedIngredients: [],
+        },
       });
-      setSwapSuccess(`Swapped in ${swap.name} — portions and safety were re-checked.`);
+      setSwapUndoSnapshot(currentRecipe);
+      setSwapSuccess(`Swapped in ${swap.name} — directions, nutrition, shopping list, portions, and safety were updated.`);
     } catch (error) {
       setSwapError(error instanceof Error ? error.message : 'Could not save the swap. Please try again.');
+    } finally {
+      setIsSwapping(false);
+    }
+  }
+
+  async function handleUndoSwap() {
+    if (!swapUndoSnapshot || isSwapping) return;
+    setIsSwapping(true);
+    setSwapError(null);
+    try {
+      await updateRecipe(swapUndoSnapshot.id, swapUndoSnapshot);
+      setSwapUndoSnapshot(null);
+      setSwapSuccess('Ingredient swap undone. The previous directions, nutrition, shopping list, and portions were restored.');
+    } catch (error) {
+      setSwapError(error instanceof Error ? error.message : 'Could not undo the swap. Please try again.');
     } finally {
       setIsSwapping(false);
     }
@@ -375,26 +398,38 @@ export default function RecipeDetailPage() {
   // mutating the saved recipe (the underlying recipe.ingredients are
   // untouched; we derive scaled copies for display).
   const selectedBatch = calcBatch(recipe.serving, batchDays);
-  const selectedBatchCups = Math.round((selectedBatch.totalYieldGrams / 240) * 10) / 10;
+  // Cup figures come from THIS bowl's density, not a flat 240 g/cup. With the
+  // flat assumption the "cups per day" line and the sum of the per-ingredient
+  // cups listed above it disagreed by ~20%, so there was no way to tell from
+  // the page whether a batch actually covered the daily serving. recipe.serving
+  // .cupsPerMeal is still what gets saved/exported; these are display-only
+  // re-derivations for the surfaces that sit next to the ingredient list.
+  const bowlGramsPerCup = recipeGramsPerCup(recipe.ingredients);
+  const selectedBatchCups = Math.round((selectedBatch.totalYieldGrams / bowlGramsPerCup) * 10) / 10;
+  const servingCupsPerMeal = recipe.serving.gramsPerMeal / bowlGramsPerCup;
+  const servingVolumeLabel = formatVolumeAmountFromCups(servingCupsPerMeal);
   const selectedBatchDays = batchDays;
   const scaleFactor = recipe.batch.totalYieldGrams > 0
     ? selectedBatch.totalYieldGrams / recipe.batch.totalYieldGrams
     : 1;
   const isScaled = Math.abs(scaleFactor - 1) > 0.01;
 
+  // Scale the GRAMS, then re-derive every display figure from them. Scaling the
+  // saved amountCups instead multiplied its quarter-cup rounding error by the
+  // batch factor: a 96 g scoop of ground turkey is 0.43 cup, saved as 0.5, and
+  // a 7-day batch printed "3 ½ cups" for what is really 3 cups. Worse, at
+  // one-day scale nearly every ingredient lands in that same 0.5-cup bucket, so
+  // a 7-day batch showed an identical "3 ½ cups" for turkey, green beans,
+  // carrots and sweet potato — four very different volumes rendered as one.
   const scaledIngredients: RecipeIngredient[] = isScaled
-    ? recipe.ingredients.map(ingredient => ({
-        ...ingredient,
-        amountGrams: ingredient.amountGrams * scaleFactor,
-        amountCups: ingredient.amountCups !== undefined ? ingredient.amountCups * scaleFactor : undefined,
-        amountOz: ingredient.amountOz !== undefined ? ingredient.amountOz * scaleFactor : undefined,
-        amountMl: ingredient.amountMl !== undefined ? ingredient.amountMl * scaleFactor : undefined,
-        // Drop pre-baked display strings so the formatter recomputes from the
-        // scaled amounts instead of returning the original-batch text.
-        displayMetric: undefined,
-        displayVolume: undefined,
-        groceryFriendlyAmount: groceryLabel(ingredient.amountGrams * scaleFactor, ingredient.name),
-      }))
+    ? recipe.ingredients.map(ingredient => {
+        const amountGrams = ingredient.amountGrams * scaleFactor;
+        return rebuildIngredientDisplay({
+          ...ingredient,
+          amountGrams,
+          amountOz: gramsToOz(amountGrams),
+        });
+      })
     : recipe.ingredients;
 
   const instructions = recipe.instructions.map(step => step.instruction);
@@ -427,7 +462,7 @@ export default function RecipeDetailPage() {
   });
   const prepTime = recipe.instructions.find(s => s.stepNumber === 1)?.durationMinutes ?? 15;
   const cookTime = recipe.instructions.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0) || 35;
-  const dailyCups = Math.max(0.1, recipe.serving.cupsPerMeal * recipe.serving.mealsPerDay);
+  const dailyCups = Math.max(0.1, servingCupsPerMeal * recipe.serving.mealsPerDay);
 
   const isBatch = recipe.type === 'batch_week';
   const batchLabel = isBatch
@@ -445,7 +480,7 @@ export default function RecipeDetailPage() {
               <div>
                 <h3 className="text-[1.4rem] font-semibold">Cheffo Doggo's Tip 🐾</h3>
                 <p className="mt-1 text-sm text-[#7e7369]">
-                  Keep portions consistent: {recipe.serving.cupsPerMeal.toFixed(1)} cup per meal × {recipe.serving.mealsPerDay} meals/day.
+                  Keep portions consistent: {servingVolumeLabel} per serving × {recipe.serving.mealsPerDay} serving{recipe.serving.mealsPerDay === 1 ? '' : 's'}/day.
                 </p>
               </div>
             </div>
@@ -507,7 +542,7 @@ export default function RecipeDetailPage() {
         <section className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-3">
           <p className="flex items-center gap-2 text-sm font-semibold text-green-800">
             <ShieldCheck size={16} />
-            Safety-checked for this dog
+            Ingredient safety checked for this dog
           </p>
           {allergenSafety.checkedTerms.length > 0 && (
             <p className="mt-1 text-xs text-green-700">
@@ -517,9 +552,38 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
+      {planningReview && (
+        <section
+          className={[
+            'mb-4 rounded-2xl border p-4',
+            planningReview.status === 'passed'
+              ? 'border-green-200 bg-green-50 text-green-800'
+              : planningReview.status === 'needs_attention'
+                ? 'border-red-200 bg-red-50 text-red-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800',
+          ].join(' ')}
+        >
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            {planningReview.status === 'passed' ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+            {planningReview.title}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed">{planningReview.summary}</p>
+          {planningReview.issues.length > 0 && (
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+              {planningReview.issues.map(issue => <li key={issue}>{issue}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+
       {swapSuccess && (
-        <section className="mb-4 rounded-2xl border border-[#b6e5c3] bg-[#f0fbf3] px-4 py-3 text-sm font-medium text-[#2f7d4a]">
-          {swapSuccess}
+        <section className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#b6e5c3] bg-[#f0fbf3] px-4 py-3 text-sm font-medium text-[#2f7d4a]">
+          <span>{swapSuccess}</span>
+          {swapUndoSnapshot && (
+            <button type="button" className="underline underline-offset-2" onClick={() => void handleUndoSwap()} disabled={isSwapping}>
+              Undo swap
+            </button>
+          )}
         </section>
       )}
 
@@ -561,7 +625,7 @@ export default function RecipeDetailPage() {
                 {/* Prominent vet-approval badge — appears when the recipe has
                     an approved / approved_with_notes approval. (CHE-124) */}
                 {(() => {
-                  const approval = primaryApprovalForRecipe(recipe.id);
+                  const approval = primaryApprovalForRecipe(recipe.id, recipe.contentUpdatedAt ?? recipe.createdAt);
                   if (!approval) return null;
                   const vetLabel = approval.vetName
                     ? `Dr. ${approval.vetName} DVM`
@@ -584,6 +648,7 @@ export default function RecipeDetailPage() {
                 className={recipe.isFavorite ? 'mt-2 text-[#f97316]' : 'mt-2 text-[#d9cdbc]'}
                 onClick={() => void toggleFavorite(recipe.id)}
                 aria-label="Toggle recipe favorite"
+                aria-pressed={recipe.isFavorite}
               >
                 <Heart fill={recipe.isFavorite ? 'currentColor' : 'none'} />
               </button>
@@ -591,7 +656,7 @@ export default function RecipeDetailPage() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-[#f4eef9] p-3 text-sm"><p className="font-semibold">Life Stage</p><p className="text-[#7f7469]">{dogProfile ? dogProfile.lifeStage.charAt(0).toUpperCase() + dogProfile.lifeStage.slice(1) : 'Custom'}</p></div>
-              <div className="rounded-2xl bg-[#fff4ea] p-3 text-sm"><p className="font-semibold">Portion Size</p><p className="text-[#7f7469]">{recipe.serving.cupsPerMeal.toFixed(1)} cup</p></div>
+              <div className="rounded-2xl bg-[#fff4ea] p-3 text-sm"><p className="font-semibold">Portion Size</p><p className="text-[#7f7469]">{servingVolumeLabel}</p></div>
               {recipe.type === 'treat' ? (
                 <div className="rounded-2xl bg-[#fff0f0] p-3 text-sm"><p className="font-semibold">Energy/Serving</p><p className="text-[#7f7469]">{recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing} kcal</p></div>
               ) : (
@@ -686,16 +751,16 @@ export default function RecipeDetailPage() {
               <span className="text-right">% kcal</span>
             </div>
             {[
-              { label: 'Protein', g: nutrition?.proteinGrams, pct: nutrition?.proteinPct, ok: aafco?.proteinOk, target: aafco?.proteinTarget },
-              { label: 'Fat', g: nutrition?.fatGrams, pct: nutrition?.fatPct, ok: aafco?.fatOk, target: aafco?.fatTarget },
+              { label: 'Protein', g: nutrition?.proteinGrams, pct: nutrition?.proteinPct, ok: planningRanges?.proteinOk, target: planningRanges?.proteinTarget },
+              { label: 'Fat', g: nutrition?.fatGrams, pct: nutrition?.fatPct, ok: planningRanges?.fatOk, target: planningRanges?.fatTarget },
               { label: 'Carbs', g: nutrition?.carbsGrams, pct: nutrition?.carbsPct, ok: undefined, target: undefined },
               { label: 'Fiber', g: nutrition?.fiberGrams, pct: undefined, ok: undefined, target: undefined },
             ].map(row => (
               <div key={row.label} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 border-t border-[#f4ead9] px-4 py-2 text-sm text-[#3a302a]">
                 <span className="flex items-center gap-2 font-medium">
                   {row.label}
-                  {row.ok === true && <span className="text-green-600" title={`AAFCO target ${row.target}`}>✓</span>}
-                  {row.ok === false && <span className="text-amber-600" title={`Outside AAFCO target ${row.target}`}>⚠</span>}
+                  {row.ok === true && <span className="text-green-600" title={`Cheffo planning range ${row.target}`}>✓</span>}
+                  {row.ok === false && <span className="text-amber-600" title={`Outside Cheffo planning range ${row.target}`}>⚠</span>}
                 </span>
                 <span className="text-right tabular-nums">{row.g ?? '-'}{row.g !== undefined && row.g !== null ? 'g' : ''}</span>
                 <span className="text-right tabular-nums text-[#7f7469]">{row.pct !== undefined ? `${row.pct}%` : '—'}</span>
@@ -704,11 +769,12 @@ export default function RecipeDetailPage() {
           </div>
         </div>
 
-        {aafco && (
+        {planningRanges && (
           <p className="mt-3 text-xs leading-relaxed text-[#7f7469]">
-            Checked against AAFCO {dogProfile?.lifeStage === 'puppy' ? 'puppy/growth' : 'adult maintenance'} targets:
-            protein {aafco.proteinTarget}, fat {aafco.fatTarget}.
-            {!(aafco.proteinOk && aafco.fatOk) && ' One or more macros is outside the typical AAFCO range — confirm completeness with your vet.'}
+            Cheffo planning check for {dogProfile?.lifeStage === 'puppy' ? 'puppy/growth' : 'adult maintenance'}:
+            protein {planningRanges.proteinTarget}, fat {planningRanges.fatTarget}.
+            {' '}This macro estimate is not an AAFCO completeness certification.
+            {!(planningRanges.proteinOk && planningRanges.fatOk) && ' One or more macros is outside the planning range—regenerate or review it with your vet before feeding.'}
           </p>
         )}
 
@@ -827,7 +893,7 @@ export default function RecipeDetailPage() {
               </li>
             ))}
           </ol>
-          <div className="mt-4 rounded-xl border border-[#dce9ff] bg-[#f2f7ff] p-3 text-sm text-[#5574a8]">❄️ Freezer tip: Portion into airtight containers for up to {recipe.storage.freezerMonths} months.</div>
+          <div className="mt-4 rounded-xl border border-[#dce9ff] bg-[#f2f7ff] p-3 text-sm text-[#5574a8]">❄️ Freezer tip: Portion into airtight containers for up to {recipe.storage.freezerMonths} {recipe.storage.freezerMonths === 1 ? 'month' : 'months'}.</div>
         </article>
       </section>
 
@@ -835,7 +901,13 @@ export default function RecipeDetailPage() {
         <article className="doggo-card p-5">
           <h3 className="text-[1.2rem] font-semibold">Storage Instructions</h3>
           <p className="mt-2 text-sm text-[#6f6459]">Refrigerator: store in an airtight container up to {recipe.storage.fridgeDays} days.</p>
-          <p className="mt-1 text-sm text-[#6f6459]">Freezer: freeze in 1-cup portions for up to {recipe.storage.freezerMonths} months.</p>
+          <p className="mt-1 text-sm text-[#6f6459]">
+            Freezer: {recipe.type === 'treat'
+              ? 'freeze individual treats or mold portions'
+              : recipe.type === 'topper'
+                ? 'freeze in small serving-sized portions'
+                : `freeze in meal-sized portions of about ${servingVolumeLabel}`} for up to {recipe.storage.freezerMonths} {recipe.storage.freezerMonths === 1 ? 'month' : 'months'}.
+          </p>
           <p className="mt-1 text-sm text-[#6f6459]">{recipe.storage.thawInstructions}</p>
           {isBatch && (
             <p className="mt-2 text-sm font-medium text-[#f97316]">
@@ -921,7 +993,7 @@ export default function RecipeDetailPage() {
           <div className="rounded-2xl border border-[#eadfce] bg-[#fff9f0] p-4 text-center">
             <p className="text-2xl font-bold text-[#2b2118]">{selectedBatch.numberOfMeals}</p>
             <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">total meals</p>
-            <p className="mt-0.5 text-xs text-[#7f7469]">{recipe.serving.cupsPerMeal.toFixed(2)} cups each</p>
+            <p className="mt-0.5 text-xs text-[#7f7469]">{servingCupsPerMeal.toFixed(2)} cups each</p>
           </div>
           <div className="rounded-2xl border border-[#eadfce] bg-[#fff9f0] p-4 text-center">
             <p className="text-2xl font-bold text-[#2b2118]">{selectedBatch.numberOfContainers}</p>
@@ -945,7 +1017,7 @@ export default function RecipeDetailPage() {
             </div>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-[#7f7469]">
-            <strong>Daily plan:</strong> {recipe.serving.cupsPerMeal.toFixed(2)} cups per meal × {recipe.serving.mealsPerDay} meal{recipe.serving.mealsPerDay === 1 ? '' : 's'}/day = <strong>{dailyCups.toFixed(2)} cups per day</strong>{dogProfile?.name ? ` for ${dogProfile.name}` : ''}.
+            <strong>Daily plan:</strong> {servingCupsPerMeal.toFixed(2)} cups per meal × {recipe.serving.mealsPerDay} meal{recipe.serving.mealsPerDay === 1 ? '' : 's'}/day = <strong>{dailyCups.toFixed(2)} cups per day</strong>{dogProfile?.name ? ` for ${dogProfile.name}` : ''}.
           </p>
           <p className="mt-2 text-xs leading-relaxed text-[#7f7469]">
             <strong>Thawing:</strong> {recipe.storage.thawInstructions}

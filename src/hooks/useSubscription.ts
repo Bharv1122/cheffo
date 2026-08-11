@@ -17,15 +17,81 @@ import type { SubscriptionRow, SubscriptionStatus } from '../types/database';
 // flips status to `canceled` and we lose access.
 const PREMIUM_STATUSES = new Set<SubscriptionStatus>(['active', 'trialing']);
 
+// Dunning grace. A `past_due` subscription is a paying customer whose card just
+// failed — usually an expiry or a bank decline, not a decision to leave. Stripe
+// retries on its own schedule and then settles to `canceled` or `unpaid`, so
+// this window is bounded (~2 weeks) rather than an open-ended free ride.
+// Keeping access during it and nudging them to fix the card recovers customers
+// that an instant cut-off would simply lose.
+//
+// `unpaid` and `incomplete_expired` deliberately get NO grace — those are the
+// terminal states after Stripe has already exhausted its retries.
+const GRACE_STATUSES = new Set<SubscriptionStatus>(['past_due']);
+
+// Statuses where we should be actively asking the user to fix their card.
+// `past_due` still has access (grace); the rest have already lost it.
+const BILLING_PROBLEM_STATUSES = new Set<SubscriptionStatus>([
+  'past_due',
+  'unpaid',
+  'incomplete',
+  'incomplete_expired',
+]);
+
+export interface BillingProblem {
+  status: SubscriptionStatus;
+  // True while they still have premium access and just need to fix the card.
+  // False once Stripe gave up and access is actually gone.
+  inGracePeriod: boolean;
+  title: string;
+  body: string;
+}
+
 export interface UseSubscriptionResult {
   subscription: SubscriptionRow | null;
   loading: boolean;
   error: string | null;
-  // True iff the user has paid access right now (active or trialing).
+  // True iff the user has paid access right now — active, trialing, or inside
+  // the past_due dunning grace window.
   isPremium: boolean;
   // Convenience: e.g. "Active", "Past due", "Canceled — access ends Jun 12".
   statusLabel: string;
+  // Set when the user's card needs attention; null otherwise. Drives the
+  // dunning banner.
+  billingProblem: BillingProblem | null;
   refresh: () => Promise<void>;
+}
+
+function describeBillingProblem(row: SubscriptionRow | null): BillingProblem | null {
+  if (!row || !BILLING_PROBLEM_STATUSES.has(row.status)) return null;
+
+  if (row.status === 'past_due') {
+    return {
+      status: row.status,
+      inGracePeriod: true,
+      title: "Your last payment didn't go through",
+      body:
+        "Your card was declined, so we couldn't renew your subscription. You still have full access while we retry — update your payment method to keep it that way.",
+    };
+  }
+
+  if (row.status === 'incomplete') {
+    return {
+      status: row.status,
+      inGracePeriod: false,
+      title: 'Your subscription needs one more step',
+      body:
+        "Your first payment hasn't completed yet — it may need confirmation from your bank. Finish it to unlock Premium.",
+    };
+  }
+
+  // unpaid / incomplete_expired — Stripe has stopped retrying.
+  return {
+    status: row.status,
+    inGracePeriod: false,
+    title: 'Premium is paused — your payment never went through',
+    body:
+      'We tried your card several times without success, so Premium access has stopped. Update your payment method to turn it back on. Your dogs and recipes are all still here.',
+  };
 }
 
 function statusToLabel(row: SubscriptionRow | null): string {
@@ -110,10 +176,13 @@ export function useSubscription(): UseSubscriptionResult {
 
   const isPremium = useMemo(() => {
     if (!subscription) return false;
-    return PREMIUM_STATUSES.has(subscription.status);
+    return (
+      PREMIUM_STATUSES.has(subscription.status) || GRACE_STATUSES.has(subscription.status)
+    );
   }, [subscription]);
 
   const statusLabel = useMemo(() => statusToLabel(subscription), [subscription]);
+  const billingProblem = useMemo(() => describeBillingProblem(subscription), [subscription]);
 
   return {
     subscription,
@@ -121,6 +190,7 @@ export function useSubscription(): UseSubscriptionResult {
     error,
     isPremium,
     statusLabel,
+    billingProblem,
     refresh: load,
   };
 }

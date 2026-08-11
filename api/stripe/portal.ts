@@ -54,7 +54,13 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const url = new URL(req.url);
-  const origin = process.env.PUBLIC_APP_ORIGIN ?? `${url.protocol}//${url.host}`;
+  const requestOrigin = `${url.protocol}//${url.host}`;
+  // Never send customers back to the retired Vercel hostname, even if a stale
+  // deployment environment variable still contains it. Local development can
+  // return locally; every hosted environment returns to the canonical domain.
+  const origin = /^(localhost|127\.0\.0\.1)$/.test(url.hostname)
+    ? requestOrigin
+    : 'https://cheffodoggo.com';
 
   try {
     const response = await fetch(`${STRIPE_API_BASE}/billing_portal/sessions`, {

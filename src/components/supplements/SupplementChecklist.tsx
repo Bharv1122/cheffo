@@ -41,7 +41,13 @@ export function SupplementChecklist({ supplements, suggestions, dogName }: Props
           return (
           <div key={s.name} className={['rounded-xl border transition-colors', checked.has(s.name) ? 'border-green-300 bg-green-50' : 'border-[#E7E5E4] bg-white'].join(' ')}>
             <div className="flex items-start gap-3 p-3 cursor-pointer" onClick={() => toggle(s.name)}>
-              <button type="button" className="shrink-0 mt-0.5 text-[#78716C]" onClick={e => { e.stopPropagation(); toggle(s.name); }}>
+              <button
+                type="button"
+                className="shrink-0 mt-0.5 text-[#78716C]"
+                aria-label={`${checked.has(s.name) ? 'Uncheck' : 'Check'} ${s.name}`}
+                aria-pressed={checked.has(s.name)}
+                onClick={e => { e.stopPropagation(); toggle(s.name); }}
+              >
                 {checked.has(s.name)
                   ? <CheckSquare size={18} className="text-green-600" />
                   : <Square size={18} />}
@@ -62,7 +68,13 @@ export function SupplementChecklist({ supplements, suggestions, dogName }: Props
                   </p>
                 )}
               </div>
-              <button type="button" className="shrink-0 text-[#78716C]" onClick={e => { e.stopPropagation(); setExpanded(expanded === s.name ? null : s.name); }}>
+              <button
+                type="button"
+                className="shrink-0 text-[#78716C]"
+                aria-label={`${expanded === s.name ? 'Hide' : 'Show'} details for ${s.name}`}
+                aria-expanded={expanded === s.name}
+                onClick={e => { e.stopPropagation(); setExpanded(expanded === s.name ? null : s.name); }}
+              >
                 {expanded === s.name ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
             </div>

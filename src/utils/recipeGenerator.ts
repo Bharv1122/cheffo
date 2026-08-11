@@ -21,6 +21,8 @@ import {
   gramsToOz,
   gramsToCups,
   gramsPerCupFor,
+  gramsPerCupForIngredient,
+  recipeGramsPerCup,
   groceryLabel,
   cupsToMl,
   formatMetricIngredient,
@@ -29,6 +31,7 @@ import {
 import { validateIngredients, GENERAL_VET_DISCLAIMER, SUPPLEMENT_SAFETY_NOTE } from './safetyValidator';
 import { generateId } from './storage';
 import { generateRecipeImage } from './recipeImageGenerator';
+import { getIngredientMacroSplit } from '../data/ingredientMacros';
 
 export interface GeneratorInput {
   dog: DogProfile;
@@ -225,7 +228,7 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     : splitIngredients(totalGrams);
 
   // 4. Build ingredient list
-  const ingredients = buildIngredients(template, split, recipeType, dog);
+  const ingredients = buildIngredients(template, split, recipeType, dog, days);
 
   // 4a. For treats AND toppers, the batch yield is the actual sum of the built
   // ingredients. calcBatch above is derived from the full-meal serving and is
@@ -258,15 +261,15 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     // land ≈ DER.)
     const actualSum = ingredients.reduce((sum, ing) => sum + ing.amountGrams, 0);
     const mealsPerDay = baseServing.mealsPerDay || 2;
-    const dailyGrams = Math.max(1, Math.round(actualSum / Math.max(1, days)));
-    const perMeal = Math.max(1, Math.round(dailyGrams / mealsPerDay));
+    const dailyGrams = Math.max(1, actualSum / Math.max(1, days));
+    const perMeal = Math.max(1, dailyGrams / mealsPerDay);
     serving = {
       gramsPerMeal: perMeal,
       cupsPerMeal: Math.round((perMeal / 240) * 10) / 10,
       mealsPerDay,
       totalDailyGrams: dailyGrams,
     };
-    batch.totalYieldGrams = dailyGrams * days; // keep the scaler invariant exact
+    batch.totalYieldGrams = actualSum; // exact sum of the listed ingredients
   }
 
   // 4b. Final strict validation before recipe can be shown/saved
@@ -288,10 +291,13 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
   });
 
   // 5. Build cooking steps
-  const instructions = buildInstructions(template, recipeType);
+  const instructions = buildInstructions(template, recipeType, ingredients);
 
   // 5b. Estimate nutrition from actual ingredient composition
   const estimatedNutrition = estimateNutrition(ingredients, recipeType, serving, batch, treatDailyCalorieCap);
+  if (recipeType === 'full_meal' || recipeType === 'batch_week') {
+    assertMealPlanningIntegrity(ingredients, calcDER(dog) * days);
+  }
 
   // 6. Build supplement list (full meals only)
   const supplements: SupplementItem[] = recipeType === 'full_meal' || recipeType === 'batch_week'
@@ -318,6 +324,7 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     name: template.name,
     description: template.description,
     type: recipeType,
+    sourceTemplateId: template.id,
     ingredients,
     instructions,
     nutrition: estimatedNutrition,
@@ -337,6 +344,7 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     isFavorite: false,
     scaleFactor: 1,
     transitionGuide,
+    contentUpdatedAt: now,
     createdAt: now,
     updatedAt: now,
   };
@@ -677,10 +685,41 @@ function baseFishOilDailyGrams(weightLbs: number): number {
   return Math.round(Math.min(3, Math.max(0.5, estimate)) * 10) / 10;
 }
 
-function scaledFishOilGrams(weightLbs: number, totalGrams: number): number {
-  const dailyAmount = baseFishOilDailyGrams(weightLbs);
+function scaledFishOilGrams(weightLbs: number, totalGrams: number, numberOfDays: number): number {
+  const dailyAmount = baseFishOilDailyGrams(weightLbs) * Math.max(1, numberOfDays);
   const ingredientScaledAmount = Math.max(dailyAmount, totalGrams * 0.005);
   return Math.round(ingredientScaledAmount * 10) / 10;
+}
+
+function assertMealPlanningIntegrity(ingredients: RecipeIngredient[], targetCalories: number): void {
+  const totals = ingredients.reduce((acc, ingredient) => {
+    const source = getIngredientById(ingredient.ingredientId);
+    const caloriesPerGram = source?.caloriesPerGram ?? ingredient.estimatedCaloriesPerGram ?? 0;
+    const calories = caloriesPerGram * ingredient.amountGrams;
+    const macro = getIngredientMacroSplit(ingredient.ingredientId, ingredient.category);
+    acc.calories += calories;
+    acc.protein += calories * macro.protein;
+    acc.fat += calories * macro.fat;
+    return acc;
+  }, { calories: 0, protein: 0, fat: 0 });
+
+  if (totals.calories <= 0) {
+    throw new Error('Recipe planning check failed: ingredient calories could not be calculated.');
+  }
+
+  const calorieDelta = Math.abs(totals.calories - targetCalories) / Math.max(1, targetCalories);
+  const proteinPct = totals.protein / totals.calories * 100;
+  const fatPct = totals.fat / totals.calories * 100;
+  const failures: string[] = [];
+  if (calorieDelta > 0.1) failures.push(`calories differ from target by ${Math.round(calorieDelta * 100)}%`);
+  // Half-point tolerance prevents a displayed 18% (17.5–17.9 before rounding)
+  // from being rejected as below the 18% planning minimum.
+  if (proteinPct < 17.5) failures.push(`protein estimate is ${Math.round(proteinPct)}%`);
+  if (fatPct < 9.5 || fatPct > 35.5) failures.push(`fat estimate is ${Math.round(fatPct)}%`);
+
+  if (failures.length > 0) {
+    throw new Error(`Recipe planning check failed: ${failures.join('; ')}. Please generate a different recipe.`);
+  }
 }
 
 // Calorie-anchored macro split for full meals & batches. REVIEW-REQUIRED: these
@@ -693,7 +732,9 @@ function scaledFishOilGrams(weightLbs: number, totalGrams: number): number {
 // macros by calories, then converts each macro's calorie share to grams using
 // the REAL calorie density of the chosen ingredients. So lean fish and oil-heavy
 // bowls both land on the dog's DER instead of 65–150% of it.
-const CALORIE_SPLIT = { protein: 0.35, carb: 0.35, vegetable: 0.05, fat: 0.25 } as const;
+const BASE_CALORIE_SPLIT = { protein: 0.40, vegetable: 0.08 } as const;
+const TARGET_FAT_CALORIE_SHARE = 0.28;
+const MAX_DIRECT_FAT_SHARE = 0.15;
 
 function calorieAnchoredSplit(
   template: RecipeTemplate,
@@ -715,14 +756,41 @@ function calorieAnchoredSplit(
   const dV = avgCalPerGram(template.vegetableIds);
   const dF = avgCalPerGram(template.fatIds);
 
+  const avgFatShare = (ids: string[], fallbackCategory: RecipeIngredient['category']): number => {
+    const shares = ids
+      .filter(id => id !== 'fish_oil')
+      .map(id => getIngredientMacroSplit(id, getIngredientById(id)?.category ?? fallbackCategory).fat);
+    if (!shares.length) return getIngredientMacroSplit('', fallbackCategory).fat;
+    return shares.reduce((sum, share) => sum + share, 0) / shares.length;
+  };
+
   // Only count macros that actually have a usable ingredient. If a macro is
   // absent (e.g. no real fat ingredient), its calorie share is redistributed to
   // the others by normalizing, so the meal still hits the DER target instead of
   // silently dropping ~25% of the calories (the old underfeeding bug).
-  let pShare = dP > 0 ? CALORIE_SPLIT.protein : 0;
-  let cShare = dC > 0 ? CALORIE_SPLIT.carb : 0;
-  let vShare = dV > 0 ? CALORIE_SPLIT.vegetable : 0;
-  let fShare = dF > 0 ? CALORIE_SPLIT.fat : 0;
+  let pShare = dP > 0 ? BASE_CALORIE_SPLIT.protein : 0;
+  let vShare = dV > 0 ? BASE_CALORIE_SPLIT.vegetable : 0;
+  let cShare = dC > 0 ? Math.max(0, 1 - pShare - vShare) : 0;
+  let fShare = 0;
+
+  // Whole proteins already contribute fat. Adding a fixed 25% calorie share
+  // of oil on top pushed turkey/lamb recipes above the app's own planning
+  // range (one audited bowl reached 42% fat). Solve the direct-fat share from
+  // the selected foods instead, targeting ~28% total fat calories and capping
+  // added oil at 15%. Fatty proteins therefore receive little/no added oil;
+  // lean proteins receive more. Fish oil remains a separately dosed supplement.
+  if (dF > 0) {
+    const proteinFat = avgFatShare(template.proteinIds, 'protein');
+    const carbFat = avgFatShare(template.carbIds, 'carb');
+    const vegFat = avgFatShare(template.vegetableIds, 'vegetable');
+    const directFat = avgFatShare(template.fatIds, 'fat');
+    const baselineFat = (pShare * proteinFat) + (cShare * carbFat) + (vShare * vegFat);
+    const replacementGain = directFat - carbFat;
+    fShare = replacementGain > 0
+      ? Math.max(0, Math.min(MAX_DIRECT_FAT_SHARE, (TARGET_FAT_CALORIE_SHARE - baselineFat) / replacementGain))
+      : 0;
+    cShare = Math.max(0, cShare - fShare);
+  }
   const totalShare = pShare + cShare + vShare + fShare;
   if (totalShare <= 0) {
     return { proteinGrams: 0, carbGrams: 0, vegGrams: 0, fatGrams: 0 };
@@ -747,7 +815,8 @@ function buildIngredients(
   template: RecipeTemplate,
   split: { proteinGrams: number; carbGrams: number; vegGrams: number; fatGrams: number },
   recipeType: RecipeType,
-  dog: DogProfile
+  dog: DogProfile,
+  numberOfDays: number
 ): RecipeIngredient[] {
   const items: RecipeIngredient[] = [];
 
@@ -770,7 +839,10 @@ function buildIngredients(
       if (!ing) continue;
 
       const isFishOilSupplement = id === 'fish_oil';
-      const amountGrams = isFishOilSupplement ? scaledFishOilGrams(dog.weightLbs, totalGrams) : gramsEach;
+      const amountGrams = isFishOilSupplement
+        ? scaledFishOilGrams(dog.weightLbs, totalGrams, numberOfDays)
+        : gramsEach;
+      if (!isFishOilSupplement && amountGrams <= 0) continue;
       const amountCups = isFishOilSupplement ? undefined : gramsToCups(amountGrams, gramsPerCupFor(id));
       const amountOz = gramsToOz(amountGrams);
       const amountMl = amountCups ? cupsToMl(amountCups) : Math.max(1, Math.round(amountGrams));
@@ -863,14 +935,26 @@ function buildIngredients(
 }
 
 // ── Instructions builder ──────────────────────────────────────────────────────
-function buildInstructions(template: RecipeTemplate, recipeType: RecipeType): CookingStep[] {
+function buildInstructions(
+  template: RecipeTemplate,
+  recipeType: RecipeType,
+  builtIngredients: RecipeIngredient[],
+): CookingStep[] {
   const isTopper = recipeType === 'topper';
   const isTreat = recipeType === 'treat';
   const isBatch = recipeType === 'batch_week';
 
-  const proteins = template.proteinIds.map(id => getIngredientById(id)?.name ?? id).join(' and ');
-  const carbs = template.carbIds.map(id => getIngredientById(id)?.name ?? id).join(' and ');
-  const vegs = template.vegetableIds.map(id => getIngredientById(id)?.name ?? id).join(' and ');
+  const includedIds = new Set(builtIngredients.filter(item => item.amountGrams > 0).map(item => item.ingredientId));
+  const included = (ids: string[]) => ids.filter(id => includedIds.has(id));
+
+  const proteinIds = included(template.proteinIds);
+  const carbIds = included(template.carbIds);
+  const vegetableIds = included(template.vegetableIds);
+  const fatIds = included(template.fatIds);
+  const proteins = proteinIds.map(id => getIngredientById(id)?.name ?? id).join(' and ');
+  const carbs = carbIds.map(id => getIngredientById(id)?.name ?? id).join(' and ');
+  const vegs = vegetableIds.map(id => getIngredientById(id)?.name ?? id).join(' and ');
+  const fats = fatIds.map(id => getIngredientById(id)?.name ?? id).join(' and ');
 
   if (isTreat) {
     return TREAT_INSTRUCTIONS[template.id] ?? DEFAULT_TREAT_INSTRUCTIONS;
@@ -879,32 +963,32 @@ function buildInstructions(template: RecipeTemplate, recipeType: RecipeType): Co
   const steps: CookingStep[] = [
     {
       stepNumber: 1,
-      instruction: `Gather all ingredients: ${[proteins, carbs, vegs].filter(Boolean).join(', ')}. Weigh or measure according to your dog's portion size.`,
+      instruction: `Gather all ingredients: ${[proteins, carbs, vegs, fats].filter(Boolean).join(', ')}. Weigh or measure according to your dog's portion size.`,
       tip: 'Prep everything before you start cooking — it makes the process much smoother.',
     },
   ];
 
   let step = 2;
 
-  if (template.proteinIds.length) {
+  if (proteinIds.length) {
     steps.push({
       stepNumber: step++,
-      instruction: `Cook ${proteins}: ${getIngredientById(template.proteinIds[0])?.prepNotes ?? 'Cook thoroughly with no seasoning until cooked through. No salt, oil, or spices.'}`,
+      instruction: `Cook ${proteins}: ${getIngredientById(proteinIds[0])?.prepNotes ?? 'Cook thoroughly with no seasoning until cooked through. No salt, oil, or spices.'}`,
       durationMinutes: template.type === 'batch_week' ? 30 : 20,
       tip: 'Internal temperature for poultry should reach 165°F. For ground meats, 160°F.',
     });
   }
 
-  if (template.carbIds.length) {
+  if (carbIds.length) {
     steps.push({
       stepNumber: step++,
-      instruction: `Cook ${carbs}: ${getIngredientById(template.carbIds[0])?.prepNotes ?? 'Cook plain in water with no salt or seasoning.'}`,
+      instruction: `Cook ${carbs}: ${getIngredientById(carbIds[0])?.prepNotes ?? 'Cook plain in water with no salt or seasoning.'}`,
       durationMinutes: 20,
       tip: 'Cook the carbs at the same time as the protein to save time.',
     });
   }
 
-  if (template.vegetableIds.length) {
+  if (vegetableIds.length) {
     steps.push({
       stepNumber: step++,
       instruction: `Prepare vegetables: Steam or lightly boil ${vegs} until just soft. Do not overcook — you want them soft enough for your dog to chew easily.`,
@@ -921,7 +1005,7 @@ function buildInstructions(template: RecipeTemplate, recipeType: RecipeType): Co
 
   steps.push({
     stepNumber: step++,
-    instruction: 'Combine protein, carbs, and vegetables in a large bowl. Mix gently. Add fish oil and any supplements now.',
+    instruction: `Combine protein, carbs, and vegetables in a large bowl. Mix gently.${fats ? ` Add ${fats} now.` : ''} Add any veterinarian-confirmed supplements now.`,
     tip: 'For batch cooking, use a large pot or mixing bowl. Mix thoroughly so supplements are evenly distributed.',
   });
 
@@ -933,14 +1017,14 @@ function buildInstructions(template: RecipeTemplate, recipeType: RecipeType): Co
     });
     steps.push({
       stepNumber: step++,
-      instruction: 'Refrigerate 3–4 days\' worth of portions. Freeze the remaining portions. Thaw in the refrigerator overnight before serving.',
+      instruction: 'Refrigerate up to 3 days\' worth of portions. Freeze the remaining portions. Thaw in the refrigerator overnight before serving.',
       durationMinutes: 5,
       tip: 'Never thaw in the microwave — it creates uneven hot spots and can degrade nutrients.',
     });
   } else if (!isTopper) {
     steps.push({
       stepNumber: step++,
-      instruction: 'Portion into meal-sized servings. Store in airtight containers in the refrigerator for up to 3–4 days, or freeze for up to 3 months.',
+      instruction: 'Portion into meal-sized servings. Store in airtight containers in the refrigerator for up to 3 days, or freeze for up to 3 months.',
     });
   }
 
@@ -1060,11 +1144,11 @@ function buildStorage(recipeType: RecipeType) {
     };
   }
   return {
-    fridgeDays: 4,
+    fridgeDays: 3,
     freezerMonths: 3,
     thawInstructions: 'Thaw frozen portions in the refrigerator overnight. Never microwave — it creates hot spots and can degrade nutrients.',
     servingTemperature: 'Room temperature or slightly warm. Never serve cold from the fridge — let it sit out for 10–15 minutes.',
-    portioningNotes: 'Portion into individual meal-sized containers. Label each with the date. Keep the next 3–4 days in the fridge; freeze the rest immediately.',
+    portioningNotes: 'Portion into individual meal-sized containers. Label each with the date. Keep up to 3 days in the fridge; freeze the rest immediately.',
   };
 }
 
@@ -1286,9 +1370,10 @@ function buildPantryRecipeIngredient(
   category: PantryCategory,
   catalogId: string | null,
   amountGrams: number,
+  caloriesPerGram: number,
 ): RecipeIngredient {
   const grams = Math.max(1, Math.round(amountGrams));
-  const amountCups = gramsToCups(grams, gramsPerCupFor(catalogId));
+  const amountCups = gramsToCups(grams, gramsPerCupForIngredient(catalogId, displayName));
   const amountMl = Math.max(1, Math.round(cupsToMl(amountCups)));
   const amountOz = gramsToOz(grams);
   const displayBase = {
@@ -1297,6 +1382,7 @@ function buildPantryRecipeIngredient(
     amountGrams: grams,
     amountCups,
     amountMl,
+    estimatedCaloriesPerGram: caloriesPerGram,
   };
   return {
     // Catalog ID when we have one (powers swap suggestions + safety
@@ -1309,6 +1395,7 @@ function buildPantryRecipeIngredient(
     amountCups,
     amountOz,
     amountMl,
+    estimatedCaloriesPerGram: caloriesPerGram,
     groceryFriendlyAmount: groceryLabel(grams, displayName),
     displayMetric: formatMetricIngredient(displayBase),
     displayVolume: formatVolumeIngredient(displayBase),
@@ -1367,7 +1454,7 @@ function buildPantryInstructions(items: Array<{ displayName: string; category: P
   });
   steps.push({
     stepNumber: step++,
-    instruction: 'Portion into meal-sized servings. Refrigerate up to 3–4 days, or freeze for up to 3 months.',
+    instruction: 'Portion into meal-sized servings. Refrigerate up to 3 days, or freeze for up to 2 months.',
   });
   steps.push({
     stepNumber: step,
@@ -1407,14 +1494,17 @@ export async function generatePantryRecipe(input: {
     };
   });
 
-  // 3. Compute daily portion grams (uses default 1.1 kcal/g — matches the
-  //    catalog mid-range; pantry recipes lean on this for the dog's
-  //    calorie target).
+  if (classified.some(item => item.category === 'supplement')) {
+    throw new Error('Pantry Mode cannot safely guess supplement doses. Remove supplements from the ingredient list and ask your veterinarian for the exact product and amount.');
+  }
+
+  // 3. Anchor the recipe to the dog's calorie target using each entered
+  //    ingredient's real catalog density (or the clearly labelled pantry
+  //    estimate for an unrecognized food).
   const baseServing = calcServing(dog);
-  const dailyGrams = baseServing.totalDailyGrams;
   const dailyKcalTarget = calcDER(dog);
 
-  // 4. Distribute daily grams across categories the user actually typed.
+  // 4. Distribute calories across categories the user actually typed.
   const presentCategories = Array.from(new Set(classified.map(i => i.category))) as PantryCategory[];
   const shareTotal = presentCategories.reduce((sum, c) => sum + PANTRY_CATEGORY_SHARE[c], 0);
   const adjustedShare: Record<PantryCategory, number> = {
@@ -1429,31 +1519,52 @@ export async function generatePantryRecipe(input: {
     }
   }
 
-  // 5. Build the ingredient list, distributing grams within each category.
+  // 5. Build the ingredient list, distributing each category's calorie budget
+  //    evenly across its foods, then converting calories to grams using the
+  //    actual per-food density.
   const ingredients: RecipeIngredient[] = [];
   for (const cat of presentCategories) {
     const itemsInCat = classified.filter(i => i.category === cat);
-    const catGrams = dailyGrams * (adjustedShare[cat] ?? 0);
-    const perItemGrams = Math.max(5, Math.round(catGrams / itemsInCat.length));
+    const categoryCalories = dailyKcalTarget * (adjustedShare[cat] ?? 0);
+    const perItemCalories = categoryCalories / itemsInCat.length;
     for (const item of itemsInCat) {
-      ingredients.push(buildPantryRecipeIngredient(item.displayName, item.category, item.catalogId, perItemGrams));
+      const grams = item.caloriesPerGram > 0 ? perItemCalories / item.caloriesPerGram : 0;
+      ingredients.push(buildPantryRecipeIngredient(
+        item.displayName,
+        item.category,
+        item.catalogId,
+        Math.max(1, grams),
+        item.caloriesPerGram,
+      ));
     }
   }
 
   // 6. Compute actual nutrition from the assembled grams + densities.
-  const totalCalories = classified.reduce((sum, item) => {
-    const ing = ingredients.find(i => i.name === item.displayName);
-    return ing ? sum + item.caloriesPerGram * ing.amountGrams : sum;
-  }, 0);
-  const caloriesPerServing = Math.max(1, Math.round(totalCalories / Math.max(1, baseServing.mealsPerDay)));
+  const totalCalories = ingredients.reduce(
+    (sum, ingredient) => sum + ((ingredient.estimatedCaloriesPerGram ?? 0) * ingredient.amountGrams),
+    0,
+  );
+  const mealsPerDay = Math.max(1, baseServing.mealsPerDay);
+  const caloriesPerServing = Math.max(1, Math.round(totalCalories / mealsPerDay));
   const nutrition = {
     caloriesPerServing,
     caloriesPerDay: Math.max(1, Math.round(totalCalories)),
     isEstimate: true as const,
   };
 
-  // 7. Pantry mode is a single-day quick recipe, not a weekly batch.
-  const batch = calcBatch(baseServing, '1day');
+  // 7. Derive serving + yield from the food that was actually built. This
+  //    keeps ingredient cups, per-meal cups, total yield, and vet export in
+  //    agreement.
+  const totalDailyGrams = ingredients.reduce((sum, ingredient) => sum + ingredient.amountGrams, 0);
+  const gramsPerMeal = Math.max(1, Math.round(totalDailyGrams / mealsPerDay));
+  const bowlDensity = recipeGramsPerCup(ingredients);
+  const serving = {
+    gramsPerMeal,
+    cupsPerMeal: Math.round((gramsPerMeal / bowlDensity) * 10) / 10,
+    mealsPerDay,
+    totalDailyGrams,
+  };
+  const batch = calcBatch(serving, '1day');
 
   // 8. Instructions referencing the user's typed items by name.
   const instructions = buildPantryInstructions(
@@ -1479,7 +1590,8 @@ export async function generatePantryRecipe(input: {
     ...safety.warnings,
     'All listed ingredients have been checked against the common toxic foods list for dogs.',
     ...(restrictedTerms.length ? [`Allergen profile check passed for: ${restrictedTerms.join(', ')}.`] : []),
-    'This is a pantry-style recipe built from the ingredients you typed — it may not be nutritionally complete on its own. Consider a canine multivitamin and check with your vet for ongoing diet plans.',
+    'Missing calcium plan: pantry recipes are not nutritionally complete meals. Do not use this as an ongoing diet until a veterinarian or board-certified veterinary nutritionist confirms a calcium source and exact dose.',
+    'This is a pantry-style recipe built from the ingredients you typed. It is an occasional meal idea, not a complete-and-balanced diet formulation.',
     GENERAL_VET_DISCLAIMER,
   ];
 
@@ -1488,12 +1600,12 @@ export async function generatePantryRecipe(input: {
     id: generateId(),
     dogProfileId: dog.id,
     name: recipeName,
-    description: `A quick pantry recipe for ${dog.name} using ${classified.map(c => c.displayName).join(', ')}. Daily target ~${Math.round(dailyKcalTarget)} kcal.`,
+    description: `A quick pantry recipe for ${dog.name} using ${classified.map(c => c.displayName).join(', ')}. Estimated ${Math.round(totalCalories)} kcal for a daily target of about ${Math.round(dailyKcalTarget)} kcal.`,
     type: 'pantry',
     ingredients,
     instructions,
     nutrition,
-    serving: baseServing,
+    serving,
     batch,
     supplements: [], // pantry mode = exactly what the user typed
     storage: {
@@ -1513,6 +1625,7 @@ export async function generatePantryRecipe(input: {
     },
     isFavorite: false,
     scaleFactor: 1,
+    contentUpdatedAt: now,
     createdAt: now,
     updatedAt: now,
     vetDisclaimer: GENERAL_VET_DISCLAIMER,

@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CirclePlay,
   Sparkles,
-  ShieldCheck,
   Stethoscope,
   Heart,
   Package,
@@ -100,7 +99,7 @@ const STEPS = [
 ];
 
 const RECIPE_TYPES = [
-  { icon: <ChefHat size={18} />, label: 'Full meals', desc: 'Balanced, complete homemade dinners' },
+  { icon: <ChefHat size={18} />, label: 'Full meals', desc: 'Personalized homemade meal plans for vet review' },
   { icon: <CalendarDays size={18} />, label: 'Weekly batches', desc: 'Cook once, feed all week. Freezer-friendly.' },
   { icon: <Sparkles size={18} />, label: 'Toppers', desc: 'Boost kibble with safe, vet-friendly add-ons' },
   { icon: <Heart size={18} />, label: 'Treats', desc: 'Training rewards and pup-cakes for special days' },
@@ -188,7 +187,7 @@ export default function LandingPage() {
           </h1>
           <p className="mt-3 text-base leading-relaxed text-[#5f564d] sm:mt-4 sm:text-lg">
             Cheffo Doggo turns the same fresh ingredients you cook with — lean chicken, salmon,
-            sweet potato, leafy greens — into personalized, vet-informed meals for your dog.
+            sweet potato, leafy greens — into personalized meal plans you can review with your veterinarian.
             No "meat by-products," no preservatives, no mystery.
           </p>
           {/* Guest funnel: let a stranger see a real recipe for their own dog

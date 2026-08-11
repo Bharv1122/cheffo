@@ -13,6 +13,7 @@ import {
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
+import { PageLoadingSkeleton } from '../../components/ui/PageLoadingSkeleton';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useRecipes } from '../../hooks/useRecipes';
 import { useApprovals } from '../../hooks/useApprovals';
@@ -25,8 +26,8 @@ const APPROVALS_LAST_SEEN_KEY = 'approvals-last-seen';
 const WELCOME_SEEN_KEY = 'onboarding-seen';
 
 const QUICK_ACTIONS = [
-  { label: 'Full Meals', desc: 'Create complete balanced homemade recipes', icon: <ChefHat size={18} />, to: '/bowl-builder', color: 'bg-[#fff0de] text-[#f97316]' },
-  { label: 'Batch Cook', desc: 'Cook once, feed all week with freezer plans', icon: <CalendarDays size={18} />, to: '/bowl-builder', color: 'bg-[#ffe8cf] text-[#f97316]', tag: 'Popular' },
+  { label: 'Full Meals', desc: 'Create personalized homemade meal plans for vet review', icon: <ChefHat size={18} />, to: '/bowl-builder?type=full_meal', color: 'bg-[#fff0de] text-[#f97316]' },
+  { label: 'Batch Cook', desc: 'Cook once, feed all week with freezer plans', icon: <CalendarDays size={18} />, to: '/bowl-builder?type=batch_week', color: 'bg-[#ffe8cf] text-[#f97316]', tag: 'Popular' },
   { label: 'Pantry Mode', desc: 'Use what you already have in your kitchen', icon: <Package size={18} />, to: '/pantry', color: 'bg-[#eaf6ea] text-[#43a365]' },
   { label: 'Treats', desc: 'Healthy homemade treats for training & rewards', icon: <Sparkles size={18} />, to: '/treats', color: 'bg-[#ffe8e8] text-[#ef6f5d]' },
   { label: 'Calculator', desc: 'Estimate portions, calories & batch sizes', icon: <Calculator size={18} />, to: '/calculator', color: 'bg-[#efe9ff] text-[#7f56d9]' },
@@ -36,7 +37,7 @@ const QUICK_ACTIONS = [
 export default function HomePage() {
   const navigate = useNavigate();
   const { profiles, loading: profilesLoading } = useDogProfiles();
-  const { recipes } = useRecipes();
+  const { recipes, loading: recipesLoading } = useRecipes();
   const { user } = useAuth();
 
   // First-run welcome modal — shown once per user (not per device) for
@@ -83,7 +84,12 @@ export default function HomePage() {
   const [lastSeenIso, setLastSeenIso] = useState<string | null>(
     () => storageGet<string | null>(APPROVALS_LAST_SEEN_KEY) ?? null
   );
-  const newApprovals = approvalsSince(lastSeenIso);
+  const newApprovals = approvalsSince(lastSeenIso).filter(approval => {
+    const matchedRecipe = recipes.find(recipe => recipe.id === approval.recipeId);
+    if (!matchedRecipe) return false;
+    const contentUpdatedAt = matchedRecipe.contentUpdatedAt ?? matchedRecipe.createdAt;
+    return Boolean(approval.submittedAt && approval.submittedAt >= contentUpdatedAt);
+  });
   const dismissApprovalsBanner = useCallback(() => {
     const now = new Date().toISOString();
     storageSet(APPROVALS_LAST_SEEN_KEY, now);
@@ -94,9 +100,20 @@ export default function HomePage() {
     id: recipe.id,
     name: recipe.name,
     date: new Date(recipe.createdAt).toLocaleDateString(),
-    cal: recipe.nutrition.caloriesPerServing,
+    cal: recipe.type === 'treat'
+      ? recipe.nutrition.treatContentPerServing ?? recipe.nutrition.caloriesPerServing
+      : recipe.nutrition.caloriesPerServing,
+    calLabel: recipe.type === 'treat' ? 'kcal/treat serving' : 'kcal/meal',
     photo: getRecipePhoto(recipe),
   }));
+
+  if (profilesLoading || recipesLoading) {
+    return (
+      <AppShell active="home">
+        <PageLoadingSkeleton label="Loading your dashboard" />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -108,7 +125,7 @@ export default function HomePage() {
               {hasRecipes ? 'Build another bowl' : 'Build your first bowl'}
             </h3>
             <p className="mt-2 text-sm text-[#8b8378]">
-              Pick a dog and a recipe type — Cheffo Doggo chooses balanced, safe ingredients and builds the full recipe in seconds.
+              Pick a dog and a recipe type — Cheffo Doggo checks ingredients and builds a personalized portion plan in seconds.
             </p>
             <Button className="mt-4 w-full" onClick={() => navigate('/bowl-builder')}>
               {hasRecipes ? 'New recipe' : 'Start now'}
@@ -118,7 +135,7 @@ export default function HomePage() {
           <section className="rounded-3xl border border-[#d6ebda] bg-[#f2fbf4] p-5 text-sm text-[#4d8c62]">
             <h4 className="font-semibold">Safety first, always</h4>
             <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[#5f8c6a]">
-              <li>• All recipes use safe, vet-recommended ingredients</li>
+              <li>• Ingredients are screened for common dog toxins and profile restrictions</li>
               <li>• Ingredients are checked against toxic-food database</li>
               <li>• Education only, not a substitute for veterinary advice</li>
             </ul>
@@ -256,7 +273,7 @@ export default function HomePage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{recipe.name}</p>
-                    <p className="text-sm text-[#8b8378]">{recipe.cal} kcal/cup</p>
+                    <p className="text-sm text-[#8b8378]">{recipe.cal} {recipe.calLabel}</p>
                   </div>
                   <p className="text-xs text-[#9a9186]">{recipe.date}</p>
                 </button>
@@ -294,7 +311,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <p className="mt-4 text-center text-xs text-[#9c9288]">Your data is private and secure. We never share your information.</p>
+      <p className="mt-4 text-center text-xs text-[#9c9288]">Your data is protected and processed only to provide the service, as described in our Privacy Policy.</p>
 
       <Modal
         open={showWelcome}
@@ -315,7 +332,7 @@ export default function HomePage() {
         )}
       >
         <p className="text-sm leading-relaxed text-[#5f5650]">
-          Hi {userName}! Cheffo Doggo makes vet-informed homemade meals for your dog in seconds. Here's what you can do:
+          Hi {userName}! Cheffo Doggo makes personalized homemade meal plans for your dog in seconds. Here's what you can do:
         </p>
         <ul className="mt-4 space-y-3 text-sm text-[#3a302a]">
           <li className="flex items-start gap-3">
@@ -323,7 +340,7 @@ export default function HomePage() {
               <ShieldCheck size={18} />
             </span>
             <span>
-              <strong className="block font-semibold">Safety-checked recipes</strong>
+              <strong className="block font-semibold">Ingredient-checked recipes</strong>
               <span className="text-[#7f7469]">Every ingredient is screened against your dog's allergies and meds.</span>
             </span>
           </li>

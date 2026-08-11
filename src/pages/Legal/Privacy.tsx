@@ -5,7 +5,7 @@ const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalLayout title="Privacy Policy" effectiveDate="May 25, 2026">
+    <LegalLayout title="Privacy Policy" effectiveDate="August 10, 2026">
       <Section title="Summary">
         <p>
           Cheffo Doggo helps you cook homemade meals for your dog. To do that, we collect the minimum information
