@@ -2,12 +2,17 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync('src/pages/Recipes/RecipeDetail.tsx', 'utf8');
 
-if (!source.includes("useState<BatchDuration>('1day')")) {
-  throw new Error('Recipe detail ingredients batch selector should default to Batch · 1 day.');
+const requiredSmartDefaultMarkers = [
+  "if (recipe.type === 'batch_week') return 7;",
+  "if (recipe.type === 'treat') {",
+  'Math.round(totalG / dailyG)',
+  'return 1;',
+  'const batchDays = batchDaysOverride ?? defaultBatchDays;',
+];
+
+const missingMarkers = requiredSmartDefaultMarkers.filter((marker) => !source.includes(marker));
+if (missingMarkers.length) {
+  throw new Error(`Recipe detail batch selector is missing smart-default behavior: ${missingMarkers.join(', ')}`);
 }
 
-if (source.includes("useState<BatchDuration>(\n    recipe?.batch.usedFor ?? '7day'\n  )")) {
-  throw new Error('Recipe detail ingredients batch selector still defaults to the saved recipe batch duration.');
-}
-
-console.log('Recipe detail ingredients batch selector defaults to Batch · 1 day.');
+console.log('Recipe detail batch selector verified: 1-day fresh meals, 7-day weekly batches, natural-yield treats.');

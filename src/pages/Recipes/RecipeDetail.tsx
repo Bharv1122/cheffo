@@ -676,6 +676,10 @@ export default function RecipeDetailPage() {
                 <Printer size={18} className="mr-2" />
                 Print Recipe
               </Button>
+              <Button variant="secondary" onClick={() => navigate(`/vet-export/${recipe.id}`)}>
+                <ShieldCheck size={18} className="mr-2" />
+                Vet Review Packet
+              </Button>
             </div>
 
           </div>
