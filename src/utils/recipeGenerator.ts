@@ -325,6 +325,13 @@ export async function generateRecipe(input: GeneratorInput): Promise<Recipe> {
     description: template.description,
     type: recipeType,
     sourceTemplateId: template.id,
+    portionProfile: {
+      weightLbs: dog.weightLbs,
+      idealWeightLbs: dog.idealWeightLbs,
+      activityLevel: dog.activityLevel,
+      lifeStage: dog.lifeStage,
+      mealsPerDay: dog.mealsPerDay,
+    },
     ingredients,
     instructions,
     nutrition: estimatedNutrition,

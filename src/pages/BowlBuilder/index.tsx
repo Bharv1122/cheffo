@@ -14,6 +14,7 @@ import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { usePaywall, type PaywallFeature } from '../../hooks/usePaywall';
 import { generateRecipe } from '../../utils/recipeGenerator';
 import type { RecipeType } from '../../types/recipe';
+import { trackFunnelEvent } from '../../lib/funnelAnalytics';
 
 function recipeTypeToPaywallFeature(type: RecipeType): PaywallFeature {
   if (type === 'full_meal') return 'full_meal';
@@ -90,6 +91,7 @@ export default function BowlBuilderPage() {
         // Batch recipes always feed for a week. Other types make a single meal.
         batchDuration: recipeType === 'batch_week' ? '7day' : '1day',
       });
+      await trackFunnelEvent('recipe_generated');
       const existing = recipes.find(savedRecipe =>
         savedRecipe.dogProfileId === recipe.dogProfileId &&
         savedRecipe.type === recipe.type &&

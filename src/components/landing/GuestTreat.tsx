@@ -8,6 +8,7 @@ import {
   generateGuestTreat,
   stashGuestDogForSignup,
 } from '../../utils/guestTreat';
+import { trackFunnelEvent } from '../../lib/funnelAnalytics';
 
 const LIFE_STAGES: Array<{ value: LifeStage; label: string }> = [
   { value: 'puppy', label: 'Puppy (under 1)' },
@@ -51,6 +52,7 @@ export function GuestTreat() {
         lifeStage,
       });
       setRecipe(generated);
+      void trackFunnelEvent('preview_started');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not build a treat. Please try again.');
     } finally {

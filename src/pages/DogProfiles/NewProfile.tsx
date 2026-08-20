@@ -7,6 +7,7 @@ import { DogProfileForm } from '../../components/dog/DogProfileForm';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 import { consumeGuestDog, lifeStageToApproxAge } from '../../utils/guestTreat';
+import { trackFunnelEvent } from '../../lib/funnelAnalytics';
 
 export default function NewProfilePage() {
   const navigate = useNavigate();
@@ -73,6 +74,7 @@ export default function NewProfilePage() {
             // so the path from signup to first recipe stays smooth. (CHE-24)
             const isFirstDog = profiles.length === 0;
             const created = await createProfile(data);
+            await trackFunnelEvent('profile_completed');
             navigate(isFirstDog ? `/bowl-builder?welcome=${encodeURIComponent(created.name)}` : '/profiles');
           }}
           onCancel={() => navigate('/profiles')}

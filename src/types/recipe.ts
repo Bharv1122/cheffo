@@ -95,6 +95,13 @@ export interface Recipe {
   type: RecipeType;
   // Stable origin for duplicate detection. Older recipes may not have it.
   sourceTemplateId?: string;
+  portionProfile?: {
+    weightLbs: number;
+    idealWeightLbs?: number;
+    activityLevel: import('./dog').ActivityLevel;
+    lifeStage: import('./dog').LifeStage;
+    mealsPerDay: number;
+  };
   ingredients: RecipeIngredient[];
   instructions: CookingStep[];
   nutrition: NutritionEstimate;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
 import { AuthLayout } from './AuthLayout';
@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
+import { trackFunnelEvent } from '../../lib/funnelAnalytics';
 
 export default function SignupPage() {
   const { signUp, isAuthenticated, isSupabaseEnabled } = useAuth();
@@ -16,6 +17,10 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    void trackFunnelEvent('signup_viewed');
+  }, []);
 
   if (isAuthenticated) {
     // A brand-new signup skips Home and lands directly on the dog-profile
@@ -51,6 +56,8 @@ export default function SignupPage() {
       return;
     }
 
+    await trackFunnelEvent('signup_completed');
+
     setLoading(false);
     if (needsEmailVerification) {
       setMessage('Account created! Please check your email to verify your account before logging in.');
@@ -70,7 +77,7 @@ export default function SignupPage() {
   return (
     <AuthLayout
       title="Create your Cheffo Doggo account"
-      subtitle="Save your dogs, sync recipes across devices, and keep everything in one secure place."
+      subtitle="Unlock exact amounts for a free personalized treat recipe. No card needed."
       footer={
         <p>
           Already have an account?{' '}

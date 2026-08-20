@@ -131,7 +131,10 @@ export default function PrivacyPolicyPage() {
       <Section title="Cookies and local storage">
         <p>
           We use browser local storage to keep your authentication session, your conversation history with the
-          AI assistant, and lightweight preferences (units, recently-used templates). We do not use third-party
+          AI assistant, lightweight preferences (units, recently-used templates), and the time of your last visit.
+          We also count a small set of product steps (such as preview started, signup completed, and recipe generated)
+          with page and acquisition source only; these funnel events do not include email, dog details, recipe contents,
+          or raw IP addresses. We do not use third-party
           tracking cookies or advertising cookies in v1.0.
         </p>
       </Section>

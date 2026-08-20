@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChefHat, ChevronDown, Heart, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package } from 'lucide-react';
+import { ChefHat, ChevronDown, Heart, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, RefreshCw } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -14,6 +14,7 @@ import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
 import { getIngredientById } from '../../data/ingredients';
 import {
   calcBatch,
+  calcDER,
   cupsToMl,
   formatIngredientByPreference,
   formatMetricIngredient,
@@ -35,6 +36,7 @@ import {
 import { computeSuggestedDoses } from '../../utils/supplementDosing';
 import { buildInstacartSearchUrl } from '../../utils/affiliate';
 import { isSupabaseConfigured } from '../../lib/supabase';
+import { generateRecipe } from '../../utils/recipeGenerator';
 import type { Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
 
 // Quick-select chips for the batch modal. The numeric input below lets the
@@ -205,6 +207,23 @@ function findIngredientMatchesByTerms(recipe: Recipe, checkedTerms: string[]): s
   return Array.from(new Set(matches));
 }
 
+function recipeNeedsRecalculation(recipe: Recipe, dog: NonNullable<ReturnType<typeof useDogProfiles>['activeProfile']>): boolean {
+  const snapshot = recipe.portionProfile;
+  if (snapshot) {
+    return snapshot.weightLbs !== dog.weightLbs
+      || (snapshot.idealWeightLbs ?? null) !== (dog.idealWeightLbs ?? null)
+      || snapshot.activityLevel !== dog.activityLevel
+      || snapshot.lifeStage !== dog.lifeStage
+      || snapshot.mealsPerDay !== dog.mealsPerDay;
+  }
+
+  if (recipe.type !== 'full_meal' && recipe.type !== 'batch_week') return false;
+  const currentTarget = calcDER(dog);
+  const savedTarget = recipe.nutrition?.caloriesPerDay ?? 0;
+  const calorieChanged = savedTarget > 0 && Math.abs(currentTarget - savedTarget) / savedTarget > 0.05;
+  return calorieChanged || recipe.serving.mealsPerDay !== dog.mealsPerDay;
+}
+
 export default function RecipeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -260,6 +279,8 @@ export default function RecipeDetailPage() {
   // vet" callout, which only shows for recipes that never started the flow.
   const [vetApprovalCount, setVetApprovalCount] = useState<number | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [recalculationError, setRecalculationError] = useState<string | null>(null);
 
   // useMemo dropped intentionally — React Compiler auto-memoizes, and the manual
   // useMemo here triggered its preserve-manual-memoization warning on `recipe`.
@@ -298,6 +319,77 @@ export default function RecipeDetailPage() {
   }
 
   const currentRecipe = recipe;
+  const needsRecalculation = Boolean(dogProfile && recipeNeedsRecalculation(currentRecipe, dogProfile));
+
+  async function handleRecalculate() {
+    if (!dogProfile || isRecalculating) return;
+    setIsRecalculating(true);
+    setRecalculationError(null);
+    try {
+      if (currentRecipe.sourceTemplateId && currentRecipe.type !== 'pantry') {
+        const regenerated = await generateRecipe({
+          dog: dogProfile,
+          recipeType: currentRecipe.type,
+          batchDuration: currentRecipe.type === 'batch_week' ? '7day' : '1day',
+          forceTemplateId: currentRecipe.sourceTemplateId,
+          skipImage: true,
+        });
+        await updateRecipe(currentRecipe.id, {
+          ...regenerated,
+          id: currentRecipe.id,
+          imageUrl: currentRecipe.imageUrl,
+          isFavorite: currentRecipe.isFavorite,
+          createdAt: currentRecipe.createdAt,
+        });
+      } else {
+        const savedCalories = Math.max(1, currentRecipe.nutrition.caloriesPerDay);
+        const ratio = calcDER(dogProfile) / savedCalories;
+        const nextIngredients = currentRecipe.ingredients.map(ingredient => rebuildIngredientDisplay({
+          ...ingredient,
+          amountGrams: Math.max(0.1, Math.round(ingredient.amountGrams * ratio * 10) / 10),
+        }));
+        const totalDailyGrams = Math.max(1, currentRecipe.serving.totalDailyGrams * ratio);
+        const gramsPerMeal = totalDailyGrams / Math.max(1, dogProfile.mealsPerDay);
+        const cupsPerMeal = gramsPerMeal / recipeGramsPerCup(nextIngredients);
+        const serving = {
+          gramsPerMeal,
+          cupsPerMeal,
+          mealsPerDay: dogProfile.mealsPerDay,
+          totalDailyGrams,
+        };
+        const dayCount = Math.max(1, currentRecipe.batch.numberOfContainers || 1);
+        const batch = calcBatch(serving, dayCount);
+        batch.totalYieldGrams = nextIngredients.reduce((sum, ingredient) => sum + ingredient.amountGrams, 0);
+        const shoppingList = nextIngredients.map(ingredient => ({
+          name: ingredient.name,
+          displayAmount: ingredient.displayVolume ?? ingredient.groceryFriendlyAmount,
+          displayAmountMetric: ingredient.displayMetric,
+          displayAmountVolume: ingredient.displayVolume,
+          category: ingredientCategoryToShoppingCategory(ingredient.category),
+          note: ingredient.prepNote,
+        }));
+        const nextRecipe = { ...currentRecipe, ingredients: nextIngredients, serving, batch };
+        await updateRecipe(currentRecipe.id, {
+          ingredients: nextIngredients,
+          serving,
+          batch,
+          shoppingList,
+          nutrition: recalculateRecipeNutrition(nextRecipe, nextIngredients),
+          portionProfile: {
+            weightLbs: dogProfile.weightLbs,
+            idealWeightLbs: dogProfile.idealWeightLbs,
+            activityLevel: dogProfile.activityLevel,
+            lifeStage: dogProfile.lifeStage,
+            mealsPerDay: dogProfile.mealsPerDay,
+          },
+        });
+      }
+    } catch (error) {
+      setRecalculationError(error instanceof Error ? error.message : 'Could not recalculate this recipe.');
+    } finally {
+      setIsRecalculating(false);
+    }
+  }
 
   // Swap a single ingredient in place and save immediately — no modal, no
   // draft. Portions are kept; the new ingredient is safety-checked against the
@@ -516,6 +608,23 @@ export default function RecipeDetailPage() {
       }
     >
       <button onClick={() => navigate('/recipes')} className="mb-3 text-sm font-semibold text-[#7e7369]">← Back to Recipes</button>
+
+      {needsRecalculation && (
+        <section className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-amber-900">{dogProfile?.name}&rsquo;s feeding profile has changed</h2>
+              <p className="mt-1 text-sm text-amber-800">
+                Recalculate calories, portions, batch totals, nutrition, and the shopping list before feeding this saved recipe.
+              </p>
+              {recalculationError && <p className="mt-2 text-sm font-medium text-red-700">{recalculationError}</p>}
+            </div>
+            <Button onClick={handleRecalculate} loading={isRecalculating} icon={<RefreshCw size={16} />}>
+              Recalculate recipe
+            </Button>
+          </div>
+        </section>
+      )}
 
       {hasAllergenWarning && (
         <section className="mb-4 rounded-2xl border-2 border-red-300 bg-red-50 p-4">

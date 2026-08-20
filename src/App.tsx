@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { BottomNav } from './components/layout/BottomNav';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
+import { recordReturnVisit } from './lib/funnelAnalytics';
 
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Signup = lazy(() => import('./pages/Auth/Signup'));
@@ -60,6 +61,11 @@ const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/vet-approve/', '/p
 
 function AppLayout() {
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    recordReturnVisit();
+  }, []);
 
   // First-touch attribution: remember where a visitor came from (?src=card on
   // the printed QR cards, ?src=fb on social posts) so signup can stamp it on
@@ -86,7 +92,8 @@ function AppLayout() {
   const showBottomNav =
     !isAuthPath &&
     !NO_BOTTOM_NAV_PREFIXES.some(prefix => location.pathname.startsWith(prefix)) &&
-    location.pathname !== '/';
+    location.pathname !== '/' &&
+    (location.pathname !== '/calculator' || isAuthenticated);
 
   return (
     <>
@@ -166,11 +173,7 @@ function AppLayout() {
           />
           <Route
             path="/calculator"
-            element={
-              <ProtectedRoute>
-                <Calculator />
-              </ProtectedRoute>
-            }
+            element={<Calculator />}
           />
           <Route
             path="/assistant"

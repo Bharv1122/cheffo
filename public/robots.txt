@@ -6,6 +6,7 @@ Allow: /
 Allow: /pricing
 Allow: /learn/
 Allow: /help
+Allow: /calculator
 Allow: /privacy
 Allow: /terms
 
@@ -21,7 +22,6 @@ Disallow: /recipes
 Disallow: /bowl-builder
 Disallow: /pantry
 Disallow: /treats
-Disallow: /calculator
 Disallow: /assistant
 Disallow: /cook/
 Disallow: /vet-export/

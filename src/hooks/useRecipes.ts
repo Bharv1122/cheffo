@@ -167,6 +167,7 @@ export function useRecipes() {
       'name', 'description', 'type', 'ingredients', 'instructions', 'nutrition',
       'serving', 'batch', 'supplements', 'storage', 'shoppingList', 'safetyNotes',
       'allergenSafety', 'transitionGuide',
+      'portionProfile',
     ]);
     const contentChanged = (Object.keys(data) as Array<keyof Recipe>).some(key => contentKeys.has(key));
     const nowIso = new Date().toISOString();

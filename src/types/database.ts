@@ -34,6 +34,12 @@ export type SubscriptionStatus =
 export type Database = {
   public: {
     Tables: {
+      funnel_events: {
+        Row: { id: string; event_name: string; path: string | null; source: string | null; created_at: string };
+        Insert: { id?: string; event_name: string; path?: string | null; source?: string | null; created_at?: string };
+        Update: { id?: string; event_name?: string; path?: string | null; source?: string | null; created_at?: string };
+        Relationships: [];
+      };
       dog_profiles: {
         Row: {
           id: string;

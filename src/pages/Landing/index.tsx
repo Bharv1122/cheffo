@@ -148,7 +148,7 @@ function DemoVideo() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#fffbf5]">
+    <div className="min-h-screen bg-[#fffbf5] pb-20 sm:pb-0">
       {/* Sticky top nav */}
       <header className="sticky top-0 z-40 border-b border-[#eadfce] bg-[#fffbf5]/95 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
@@ -158,6 +158,7 @@ export default function LandingPage() {
           </Link>
           <nav className="flex items-center gap-1 sm:gap-3 text-sm">
             <Link to="/pricing" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Pricing</Link>
+            <Link to="/calculator" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Calculator</Link>
             {/* Plain <a>: /learn/ is a static page outside the SPA router —
                 a <Link> would client-route into the catch-all redirect. */}
             <a href="/learn/" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Learn</a>
@@ -281,7 +282,7 @@ export default function LandingPage() {
 
           <p className="mt-8 text-center text-base text-[#3a302a]">
             <strong className="font-semibold">Make the swap.</strong>{' '}
-            Your dog notices. Their coat, energy, digestion, and stool quality usually do too.
+            You can see every ingredient, portion, and preparation step — and review the plan with your veterinarian.
           </p>
         </div>
       </section>
@@ -423,7 +424,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-5xl">
           <header className="text-center">
             <h2 className="text-3xl font-bold text-[#2b2118]">What you can make</h2>
-            <p className="mt-2 text-[#7f7469]">60+ vetted templates across every recipe type.</p>
+            <p className="mt-2 text-[#7f7469]">60+ safety-checked templates across every recipe type.</p>
           </header>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {RECIPE_TYPES.map(type => (
@@ -532,6 +533,7 @@ export default function LandingPage() {
             </div>
             <nav className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm sm:grid-cols-3">
               <Link to="/pricing" className="hover:text-white">Pricing</Link>
+              <Link to="/calculator" className="hover:text-white">Calculator</Link>
               <a href="/learn/" className="hover:text-white">Learn</a>
               <Link to="/help" className="hover:text-white">Help center</Link>
               <Link to="/login" className="hover:text-white">Sign in</Link>
@@ -545,6 +547,16 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#eadfce] bg-[#fffbf5]/95 p-3 shadow-[0_-8px_24px_rgba(43,33,24,0.12)] backdrop-blur-sm sm:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-[0.9fr_1.1fr] gap-2">
+          <Link to="/calculator?src=mobile-sticky" className="flex min-h-11 items-center justify-center rounded-xl border border-[#eadfce] bg-white px-3 text-sm font-semibold text-[#2b2118]">
+            Free calculator
+          </Link>
+          <Link to="/signup?src=mobile-sticky" className="flex min-h-11 items-center justify-center rounded-xl bg-[#f97316] px-3 text-sm font-semibold text-white shadow-sm">
+            Unlock free recipe
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

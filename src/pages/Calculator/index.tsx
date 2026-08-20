@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Calculator } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Calculator } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { PageWrapper } from '../../components/layout/PageWrapper';
 import { Card } from '../../components/ui/Card';
@@ -10,6 +11,8 @@ import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { calorieTargetWeightLbs, calcRER, calcDER, calcServing, calcBatch, splitIngredients, gramsToOz } from '../../utils/calculator';
 import { formatCalories, formatGrams, formatOz } from '../../utils/formatting';
 import type { DogProfile, LifeStage, ActivityLevel } from '../../types/dog';
+import { useAuth } from '../../contexts/AuthContext';
+import { trackFunnelEvent } from '../../lib/funnelAnalytics';
 
 const LIFE_STAGE_OPTIONS = [
   { value: 'puppy', label: 'Puppy (under 1 year)' },
@@ -35,7 +38,9 @@ const DEFAULT_DOG: MockDog = {
 };
 
 export default function CalculatorPage() {
+  const { isAuthenticated } = useAuth();
   const { activeProfile } = useDogProfiles();
+  const trackedPreview = useRef(false);
   // Derived state, no effect: until the user edits a field, the form tracks
   // the active dog's profile (which may hydrate async); after the first
   // edit, the user's values win.
@@ -52,6 +57,10 @@ export default function CalculatorPage() {
   const dog = edited ?? prefill ?? DEFAULT_DOG;
 
   function set<K extends keyof MockDog>(key: K, val: MockDog[K]) {
+    if (!trackedPreview.current) {
+      trackedPreview.current = true;
+      void trackFunnelEvent('preview_started');
+    }
     setEdited({ ...dog, [key]: val });
   }
 
@@ -95,6 +104,10 @@ export default function CalculatorPage() {
               min={1} max={250}
               value={dog.weightLbs}
               onChange={e => {
+                if (!trackedPreview.current) {
+                  trackedPreview.current = true;
+                  void trackFunnelEvent('preview_started');
+                }
                 const parsed = Number(e.target.value);
                 setEdited({
                   ...dog,
@@ -220,6 +233,20 @@ export default function CalculatorPage() {
               ))}
             </div>
           </Card>
+          {!isAuthenticated && (
+            <Card className="border-2 border-[#f4ddc1] bg-[#fff6ec] text-center">
+              <h3 className="text-lg font-bold text-[#2b2118]">Save this dog and turn the estimate into a recipe</h3>
+              <p className="mt-2 text-sm text-[#7e6b54]">
+                Create a free account to unlock exact amounts for one personalized treat recipe, with no card needed.
+              </p>
+              <Link
+                to="/signup?src=calculator"
+                className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 font-semibold text-white hover:bg-[#ea6a0c]"
+              >
+                Unlock my free recipe <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </Card>
+          )}
         </div>
       </PageWrapper>
     </>
