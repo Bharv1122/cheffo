@@ -42,6 +42,9 @@ const {
   gramsPerCupForIngredient,
   groceryLabel,
   recipeGramsPerCup,
+  calorieTargetWeightLbs,
+  calcDER,
+  calcServing,
 } = await import('../src/utils/calculator.ts');
 
 const failures = [];
@@ -175,7 +178,34 @@ const turkeyCard = formatVolumeIngredient({
 });
 check('protein card', turkeyCard, '3 cups Ground Turkey (1 ½ lbs)');
 
-// ── 6. The call sites stay fixed ──────────────────────────────────────────────
+// ── 6. Ideal weight drives calorie-target portions ───────────────────────────
+const cooper = {
+  weightLbs: 45,
+  idealWeightLbs: 40,
+  lifeStage: 'adult',
+  activityLevel: 'active',
+  mealsPerDay: 2,
+};
+const cooperIdealDer = 70 * Math.pow(40 * 0.453592, 0.75) * 1.6;
+check('ideal weight is the calorie target', calorieTargetWeightLbs(cooper), 40);
+check('DER uses Cooper\'s 40 lb ideal weight', Math.abs(calcDER(cooper) - cooperIdealDer) < 0.001, true);
+check(
+  'serving grams use the ideal-weight DER',
+  calcServing(cooper).totalDailyGrams,
+  Math.round(cooperIdealDer / 1.1)
+);
+check(
+  'missing ideal weight falls back to current weight',
+  calorieTargetWeightLbs({ weightLbs: 45 }),
+  45
+);
+check(
+  'invalid ideal weight falls back to current weight',
+  calorieTargetWeightLbs({ weightLbs: 45, idealWeightLbs: 0 }),
+  45
+);
+
+// ── 7. The call sites stay fixed ──────────────────────────────────────────────
 const detail = readFileSync('src/pages/Recipes/RecipeDetail.tsx', 'utf8');
 if (/amountCups:\s*ingredient\.amountCups\s*\*\s*scaleFactor/.test(detail)) {
   failures.push('RecipeDetail is scaling the pre-rounded amountCups again.');

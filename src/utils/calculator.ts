@@ -35,9 +35,18 @@ export function calcRER(weightLbs: number): number {
   return 70 * Math.pow(kg, 0.75);
 }
 
+// Use the dog's stated goal weight for calorie planning when one is available.
+// The current weight remains the safe fallback for older/incomplete profiles.
+export function calorieTargetWeightLbs(dog: Pick<DogProfile, 'weightLbs' | 'idealWeightLbs'>): number {
+  const idealWeight = dog.idealWeightLbs;
+  return typeof idealWeight === 'number' && Number.isFinite(idealWeight) && idealWeight > 0
+    ? idealWeight
+    : dog.weightLbs;
+}
+
 // Daily Energy Requirement in kcal/day
 export function calcDER(dog: DogProfile): number {
-  const rer = calcRER(dog.weightLbs);
+  const rer = calcRER(calorieTargetWeightLbs(dog));
   if (dog.lifeStage === 'puppy') return rer * LIFE_STAGE_MULTIPLIERS.puppy;
   if (dog.lifeStage === 'senior') return rer * LIFE_STAGE_MULTIPLIERS.senior;
   return rer * (ACTIVITY_MULTIPLIERS[dog.activityLevel] ?? 1.4);

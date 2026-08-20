@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Disclaimer } from '../../components/ui/Disclaimer';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
-import { calcRER, calcDER, calcServing, calcBatch, splitIngredients, gramsToOz } from '../../utils/calculator';
+import { calorieTargetWeightLbs, calcRER, calcDER, calcServing, calcBatch, splitIngredients, gramsToOz } from '../../utils/calculator';
 import { formatCalories, formatGrams, formatOz } from '../../utils/formatting';
 import type { DogProfile, LifeStage, ActivityLevel } from '../../types/dog';
 
@@ -24,10 +24,11 @@ const ACTIVITY_OPTIONS = [
 ];
 const MEALS_OPTIONS = [1, 2, 3, 4].map(n => ({ value: String(n), label: `${n}x per day` }));
 
-type MockDog = Pick<DogProfile, 'weightLbs' | 'lifeStage' | 'activityLevel' | 'mealsPerDay'>;
+type MockDog = Pick<DogProfile, 'weightLbs' | 'idealWeightLbs' | 'lifeStage' | 'activityLevel' | 'mealsPerDay'>;
 
 const DEFAULT_DOG: MockDog = {
   weightLbs: 30,
+  idealWeightLbs: undefined,
   lifeStage: 'adult',
   activityLevel: 'moderate',
   mealsPerDay: 2,
@@ -42,6 +43,7 @@ export default function CalculatorPage() {
   const prefill: MockDog | null = activeProfile
     ? {
         weightLbs: activeProfile.weightLbs,
+        idealWeightLbs: activeProfile.idealWeightLbs,
         lifeStage: activeProfile.lifeStage,
         activityLevel: activeProfile.activityLevel,
         mealsPerDay: activeProfile.mealsPerDay,
@@ -56,7 +58,8 @@ export default function CalculatorPage() {
   const isInvalidWeight = !Number.isFinite(dog.weightLbs) || dog.weightLbs <= 0;
   const weightError = isInvalidWeight ? 'Weight must be greater than 0 lbs.' : '';
 
-  const rer = isInvalidWeight ? 0 : calcRER(dog.weightLbs);
+  const targetWeightLbs = calorieTargetWeightLbs(dog);
+  const rer = isInvalidWeight ? 0 : calcRER(targetWeightLbs);
   const der = isInvalidWeight ? 0 : calcDER(dog as DogProfile);
   const serving = isInvalidWeight
     ? { gramsPerMeal: 0, cupsPerMeal: 0, mealsPerDay: dog.mealsPerDay, totalDailyGrams: 0 }
@@ -93,9 +96,20 @@ export default function CalculatorPage() {
               value={dog.weightLbs}
               onChange={e => {
                 const parsed = Number(e.target.value);
-                set('weightLbs', Number.isFinite(parsed) ? parsed : 0);
+                setEdited({
+                  ...dog,
+                  weightLbs: Number.isFinite(parsed) ? parsed : 0,
+                  // A manual calculator weight is a fresh scenario, not the
+                  // active profile's saved ideal-weight goal.
+                  idealWeightLbs: undefined,
+                });
               }}
             />
+            {!edited && activeProfile?.idealWeightLbs != null && activeProfile.idealWeightLbs > 0 && (
+              <p className="text-xs text-[#78716C]">
+                Calorie estimate uses {activeProfile.name}'s ideal weight of {activeProfile.idealWeightLbs} lbs.
+              </p>
+            )}
             {weightError && (
               <p className="text-xs text-red-700">{weightError}</p>
             )}
