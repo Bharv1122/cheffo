@@ -36,6 +36,16 @@ function ingredientsChanged(edited: VetIngredientEdit[], original: Recipe['ingre
   return false;
 }
 
+function recipeIngredientsToVetEdits(recipe: Recipe): VetIngredientEdit[] {
+  return recipe.ingredients.map((ingredient) => ({
+    ingredientId: ingredient.ingredientId,
+    name: ingredient.name,
+    amountGrams: Math.round(ingredient.amountGrams),
+    category: ingredient.category,
+    prepNote: ingredient.prepNote,
+  }));
+}
+
 type Decision = 'approve' | 'approve_with_notes' | 'decline';
 
 const MAX_NOTES = 500;
@@ -129,24 +139,42 @@ export default function VetApprovePage() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    fetchApprovalByToken(token)
-      .then(result => {
+
+    async function loadApproval() {
+      // Defer state changes so the effect synchronizes with the external
+      // request rather than synchronously cascading another render.
+      await Promise.resolve();
+      if (cancelled) return;
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const result = await fetchApprovalByToken(token);
         if (cancelled) return;
         setView(result);
+
+        const loadedRecipe = result.recipe as Recipe | null | undefined;
+        const loadedSuggestions = loadedRecipe
+          ? computeSuggestedDoses({ recipe: loadedRecipe, dogWeightLbs: result.dog?.weight_lbs ?? 0 })
+          : [];
+        setDoses(Object.fromEntries(
+          loadedSuggestions.map((suggestion) => [suggestion.supplementName, suggestion.suggestion ?? ''])
+        ));
+        setEditedIngredients(loadedRecipe ? recipeIngredientsToVetEdits(loadedRecipe) : null);
+
         const prefill = result.vetPrefill;
-        if (prefill) {
-          setVetName(prefill.name ?? '');
-          setVetPractice(prefill.practice ?? '');
-          setVetState(prefill.state ?? '');
+        setVetName(prefill?.name ?? '');
+        setVetPractice(prefill?.practice ?? '');
+        setVetState(prefill?.state ?? '');
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(error instanceof Error ? error.message : 'Unknown error');
         }
-      })
-      .catch(error => {
-        if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Unknown error');
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    void loadApproval();
     return () => {
       cancelled = true;
     };
@@ -167,44 +195,9 @@ export default function VetApprovePage() {
     return computeSuggestedDoses({ recipe, dogWeightLbs });
   }, [recipe, dogWeightLbs]);
 
-  useEffect(() => {
-    if (suggestions.length === 0) return;
-    setDoses((prev) => {
-      const next = { ...prev };
-      for (const s of suggestions) {
-        if (next[s.supplementName] === undefined) {
-          next[s.supplementName] = s.suggestion ?? '';
-        }
-      }
-      return next;
-    });
-  }, [suggestions]);
-
-  // Seed the ingredient editor from the recipe's originals once it loads.
-  useEffect(() => {
-    if (!recipe || editedIngredients !== null) return;
-    setEditedIngredients(
-      recipe.ingredients.map((ing) => ({
-        ingredientId: ing.ingredientId,
-        name: ing.name,
-        amountGrams: Math.round(ing.amountGrams),
-        category: ing.category,
-        prepNote: ing.prepNote,
-      }))
-    );
-  }, [recipe, editedIngredients]);
-
   const resetIngredientEdits = useCallback(() => {
     if (!recipe) return;
-    setEditedIngredients(
-      recipe.ingredients.map((ing) => ({
-        ingredientId: ing.ingredientId,
-        name: ing.name,
-        amountGrams: Math.round(ing.amountGrams),
-        category: ing.category,
-        prepNote: ing.prepNote,
-      }))
-    );
+    setEditedIngredients(recipeIngredientsToVetEdits(recipe));
   }, [recipe]);
 
   const updateIngredientRow = useCallback(

@@ -46,27 +46,31 @@ export default function HomePage() {
   // gets the welcome. Gates: not seen + profiles done hydrating + no
   // profiles. (CHE-24)
   const welcomeSeenKey = `${WELCOME_SEEN_KEY}:${user?.id ?? 'guest'}`;
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [dismissedWelcomeKey, setDismissedWelcomeKey] = useState<string | null>(null);
+  const welcomeAlreadySeen = storageGet<boolean>(welcomeSeenKey) === true;
+  const showWelcome =
+    !profilesLoading &&
+    profiles.length === 0 &&
+    !welcomeAlreadySeen &&
+    dismissedWelcomeKey !== welcomeSeenKey;
+
   useEffect(() => {
     if (profilesLoading) return;
-    if (storageGet<boolean>(welcomeSeenKey)) return;
-    if (profiles.length > 0) {
+    if (!welcomeAlreadySeen && profiles.length > 0) {
       // Existing user who has dogs already → flag as seen so we don't pop
       // it later if they ever delete all their dogs.
       storageSet(welcomeSeenKey, true);
-      return;
     }
-    setShowWelcome(true);
-  }, [profilesLoading, profiles.length, welcomeSeenKey]);
+  }, [profilesLoading, profiles.length, welcomeAlreadySeen, welcomeSeenKey]);
 
   const dismissWelcome = useCallback(() => {
     storageSet(welcomeSeenKey, true);
-    setShowWelcome(false);
+    setDismissedWelcomeKey(welcomeSeenKey);
   }, [welcomeSeenKey]);
 
   const startFromWelcome = useCallback(() => {
     storageSet(welcomeSeenKey, true);
-    setShowWelcome(false);
+    setDismissedWelcomeKey(welcomeSeenKey);
     navigate('/profiles/new');
   }, [navigate, welcomeSeenKey]);
 

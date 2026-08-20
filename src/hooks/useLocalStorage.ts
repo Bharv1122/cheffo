@@ -27,7 +27,10 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   // without taking `value` as a dep (which would re-run the unmount effect
   // on every change).
   const valueRef = useRef(value);
-  valueRef.current = value;
+
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
 
   useEffect(() => {
     const id = setTimeout(() => storageSet(key, value), PERSIST_DEBOUNCE_MS);

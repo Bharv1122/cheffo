@@ -51,25 +51,18 @@ export function VetApprovalSection({ recipeId, supplements, onLoaded }: Props) {
   // Names of optional supplements the user wants included in the vet's
   // review. Required ones are always included server-side. Defaults to all
   // optional supplements checked. (CHE-127)
-  const [includedOptionalNames, setIncludedOptionalNames] = useState<Set<string>>(
-    () => new Set((supplements ?? []).filter((s) => !s.isRequired).map((s) => s.name))
-  );
+  // Optional supplements are included by default. Tracking only exclusions
+  // means prop changes stay in sync without copying props into state: newly
+  // added optional supplements are included and removed ones disappear.
+  const [excludedOptionalNames, setExcludedOptionalNames] = useState<Set<string>>(() => new Set());
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<RequestApprovalResult | null>(null);
 
-  // Re-sync the default picker selection when the recipe's supplement list
-  // changes underneath us (e.g. a vet edit replaced the supplements).
-  useEffect(() => {
-    setIncludedOptionalNames(
-      new Set((supplements ?? []).filter((s) => !s.isRequired).map((s) => s.name))
-    );
-  }, [supplements]);
-
   const requiredSupplements = (supplements ?? []).filter((s) => s.isRequired);
   const optionalSupplements = (supplements ?? []).filter((s) => !s.isRequired);
   const toggleOptional = (name: string) => {
-    setIncludedOptionalNames((prev) => {
+    setExcludedOptionalNames((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
@@ -96,7 +89,8 @@ export function VetApprovalSection({ recipeId, supplements, onLoaded }: Props) {
   }, [recipeId, onLoaded]);
 
   useEffect(() => {
-    void refresh();
+    const timeoutId = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [refresh]);
 
   const onSubmit = useCallback(async () => {
@@ -113,7 +107,7 @@ export function VetApprovalSection({ recipeId, supplements, onLoaded }: Props) {
       const supplementNames = supplements
         ? [
             ...requiredSupplements.map((s) => s.name),
-            ...optionalSupplements.filter((s) => includedOptionalNames.has(s.name)).map((s) => s.name),
+            ...optionalSupplements.filter((s) => !excludedOptionalNames.has(s.name)).map((s) => s.name),
           ]
         : undefined;
       const result = await requestVetApproval({
@@ -130,7 +124,7 @@ export function VetApprovalSection({ recipeId, supplements, onLoaded }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [vetEmail, recipeId, refresh, supplements, requiredSupplements, optionalSupplements, includedOptionalNames]);
+  }, [vetEmail, recipeId, refresh, supplements, requiredSupplements, optionalSupplements, excludedOptionalNames]);
 
   if (!isSupabaseConfigured) {
     return null;
@@ -261,7 +255,7 @@ export function VetApprovalSection({ recipeId, supplements, onLoaded }: Props) {
               )}
               <div className="flex flex-wrap gap-2 text-sm">
                 {optionalSupplements.map((s) => {
-                  const checked = includedOptionalNames.has(s.name);
+                  const checked = !excludedOptionalNames.has(s.name);
                   return (
                     <label
                       key={s.name}
