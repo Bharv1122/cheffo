@@ -11,7 +11,8 @@
     "verify:audit-bundle": "node scripts/verify-audit-bundle.mjs",
     "verify:portion-scaling": "node scripts/verify-portion-scaling.mjs",
     "verify:recipe-detail-batch-default": "node scripts/verify-recipe-detail-batch-default.mjs",
-    "verify:real-photos-and-vet-template": "node scripts/verify-real-photos-and-vet-template.mjs"
+    "verify:real-photos-and-vet-template": "node scripts/verify-real-photos-and-vet-template.mjs",
+    "verify:partner-code": "node scripts/verify-partner-code.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",

@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
+import { Input } from '../../components/ui/Input';
+import { redeemPartnerCode } from '../../lib/partnerRedeem';
 
 type Plan = 'monthly' | 'yearly';
 
@@ -27,11 +29,14 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 
 export default function PricingPage() {
   const { user, isAuthenticated } = useAuth();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { isPremium, loading: subscriptionLoading, refresh } = useSubscription();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [submitting, setSubmitting] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [campaignCode, setCampaignCode] = useState('');
+  const [campaignMessage, setCampaignMessage] = useState<string | null>(null);
+  const [redeeming, setRedeeming] = useState(false);
 
   const wasCanceled = searchParams.get('canceled') === '1';
 
@@ -64,6 +69,25 @@ export default function PricingPage() {
       setError(e instanceof Error ? e.message : 'Could not start checkout.');
       setSubmitting(null);
     }
+  }
+
+  async function redeemCampaign(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isAuthenticated) {
+      navigate('/signup?redirect=/pricing');
+      return;
+    }
+    setRedeeming(true);
+    setError(null);
+    setCampaignMessage(null);
+    const result = await redeemPartnerCode(campaignCode);
+    setRedeeming(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setCampaignMessage('ALEXAN30 activated — 3 days of full Premium, no card required.');
+    await refresh();
   }
 
   if (isAuthenticated && subscriptionLoading) {
@@ -110,6 +134,33 @@ export default function PricingPage() {
           <p className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </p>
+        )}
+
+        {!isPremium && (
+          <form onSubmit={redeemCampaign} className="mt-6 rounded-2xl border border-[#eadfce] bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-[#2b2118]">Have a campaign code?</h2>
+            <p className="mt-1 text-sm text-[#7f7469]">Apply it here before choosing a paid plan.</p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  label="Campaign code"
+                  placeholder="Enter campaign code"
+                  value={campaignCode}
+                  onChange={event => setCampaignCode(event.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <Button type="submit" loading={redeeming} disabled={!campaignCode.trim()}>
+                Apply code
+              </Button>
+            </div>
+            {campaignMessage && (
+              <p className="mt-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                {campaignMessage}
+              </p>
+            )}
+          </form>
         )}
 
         <div className="mt-8 grid gap-5 sm:grid-cols-2">

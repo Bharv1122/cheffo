@@ -8,6 +8,8 @@ import {
   updatePassword,
 } from '../lib/auth';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { ALEXAN_CAMPAIGN, isAlexanCode } from '../lib/partnerOffer';
+import { redeemPartnerCode } from '../lib/partnerRedeem';
 
 interface AuthContextValue {
   user: User | null;
@@ -16,7 +18,12 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isSupabaseEnabled: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null; needsEmailVerification: boolean }>;
+  signUp: (email: string, password: string, partnerCode?: string) => Promise<{
+    error: string | null;
+    needsEmailVerification: boolean;
+    partnerOfferApplied: boolean;
+    partnerOfferError: string | null;
+  }>;
   signOut: () => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateCurrentPassword: (password: string) => Promise<{ error: string | null }>;
@@ -62,11 +69,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
-    const { error } = await signInWithEmailPassword(email, password);
+    const { error, session: nextSession } = await signInWithEmailPassword(email, password);
+    if (!error && nextSession) {
+      try {
+        const pendingCode = localStorage.getItem('cheffo_pending_partner_code');
+        if (pendingCode && isAlexanCode(pendingCode)) {
+          const redeemed = await redeemPartnerCode(pendingCode);
+          if (redeemed.ok) localStorage.removeItem('cheffo_pending_partner_code');
+        }
+      } catch {
+        // Pending redemption can still be completed from Pricing.
+      }
+    }
     return { error };
   }
 
-  async function signUp(email: string, password: string) {
+  async function signUp(email: string, password: string, partnerCode = '') {
     // First-touch attribution captured in App (?src= on any URL) — stamped
     // into the auth user's metadata so we can tell which channel signups
     // come from (auth.users.raw_user_meta_data->>'signup_source').
@@ -76,14 +94,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // localStorage unavailable — attribution is best-effort
     }
+    const hasPartnerCode = isAlexanCode(partnerCode);
+    if (hasPartnerCode) signupSource = ALEXAN_CAMPAIGN.slug;
+
     const { session: nextSession, error } = await signUpWithEmailPassword(
       email,
       password,
       signupSource ? { signup_source: signupSource } : undefined
     );
+    let partnerOfferApplied = false;
+    let partnerOfferError: string | null = null;
+    if (!error && hasPartnerCode) {
+      if (nextSession) {
+        const redeemed = await redeemPartnerCode(partnerCode);
+        partnerOfferApplied = redeemed.ok;
+        partnerOfferError = redeemed.error;
+      } else {
+        try {
+          localStorage.setItem('cheffo_pending_partner_code', ALEXAN_CAMPAIGN.code);
+        } catch {
+          partnerOfferError = 'After verifying your email, enter ALEXAN30 on the Pricing page.';
+        }
+      }
+    }
+
     return {
       error,
       needsEmailVerification: !nextSession,
+      partnerOfferApplied,
+      partnerOfferError,
     };
   }
 
