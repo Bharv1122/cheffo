@@ -253,9 +253,6 @@ export type Database = {
           cancel_at_period_end: boolean;
           canceled_at: string | null;
           trial_end: string | null;
-          campaign_code: string | null;
-          campaign_trial_end: string | null;
-          campaign_redeemed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -270,9 +267,6 @@ export type Database = {
           cancel_at_period_end?: boolean;
           canceled_at?: string | null;
           trial_end?: string | null;
-          campaign_code?: string | null;
-          campaign_trial_end?: string | null;
-          campaign_redeemed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -287,9 +281,6 @@ export type Database = {
           cancel_at_period_end?: boolean;
           canceled_at?: string | null;
           trial_end?: string | null;
-          campaign_code?: string | null;
-          campaign_trial_end?: string | null;
-          campaign_redeemed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

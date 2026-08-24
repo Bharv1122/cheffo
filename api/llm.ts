@@ -81,7 +81,7 @@ export default async function handler(req: Request): Promise<Response> {
     try {
       const { data: sub, error: subError } = await getSupabaseAdmin()
         .from('subscriptions')
-        .select('status, campaign_trial_end')
+        .select('status')
         .eq('user_id', auth.userId)
         .maybeSingle();
       if (subError) {
@@ -96,10 +96,7 @@ export default async function handler(req: Request): Promise<Response> {
         // assistant 403s at them. Stripe settles past_due to canceled/unpaid
         // within ~2 weeks, and neither of those is allowed here.
         const isPremium =
-          sub?.status === 'active' ||
-          sub?.status === 'trialing' ||
-          sub?.status === 'past_due' ||
-          Boolean(sub?.campaign_trial_end && Date.parse(sub.campaign_trial_end) > Date.now());
+          sub?.status === 'active' || sub?.status === 'trialing' || sub?.status === 'past_due';
         if (!isPremium) {
           return jsonError(
             403,

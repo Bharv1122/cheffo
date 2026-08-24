@@ -11,7 +11,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { SubscriptionRow, SubscriptionStatus } from '../types/database';
-import { campaignTrialIsActive } from '../lib/partnerOffer';
 
 // "Premium" gating: any of these statuses means the user has paid access RIGHT
 // NOW. `canceled` is intentionally excluded — once the period is up Stripe
@@ -97,7 +96,6 @@ function describeBillingProblem(row: SubscriptionRow | null): BillingProblem | n
 
 function statusToLabel(row: SubscriptionRow | null): string {
   if (!row) return 'Free';
-  if (campaignTrialIsActive(row.campaign_trial_end)) return 'ALEXAN30 campaign trial';
   switch (row.status) {
     case 'active':
       return row.cancel_at_period_end ? 'Canceling at period end' : 'Active';
@@ -180,9 +178,7 @@ export function useSubscription(): UseSubscriptionResult {
   const isPremium = useMemo(() => {
     if (!subscription) return false;
     return (
-      PREMIUM_STATUSES.has(subscription.status) ||
-      GRACE_STATUSES.has(subscription.status) ||
-      campaignTrialIsActive(subscription.campaign_trial_end)
+      PREMIUM_STATUSES.has(subscription.status) || GRACE_STATUSES.has(subscription.status)
     );
   }, [subscription]);
 

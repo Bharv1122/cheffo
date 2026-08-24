@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Eye, EyeOff, KeyRound, Mail, Ticket } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
 import { AuthLayout } from './AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 import { trackFunnelEvent } from '../../lib/funnelAnalytics';
-import { ALEXAN_CAMPAIGN, isAlexanCode } from '../../lib/partnerOffer';
 
 export default function SignupPage() {
   const { signUp, isAuthenticated, isSupabaseEnabled } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [communityCode, setCommunityCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,17 +43,12 @@ export default function SignupPage() {
       setError('Use at least 8 characters for better security.');
       return;
     }
-    if (communityCode.trim() && !isAlexanCode(communityCode)) {
-      setError('That campaign code is not recognized. Check the spelling and try again.');
-      return;
-    }
 
     setLoading(true);
     setError('');
     setMessage('');
 
-    const { error: signUpError, needsEmailVerification, partnerOfferApplied, partnerOfferError } =
-      await signUp(email.trim(), password, communityCode);
+    const { error: signUpError, needsEmailVerification } = await signUp(email.trim(), password);
 
     if (signUpError) {
       setError(signUpError);
@@ -67,11 +60,7 @@ export default function SignupPage() {
 
     setLoading(false);
     if (needsEmailVerification) {
-      setMessage(
-        isAlexanCode(communityCode)
-          ? `Account created! Verify your email, then log in to activate ${ALEXAN_CAMPAIGN.trialDays} days of Premium with no card.`
-          : 'Account created! Please check your email to verify your account before logging in.'
-      );
+      setMessage('Account created! Please check your email to verify your account before logging in.');
     } else {
       // Auto-confirm is on, so the session lands immediately — flag this as a
       // fresh signup so the authenticated redirect above targets the
@@ -81,11 +70,7 @@ export default function SignupPage() {
       } catch {
         // sessionStorage unavailable — user lands on Home instead
       }
-      setMessage(
-        partnerOfferApplied
-          ? 'ALEXAN30 activated — 3 days of full Premium, no card required.'
-          : partnerOfferError ?? 'Account created! You can now start using Cheffo Doggo.'
-      );
+      setMessage('Account created! You can now start using Cheffo Doggo.');
     }
   }
 
@@ -137,16 +122,6 @@ export default function SignupPage() {
           autoComplete="new-password"
           required
           hint="Tip: use a unique password you do not reuse elsewhere."
-        />
-
-        <Input
-          type="text"
-          label="Campaign code (optional)"
-          placeholder="Enter campaign code"
-          icon={<Ticket size={16} />}
-          value={communityCode}
-          onChange={event => setCommunityCode(event.target.value)}
-          autoComplete="off"
         />
 
         {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
