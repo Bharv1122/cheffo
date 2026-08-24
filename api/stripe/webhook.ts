@@ -99,7 +99,10 @@ async function handleSubscriptionEvent(event: StripeEvent): Promise<Response> {
     // No mapping yet AND no metadata.user_id — log and 200 so Stripe stops
     // retrying. A real misconfiguration will surface in logs and stay
     // un-upserted until the metadata is fixed.
-    console.error(
+    // Both apps share this Stripe account and endpoint fan-out, so events for
+    // Recipe Reborn legitimately have no Cheffo user mapping. Acknowledge and
+    // skip them without turning expected cross-app traffic into an error alert.
+    console.warn(
       `[stripe/webhook] no user_id found for customer ${subscription.customer} (event ${event.id})`
     );
     return jsonResponse(200, { ok: true, skipped: 'no_user_mapping' });
