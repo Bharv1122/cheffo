@@ -122,6 +122,14 @@ async function handleSubscriptionEvent(event: StripeEvent): Promise<Response> {
     cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
     canceled_at: unixToIso(subscription.canceled_at),
     trial_end: unixToIso(subscription.trial_end),
+    // A real Stripe subscription supersedes any finished no-card campaign
+    // entitlement. Clearing these prevents an expired campaign timestamp from
+    // masking newly paid access in the client and API gates.
+    campaign_app: null,
+    campaign_code: null,
+    campaign_source: null,
+    campaign_trial_end: null,
+    campaign_redeemed_at: null,
     updated_at: new Date().toISOString(),
   };
 

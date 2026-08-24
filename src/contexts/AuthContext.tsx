@@ -8,6 +8,7 @@ import {
   updatePassword,
 } from '../lib/auth';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { PUBLIC_CAMPAIGN_CODE, redeemCampaignCode } from '../lib/campaign';
 
 interface AuthContextValue {
   user: User | null;
@@ -16,7 +17,11 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isSupabaseEnabled: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null; needsEmailVerification: boolean }>;
+  signUp: (email: string, password: string, campaignCode?: string) => Promise<{
+    error: string | null;
+    campaignError: string | null;
+    needsEmailVerification: boolean;
+  }>;
   signOut: () => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateCurrentPassword: (password: string) => Promise<{ error: string | null }>;
@@ -53,6 +58,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
+      if (nextSession) {
+        let pendingCode: string | null = null;
+        try { pendingCode = localStorage.getItem('cheffo_pending_campaign_code'); } catch { /* best effort */ }
+        if (pendingCode === PUBLIC_CAMPAIGN_CODE) {
+          void redeemCampaignCode(pendingCode, nextSession.access_token).then(result => {
+            if (!result.error) {
+              try { localStorage.removeItem('cheffo_pending_campaign_code'); } catch { /* best effort */ }
+            }
+          });
+        }
+      }
     });
 
     return () => {
@@ -66,7 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   }
 
-  async function signUp(email: string, password: string) {
+  async function signUp(email: string, password: string, campaignCode = '') {
+    const normalizedCode = campaignCode.trim().toUpperCase();
+    if (normalizedCode && normalizedCode !== PUBLIC_CAMPAIGN_CODE) {
+      return { error: 'That code is not recognized.', campaignError: null, needsEmailVerification: false };
+    }
     // First-touch attribution captured in App (?src= on any URL) — stamped
     // into the auth user's metadata so we can tell which channel signups
     // come from (auth.users.raw_user_meta_data->>'signup_source').
@@ -76,13 +96,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // localStorage unavailable — attribution is best-effort
     }
+    if (normalizedCode) {
+      try { localStorage.setItem('cheffo_pending_campaign_code', normalizedCode); } catch { /* best effort */ }
+    }
     const { session: nextSession, error } = await signUpWithEmailPassword(
       email,
       password,
-      signupSource ? { signup_source: signupSource } : undefined
+      {
+        ...(signupSource ? { signup_source: signupSource } : {}),
+        ...(normalizedCode ? { campaign_code: normalizedCode } : {}),
+      }
     );
+    let campaignError: string | null = null;
+    if (!error && nextSession && normalizedCode) {
+      const result = await redeemCampaignCode(normalizedCode, nextSession.access_token);
+      campaignError = result.error;
+      if (!campaignError) {
+        try { localStorage.removeItem('cheffo_pending_campaign_code'); } catch { /* best effort */ }
+      }
+    }
     return {
       error,
+      campaignError,
       needsEmailVerification: !nextSession,
     };
   }

@@ -96,6 +96,8 @@ function describeBillingProblem(row: SubscriptionRow | null): BillingProblem | n
 
 function statusToLabel(row: SubscriptionRow | null): string {
   if (!row) return 'Free';
+  if (hasActiveCampaignTrial(row)) return '3DAYFREE trial';
+  if (row.campaign_code === '3dayfree') return 'Trial ended';
   switch (row.status) {
     case 'active':
       return row.cancel_at_period_end ? 'Canceling at period end' : 'Active';
@@ -116,6 +118,11 @@ function statusToLabel(row: SubscriptionRow | null): string {
     default:
       return 'Free';
   }
+}
+
+function hasActiveCampaignTrial(row: SubscriptionRow | null): boolean {
+  if (!row?.campaign_trial_end || row.campaign_code !== '3dayfree') return false;
+  return Date.parse(row.campaign_trial_end) > Date.now();
 }
 
 export function useSubscription(): UseSubscriptionResult {
@@ -177,6 +184,7 @@ export function useSubscription(): UseSubscriptionResult {
 
   const isPremium = useMemo(() => {
     if (!subscription) return false;
+    if (subscription.campaign_code) return hasActiveCampaignTrial(subscription);
     return (
       PREMIUM_STATUSES.has(subscription.status) || GRACE_STATUSES.has(subscription.status)
     );

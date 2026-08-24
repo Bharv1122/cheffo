@@ -253,6 +253,11 @@ export type Database = {
           cancel_at_period_end: boolean;
           canceled_at: string | null;
           trial_end: string | null;
+          campaign_app: string | null;
+          campaign_code: string | null;
+          campaign_source: string | null;
+          campaign_trial_end: string | null;
+          campaign_redeemed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -267,6 +272,11 @@ export type Database = {
           cancel_at_period_end?: boolean;
           canceled_at?: string | null;
           trial_end?: string | null;
+          campaign_app?: string | null;
+          campaign_code?: string | null;
+          campaign_source?: string | null;
+          campaign_trial_end?: string | null;
+          campaign_redeemed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -281,6 +291,11 @@ export type Database = {
           cancel_at_period_end?: boolean;
           canceled_at?: string | null;
           trial_end?: string | null;
+          campaign_app?: string | null;
+          campaign_code?: string | null;
+          campaign_source?: string | null;
+          campaign_trial_end?: string | null;
+          campaign_redeemed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -312,6 +327,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      redeem_3dayfree_campaign: {
+        Args: { p_user_id: string; p_email_hash: string; p_source: string | null };
+        Returns: { trial_end: string }[];
+      };
       check_and_increment_llm_usage: {
         Args: { p_user_id: string; p_daily_limit: number };
         Returns: { allowed: boolean; current_count: number }[];

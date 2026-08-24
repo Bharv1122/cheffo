@@ -13,6 +13,7 @@ export default function SignupPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [campaignCode, setCampaignCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,7 +49,9 @@ export default function SignupPage() {
     setError('');
     setMessage('');
 
-    const { error: signUpError, needsEmailVerification } = await signUp(email.trim(), password);
+    const { error: signUpError, campaignError, needsEmailVerification } = await signUp(
+      email.trim(), password, campaignCode,
+    );
 
     if (signUpError) {
       setError(signUpError);
@@ -57,6 +60,12 @@ export default function SignupPage() {
     }
 
     await trackFunnelEvent('signup_completed');
+
+    if (campaignError) {
+      setError(`Account created, but the trial was not activated: ${campaignError}`);
+      setLoading(false);
+      return;
+    }
 
     setLoading(false);
     if (needsEmailVerification) {
@@ -97,6 +106,16 @@ export default function SignupPage() {
           onChange={event => setEmail(event.target.value)}
           autoComplete="email"
           required
+        />
+
+        <Input
+          type="text"
+          label="Community code (optional)"
+          placeholder="Enter code"
+          value={campaignCode}
+          onChange={event => setCampaignCode(event.target.value.toUpperCase())}
+          autoComplete="off"
+          hint="Use 3DAYFREE for 3 days of full Premium. No credit card required."
         />
 
         {/* Confirm-password removed (conversion killer, Beth-approved — same

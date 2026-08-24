@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
+import { redeemCampaignCode } from '../../lib/campaign';
 
 type Plan = 'monthly' | 'yearly';
 
@@ -27,11 +28,14 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 
 export default function PricingPage() {
   const { user, isAuthenticated } = useAuth();
-  const { isPremium, loading: subscriptionLoading } = useSubscription();
+  const { isPremium, loading: subscriptionLoading, refresh } = useSubscription();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [submitting, setSubmitting] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [campaignCode, setCampaignCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+  const [campaignMessage, setCampaignMessage] = useState<string | null>(null);
 
   const wasCanceled = searchParams.get('canceled') === '1';
 
@@ -64,6 +68,23 @@ export default function PricingPage() {
       setError(e instanceof Error ? e.message : 'Could not start checkout.');
       setSubmitting(null);
     }
+  }
+
+  async function redeemTrial() {
+    if (!isAuthenticated) {
+      navigate('/signup?redirect=/pricing');
+      return;
+    }
+    setRedeeming(true);
+    setError(null);
+    setCampaignMessage(null);
+    const result = await redeemCampaignCode(campaignCode);
+    if (result.error) setError(result.error);
+    else {
+      setCampaignMessage(result.message);
+      await refresh();
+    }
+    setRedeeming(false);
   }
 
   if (isAuthenticated && subscriptionLoading) {
@@ -111,6 +132,28 @@ export default function PricingPage() {
             {error}
           </p>
         )}
+        {campaignMessage && (
+          <p className="mt-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            {campaignMessage}
+          </p>
+        )}
+
+        <section className="mt-8 doggo-card p-6">
+          <h2 className="text-base font-semibold text-[#2b2118]">Have a community code?</h2>
+          <p className="mt-1 text-sm text-[#7f7469]">Use 3DAYFREE for 3 days of full Premium. No credit card required.</p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              value={campaignCode}
+              onChange={event => setCampaignCode(event.target.value.toUpperCase())}
+              placeholder="Community code"
+              aria-label="Community code"
+              className="min-h-11 flex-1 rounded-xl border border-[#d8cec3] bg-white px-3 text-sm outline-none focus:border-[#f97316]"
+            />
+            <Button onClick={redeemTrial} loading={redeeming} disabled={redeeming || !campaignCode.trim()}>
+              Activate free trial
+            </Button>
+          </div>
+        </section>
 
         <div className="mt-8 grid gap-5 sm:grid-cols-2">
           <PricingCard
