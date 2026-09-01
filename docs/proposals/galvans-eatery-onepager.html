@@ -1,0 +1,580 @@
+<title>Galvan's Digital Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    --paper:      #F3F6F0;
+    --card:       #FBFCFA;
+    --ink:        #1B211C;
+    --muted:      #5B665C;
+    --faint:      #8A9389;
+    --rule:       #D6DCD2;
+    --rule-soft:  #E4E9E1;
+    --accent:     #C0332A;
+    --accent-ink: #C0332A;
+    --shade:      #EAEFE7;
+
+    --f-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --f-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+    --step--1: 0.8125rem;
+    --step-0:  1rem;
+    --step-1:  1.1875rem;
+    --step-2:  1.5rem;
+    --step-3:  2.125rem;
+    --step-4:  2.875rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #141814;
+      --card:       #1B211C;
+      --ink:        #E9EDE7;
+      --muted:      #A2AC9F;
+      --faint:      #78826F;
+      --rule:       #2E362E;
+      --rule-soft:  #262D26;
+      --accent:     #E8675A;
+      --accent-ink: #E8675A;
+      --shade:      #1F261F;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #141814;
+    --card:       #1B211C;
+    --ink:        #E9EDE7;
+    --muted:      #A2AC9F;
+    --faint:      #78826F;
+    --rule:       #2E362E;
+    --rule-soft:  #262D26;
+    --accent:     #E8675A;
+    --accent-ink: #E8675A;
+    --shade:      #1F261F;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .masthead h1 {
+    font-family: var(--f-display);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: var(--step-4);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .masthead h1 em {
+    font-style: normal;
+    color: var(--accent-ink);
+  }
+
+  .standfirst {
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 34rem;
+    margin: 0;
+  }
+
+  .prepared {
+    font-size: var(--step--1);
+    color: var(--faint);
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.5rem;
+  }
+
+  /* ---------- the hook ---------- */
+
+  .hook {
+    background: var(--shade);
+    border-left: 3px solid var(--accent);
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .hook h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: var(--step-2);
+    line-height: 1.2;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .hook p { margin: 0; color: var(--muted); max-width: 40rem; }
+  .hook p strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- section headings ---------- */
+
+  .section { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .section-head { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .section-head h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: var(--step-3);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .section-head p { margin: 0; color: var(--muted); max-width: 38rem; }
+
+  /* ---------- the ladder ---------- */
+
+  .ladder { display: flex; flex-direction: column; gap: 0; }
+
+  .rung {
+    display: grid;
+    grid-template-columns: 3.25rem 1fr;
+    gap: 0 1.25rem;
+    padding: 1.75rem 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  .rung:first-child { border-top: none; padding-top: 0; }
+
+  .rung-marker {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: var(--step-2);
+    line-height: 1;
+    color: var(--faint);
+    padding-top: 0.15rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rung--key .rung-marker { color: var(--accent-ink); }
+
+  .rung-body { display: flex; flex-direction: column; gap: 0.85rem; min-width: 0; }
+
+  .rung-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 1.5rem;
+  }
+
+  .rung-top h3 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: var(--step-2);
+    line-height: 1.15;
+    margin: 0;
+  }
+
+  .price {
+    font-weight: 700;
+    font-size: var(--step-1);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .price--free { color: var(--accent-ink); }
+
+  .price span {
+    font-weight: 500;
+    font-size: var(--step--1);
+    color: var(--faint);
+  }
+
+  .rung-lede { margin: 0; color: var(--muted); }
+
+  .rung ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .rung li {
+    position: relative;
+    padding-left: 1.1rem;
+    line-height: 1.5;
+  }
+
+  .rung li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 0.375rem;
+    height: 0.375rem;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .carry {
+    font-size: var(--step--1);
+    color: var(--faint);
+    font-style: italic;
+  }
+
+  .note {
+    font-size: var(--step--1);
+    color: var(--muted);
+    background: var(--shade);
+    padding: 0.85rem 1rem;
+    line-height: 1.5;
+  }
+
+  /* ---------- add-ons ---------- */
+
+  .addons {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--rule);
+  }
+
+  .addon {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1.5rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .addon-name { font-weight: 600; }
+  .addon-why { color: var(--muted); font-size: var(--step--1); flex: 1 1 14rem; }
+
+  .addon-price {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ---------- not included ---------- */
+
+  .excluded {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.25rem;
+  }
+
+  .excluded div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-top: 0.9rem;
+    border-top: 2px solid var(--rule);
+  }
+
+  .excluded dt {
+    font-weight: 600;
+    font-size: var(--step-0);
+  }
+
+  .excluded dd {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--step--1);
+    line-height: 1.5;
+  }
+
+  /* ---------- terms + close ---------- */
+
+  .terms {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .terms li {
+    padding-left: 1.5rem;
+    position: relative;
+    color: var(--muted);
+  }
+
+  .terms li strong { color: var(--ink); font-weight: 600; }
+
+  .terms li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--accent-ink);
+    font-weight: 700;
+  }
+
+  .close {
+    border-top: 3px solid var(--ink);
+    padding-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .close h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: var(--step-2);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .close p { margin: 0; color: var(--muted); max-width: 36rem; }
+
+  .signoff {
+    font-size: var(--step--1);
+    color: var(--faint);
+    padding-top: 0.5rem;
+  }
+
+  @media (max-width: 34rem) {
+    :root { --step-4: 2.125rem; --step-3: 1.625rem; --step-2: 1.25rem; }
+    .sheet { padding: 2.5rem 1.15rem 3.5rem; gap: 2.25rem; }
+    .rung { grid-template-columns: 2.25rem 1fr; gap: 0 0.85rem; }
+    .hook { padding: 1.25rem 1.25rem; }
+  }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    .sheet { max-width: none; padding: 0; gap: 1.75rem; }
+    .rung, .section, .close { break-inside: avoid; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="eyebrow">Proposal · Galvan's Eatery &amp; Beer Garden · Cotati</div>
+    <h1>Let's get you found before somebody drives to <em>Rohnert Park</em>.</h1>
+    <p class="standfirst">A plain plan for putting Galvan's online properly — built in stages, so you only pay for the next step once the last one is working.</p>
+    <div class="prepared">
+      <span>Prepared for Ivan &amp; Omar Galvan</span>
+      <span>500 E Cotati Ave</span>
+      <span>Valid 30 days</span>
+    </div>
+  </header>
+
+  <section class="hook">
+    <h2>Where things stand today</h2>
+    <p>The beer garden is open and it's already becoming the game-day spot in town. The internet hasn't caught up. Your Facebook page still points to <strong>Rohnert Park</strong>. Menu-listing sites still have you at the old address. And there is still no single place that answers the two questions people ask you constantly: <strong>what's on tonight</strong>, and <strong>where are the trucks this weekend</strong>.</p>
+    <p>Every one of those is fixable in weeks, not months. None of it requires you to become a computer person.</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>The plan, in order</h2>
+      <p>Each stage builds on the one before it. You can stop after any of them and still have something that works on its own.</p>
+    </div>
+
+    <div class="ladder">
+
+      <article class="rung rung--key">
+        <div class="rung-marker">0</div>
+        <div class="rung-body">
+          <div class="rung-top">
+            <h3>The Check-Up</h3>
+            <div class="price price--free">No charge</div>
+          </div>
+          <p class="rung-lede">Ninety minutes at your place, before anybody signs anything. I find out what you already have and what it's already costing you.</p>
+          <ul>
+            <li>What your Square setup can already do that you're not using</li>
+            <li>Whether anyone has claimed your Google listing — and who owns it</li>
+            <li>What you're paying in delivery-app commission each month</li>
+            <li>Which listings still have the wrong address</li>
+          </ul>
+          <p class="carry">You get a one-page summary either way, whether we work together or not.</p>
+        </div>
+      </article>
+
+      <article class="rung rung--key">
+        <div class="rung-marker">1</div>
+        <div class="rung-body">
+          <div class="rung-top">
+            <h3>Get Found &amp; Get Visited</h3>
+            <div class="price">$2,800–$4,000</div>
+          </div>
+          <p class="rung-lede">A fast, phone-first website plus a cleanup of everywhere else you show up. This is the stage that actually moves people through the door.</p>
+          <ul>
+            <li>Menu, hours, photos, directions, and tap-to-call — correct and fast on a phone</li>
+            <li>A truck schedule page, so "where are you this weekend?" answers itself</li>
+            <li>Your Google listing claimed, corrected, and filled out properly</li>
+            <li>Same name, address, and hours on Google, Apple Maps, Yelp, and Facebook</li>
+            <li>Catering and big-party inquiries that come to you <strong>as a text message</strong>, not an email nobody opens</li>
+            <li>The questions people actually call about: TVs and game days, dog-friendly, kids, parking, big groups</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="rung">
+        <div class="rung-marker">+</div>
+        <div class="rung-body">
+          <div class="rung-top">
+            <h3>Online Ordering</h3>
+            <div class="price">$450–$900</div>
+          </div>
+          <p class="rung-lede">If you're on Square, you are almost certainly already paying for ordering tools you haven't switched on. That's a configuration job, and I'm not going to price it like a construction project.</p>
+          <ul>
+            <li>Your real menu built out properly — sizes, add-ons, modifiers, taxes</li>
+            <li>Orders routed so they land in the kitchen the way your line actually works</li>
+            <li>Your own ordering link put front and center everywhere, ahead of the delivery apps</li>
+            <li>A short run-through with whoever works the counter</li>
+          </ul>
+          <p class="note"><strong>If you're not on Square,</strong> or there's genuinely nothing in place, this becomes a real build — roughly <strong>$1,200–$2,400</strong>. The Check-Up tells us which of the two we're looking at before either of us commits to a number.</p>
+          <p class="note">Whatever you pay Square is separate, and it goes to Square, not to me. We'll confirm your exact plan and rates together during the Check-Up. The point of this stage is simple: every order that comes through your own page instead of a delivery app keeps roughly a quarter to a third more of the ticket in your pocket.</p>
+        </div>
+      </article>
+
+      <article class="rung">
+        <div class="rung-marker">2</div>
+        <div class="rung-body">
+          <div class="rung-top">
+            <h3>Keep Them Coming Back</h3>
+            <div class="price">+$1,600–$2,800</div>
+          </div>
+          <p class="rung-lede">Everything above, plus the tools that turn a first visit into a regular. Worth doing once stage 1 is live and steady — not before.</p>
+          <ul>
+            <li>You update the menu, taps, hours, and specials yourself, from your phone, in under a minute</li>
+            <li>An events calendar for game days, live music, and specials</li>
+            <li>An email and text list you own, built from the counter and a table card, plus one send a month</li>
+            <li>A table QR code that walks happy people straight to a Google review</li>
+            <li>One page a month with the numbers that matter: calls, direction taps, orders, average ticket, list size</li>
+          </ul>
+          <p class="carry">No dashboards to log into. One page, once a month, with a sentence on what I'd change.</p>
+        </div>
+      </article>
+
+      <article class="rung">
+        <div class="rung-marker">↻</div>
+        <div class="rung-body">
+          <div class="rung-top">
+            <h3>The Care Plan</h3>
+            <div class="price">$85–$175 <span>/ month</span></div>
+          </div>
+          <p class="rung-lede">Optional with any stage above, and cancellable any month. A restaurant site that nobody maintains is wrong within a season — usually about the holidays, which is exactly when being wrong costs the most.</p>
+          <ul>
+            <li>Hosting, domain renewal, backups, and security updates</li>
+            <li>Holiday hours and menu changes handled — you text me, it's done</li>
+            <li>Listings checked monthly so the address never drifts again</li>
+            <li>Your monthly one-page numbers</li>
+          </ul>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Priced separately, if you want them</h2>
+      <p>Kept off the main number so the decision above stays a simple yes or no.</p>
+    </div>
+    <div class="addons">
+      <div class="addon">
+        <span class="addon-name">Food photography</span>
+        <span class="addon-why">A half-day shoot. Honestly the highest-impact money on this page — good photos of the quesabirria sell it, phone snapshots don't.</span>
+        <span class="addon-price">$450–$850</span>
+      </div>
+      <div class="addon">
+        <span class="addon-name">Spanish menu &amp; site</span>
+        <span class="addon-why">Full menu in Spanish, or the whole site bilingual. Cheap, and it matters to a good share of your room.</span>
+        <span class="addon-price">$350–$800</span>
+      </div>
+      <div class="addon">
+        <span class="addon-name">Table cards &amp; QR codes</span>
+        <span class="addon-why">Designed for reviews, the email list, and your ordering link. Printing billed at cost.</span>
+        <span class="addon-price">$150–$300</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>What I'm not selling you</h2>
+      <p>Things that get pitched to restaurants constantly and would be wrong for yours right now.</p>
+    </div>
+    <dl class="excluded">
+      <div>
+        <dt>An AI phone answerer</dt>
+        <dd>Maybe someday. First we'd need to know how many calls you're actually missing, and a correct Google listing kills most of them for free.</dd>
+      </div>
+      <div>
+        <dt>A reservation system</dt>
+        <dd>You're a walk-in beer garden with picnic tables. A big-party inquiry form covers what you need.</dd>
+      </div>
+      <div>
+        <dt>A loyalty app</dt>
+        <dd>Nobody downloads a taqueria app. An email and text list does the same job for a fraction of the cost.</dd>
+      </div>
+      <div>
+        <dt>A blog or SEO package</dt>
+        <dd>You're running three trucks and a kitchen. You are never going to write blog posts, and you shouldn't have to.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>How I work</h2>
+    </div>
+    <ul class="terms">
+      <li><strong>You own everything.</strong> The domain, the Google listing, the Square account, the hosting — all in your name, from day one. If you ever want to work with somebody else, you walk with all of it.</li>
+      <li><strong>No long contract.</strong> Project work is half up front, half at launch. The care plan is month to month.</li>
+      <li><strong>The range becomes a number at the Check-Up</strong>, and then it doesn't move. You'll never get an invoice you weren't expecting.</li>
+      <li><strong>I don't take a cut of your sales.</strong> Ever, on anything.</li>
+    </ul>
+  </section>
+
+  <section class="close">
+    <h2>The next step is ninety minutes and costs nothing</h2>
+    <p>Pick a slow afternoon. I'll come to you, go through what you've already got, and leave you a one-page summary — including the things you can fix yourself for free, whether or not you hire me.</p>
+    <p class="signoff">Prices held 30 days. Timeline for stage 1 is typically 2–3 weeks once I have your menu and photos.</p>
+  </section>
+
+</div>

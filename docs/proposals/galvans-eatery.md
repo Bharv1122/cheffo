@@ -16,9 +16,21 @@ Family-run (brothers Ivan and Omar Galvan), three food trucks plus a new brick-a
 Lead with that last point. The pitch is not "you need a website" — it is "your brick-and-mortar is new
 and half the internet still points at the old place." That is a problem an owner can feel.
 
+## Working assumptions (unconfirmed — the check-up settles them)
+
+- **They're on Square.** A guess, but a good one: they came out of food trucks, where Square is close
+  to universal. If it holds, the ordering stage is configuration rather than construction. If they're
+  on Toast or Clover the shape changes slightly; if there is genuinely nothing, the price roughly
+  triples. Do not quote the ordering stage before confirming this.
+- Some DoorDash/Uber Eats presence at standard 25–30% commission.
+- Google Business Profile unclaimed or unmanaged.
+
+Square's own plan costs are separate and go to Square. Don't quote them from memory in anything
+client-facing — confirm the current rates with the owners during the check-up.
+
 ## Structure to pitch
 
-### Step 0 — Digital Check-Up (free, or credited toward the project)
+### Step 0 — Digital Check-Up — no charge
 
 60–90 minutes on site. Establish: who owns the domain (if any), whether the Google Business Profile is
 claimed, what POS they run, whether online ordering already exists, who runs Instagram, and whether a
@@ -26,7 +38,7 @@ half-built Square or Wix site is sitting somewhere. Output is a one-page finding
 
 This de-risks scope, and it usually sells the job on its own.
 
-### Tier 1 — Get Found & Get Visited
+### Tier 1 — Get Found & Get Visited — $2,800–$4,000
 
 Mobile-first site: menu, hours, location, photos, large-party and catering inquiry, links to social,
 maps, and review profiles. Plus, and this is the part that carries the tier:
@@ -41,7 +53,7 @@ maps, and review profiles. Plus, and this is the part that carries the tier:
 Route the inquiry form to **text**, not email. Family restaurants do not check inboxes, and a catering
 lead that dies in a Gmail folder is worse than no form at all.
 
-### Add-on — Online Ordering (quoted after discovery, not before)
+### Add-on — Online Ordering — $450–$900 on Square, $1,200–$2,400 from scratch
 
 Split into two honest paths:
 
@@ -55,7 +67,7 @@ moving even a third of it to a first-party page is real monthly money. Put their
 
 Do not oversell it. A beer garden's money is on-premise; ordering is convenience for the pickup crowd.
 
-### Tier 2 — Keep Them Coming Back
+### Tier 2 — Keep Them Coming Back — +$1,600–$2,800
 
 - Owner-editable menu, hours, and events. Taps and specials change constantly; if they can't update it
   themselves the site is stale in 90 days and we own the blame.
@@ -67,14 +79,28 @@ Do not oversell it. A beer garden's money is on-premise; ordering is convenience
   average ticket, list size — with one sentence on what to change next month.
 - Static FAQ page. No chatbot.
 
-### Care Plan — flat monthly, offered with every tier
+### Care Plan — $85–$175/month, offered with every tier
 
 Hosting, domain renewal, updates, holiday hours, listing monitoring, the monthly one-pager. Small money,
 but it is what keeps the site true and keeps the relationship alive.
 
 ### Add-ons
 
-Food photography. Spanish menu or bilingual site. Printed table QR cards. Gift cards.
+- Food photography, half-day — **$450–$850**. Highest-impact money on the whole list.
+- Spanish menu, or fully bilingual site — **$350–$800**.
+- Table cards and QR codes — **$150–$300**, printing at cost.
+
+Keep these off the main number so the core decision stays a simple yes or no.
+
+## On the pricing
+
+Ranges, not fixed numbers, because scope genuinely isn't settled until the check-up. Say that out
+loud — it converts a vague range into an honest one: *"the range becomes a number at the check-up,
+and then it doesn't move."*
+
+The bands assume a solo operator in Sonoma County pitching a business that is paying commercial rent
+for the first time. If they flinch, phase the work rather than discounting it — a discount teaches
+them the first number was fake.
 
 ## Deliberately excluded
 
