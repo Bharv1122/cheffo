@@ -30,7 +30,9 @@ Verified facts:
 - **No dedicated website.** They exist through social and directory listings only.
 - **Their listings have not caught up with the move.** The Facebook page is still labeled Rohnert
   Park, and menu aggregators still file them under Rohnert Park 94928, while the beer garden is in
-  Cotati 94931.
+  Cotati 94931. Note carefully: **Cotati and Rohnert Park are adjacent**, roughly two miles apart in
+  the same stretch of southern Sonoma County, and locals treat them as one area. The problem is NOT
+  that customers drive to the wrong town. See principle 11.
 
 Working assumptions, not yet confirmed — flag clearly anywhere your advice would change if these
 turn out to be wrong:
@@ -81,6 +83,13 @@ half at launch. No long contract. No percentage of sales, ever.
    who vanished with the domain.
 10. **If they flinch at the price, phase it — don't discount it.** Discounting teaches them the first
     number was fake.
+11. **Never frame the listings problem as customers going to the wrong town.** Cotati and Rohnert Park
+    border each other; nobody is getting lost over two miles, and the owners will spot the exaggeration
+    immediately. The real costs are: (a) inconsistent name/address/phone across the web drags down local
+    search ranking on "tacos near me," (b) duplicate and truck-era records split their reviews across
+    profiles instead of stacking them on one, and (c) three roaming trucks plus one permanent address
+    with nothing online sorting out which is which. The usable line is **"there is more than one
+    Galvan's out there and Google can't tell which is which."**
 
 ## DELIBERATELY EXCLUDED — DON'T REINTRODUCE THESE
 

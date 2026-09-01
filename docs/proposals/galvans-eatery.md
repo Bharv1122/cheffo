@@ -13,8 +13,24 @@ Family-run (brothers Ivan and Omar Galvan), three food trucks plus a new brick-a
 - **Their listings have not caught up with the move.** The Facebook page is still labeled Rohnert Park,
   and menu aggregators still file them under Rohnert Park 94928, while the beer garden is Cotati 94931.
 
-Lead with that last point. The pitch is not "you need a website" — it is "your brick-and-mortar is new
-and half the internet still points at the old place." That is a problem an owner can feel.
+Lead with that last point — but frame it correctly. **Cotati and Rohnert Park are adjacent**, a couple of
+miles apart in the same stretch of southern Sonoma County; locals treat them as one area. Any pitch built
+on "your customers are driving to the wrong town" is wrong, and the owners will know it is wrong in the
+first sentence. That is a credibility loss you cannot recover in the same meeting.
+
+The honest version of the problem is quieter and better:
+
+- **Search ranking.** Google weighs how consistently the same name, address, and phone appear across the
+  web. Theirs disagree, so they rank lower than they have earned on "tacos near me" — the search that
+  actually matters, run by someone already a few blocks away.
+- **Split reviews.** Truck-era and duplicate records mean review counts can accumulate on more than one
+  profile instead of stacking on the one people see.
+- **Split identity.** Three roaming trucks plus one permanent address, and nothing online sorts out which
+  is which or where the trucks are this weekend.
+
+So the line is not "half the internet points at the old place." It is **"there is more than one Galvan's
+out there and Google can't tell which is which."** Same finding, accurate mechanism, and it explains a
+symptom they have probably already noticed.
 
 ## Working assumptions (unconfirmed — the check-up settles them)
 
