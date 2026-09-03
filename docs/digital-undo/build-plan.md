@@ -12,7 +12,7 @@
 
 Two audiences share one document.
 
-- **If you are the founder:** read sections 1, 3 (first half), 5, 9, 11, 12, 16 and 17. That is the product, the honest limits, the first test, and the decision.
+- **If you are the founder:** read sections 1 (especially **1.6, Prevention**), 3 (first half), 5, 9, 11, 12, 16 and 17. That is the product, the honest limits, the first test, and the decision.
 - **If you are the developer:** read everything, and treat sections 2, 4, 6, 7, 8, 10 and 15 as the spec you would estimate from.
 
 Every factual claim about a provider is tagged:
@@ -37,7 +37,9 @@ Digital Undo is a **local-first browser extension** that helps a person delete t
 
 It is a *cleanup assistant with an audit trail*. It is not a data broker, not a background agent, and not a service that holds your chats.
 
-### 1.2 The three things it actually does
+### 1.2 The three things the cleanup flow does
+
+These three are the *cleanup* half of the product. The other half — **prevention** — is §1.6, and it is the half that actually works.
 
 1. **Scan** — with the user signed in to a provider in their own browser, enumerate what exists (chats, projects, tasks) and build a local inventory.
 2. **Preview** — show a plain list of exactly what would be deleted, plus a *deletion map* of related artifacts the user may also want to handle (repos, deployments, files), each labelled by confidence.
@@ -66,9 +68,77 @@ This text, or something very close to it, appears in the product before the firs
 
 If a growth or marketing decision ever requires softening that paragraph, the correct answer is to lose the growth. The entire value of a receipt is that it does not lie.
 
-### 1.6 Success definition for v1
+### 1.6 Prevention — the half of the product that actually works
 
-A user can, in under ten minutes, delete a chosen set of ChatGPT and Codex chats, see a truthful receipt, and understand precisely what remains unknown — with no chat content ever leaving their machine.
+Deletion is damage limitation. **Prevention is the only control that genuinely works**, and it is cheap, safe, and instant. It deserves equal billing with cleanup, not a footnote.
+
+#### Why it matters more than it looks
+
+Section 9 sets out what deletion cannot reach: provider backups, legal holds, and anything a model already learned. None of those has a delete button, and none ever will:
+
+- **Backups** — no user-facing control exists. Deleted data ages out as backups rotate, on the provider's schedule, with no confirmation to the user. The only lever that reaches them at all is a formal erasure request (below), and even then the mechanism is "flag it so it is not restored, and let it cycle out."
+- **Legal holds** — a preservation order lawfully overrides both the provider's own policy and the user's statutory erasure rights. The NYT-litigation order is the worked example **[VERIFIED, and since terminated]**. Nothing a user or a tool does can touch this, and the user will usually never know a hold applies.
+- **Trained-model influence** — not stored as a retrievable record. "Machine unlearning" is a research area, not a deployed capability. **[ASSUMPTION — treat as permanent for all product purposes.]**
+
+There is also a documented trapdoor: OpenAI's 30-day deletion path does **not** apply to content already **de-identified and disassociated from the account** **[VERIFIED]**. Once material has been stripped of identifiers and folded into a training set, it is outside the deletion path entirely. The training toggle is therefore not a preference — it decides whether a chat is deletable at all.
+
+**The product implication:** a chat never sent, or sent with training off, is the only chat that is genuinely and permanently under the user's control. A user who cleans up 500 old chats but leaves their training toggle on has fixed the past and left the future open.
+
+#### 1.6.1 The Exposure Checkup (read-only)
+
+A scan of the user's *settings*, not their content. Read-only, no confirmation needed, safe to run on day one, and the natural first screen of the app.
+
+For each connected provider it reports, in plain English: what is on, what that means, and the one-click fix — always deep-linking to the **provider's own settings page**. Digital Undo does not flip provider settings on the user's behalf in v1 (see 1.6.4).
+
+Settings to surface, per provider:
+
+| Provider | Setting | Where | Status |
+|---|---|---|---|
+| ChatGPT | **"Improve the model for everyone"** — off means new conversations still appear in history but are not used to train | Settings → Data Controls | **[VERIFIED]** |
+| ChatGPT | **Temporary Chat** — does not appear in history, does not use memory, is not used for training | Chat-level control | **[VERIFIED]** |
+| ChatGPT | **Memory** — enable/disable; delete individual memories or clear all; memories can themselves be used to improve models | Settings → Personalization → Memory | **[VERIFIED]** |
+| ChatGPT | **Data export** — the raw material for strong verification (§9) | Settings → Data Controls | **[VERIFIED]** |
+| ChatGPT | Connected apps / connectors and their permissions | Settings | **[ASSUMPTION — confirm surface]** |
+| Codex | Connected app data referenced in a conversation — *archiving keeps it, deleting removes it* | Per conversation | **[VERIFIED]** |
+| Claude *(Phase 2)* | Training preference — declining keeps the 30-day retention window; opting in extends retention to five years | Privacy Settings | **[VERIFIED]** |
+| Grok *(Phase 2)* | **Private Chat** — not viewable in history, deleted within 30 days | Chat-level control | **[VERIFIED]** |
+
+**Two rules for this screen.** It never nags — a user who has deliberately left training on is making a legitimate choice, and the checkup states the trade-off once without moralising. And it never scores the user. No privacy grade, no percentage, no red dial. Those invite exactly the overclaiming this product exists to avoid.
+
+#### 1.6.2 Timing: the checkup comes *before* the cleanup
+
+Deliberate ordering, and slightly against commercial instinct, since cleanup is the flashier demo:
+
+1. **Checkup** — fix the future. Free, instant, zero risk, zero permissions beyond reading settings pages.
+2. **Cleanup** — deal with the past. Slower, riskier, irreversible, needs confirmation.
+
+A user who does step 1 and never does step 2 has still got real value, and has not been exposed to a single destructive action. That is a good outcome, and the product should say so rather than pushing them toward deletion.
+
+#### 1.6.3 The erasure request (the only lever that reaches backups)
+
+Where deletion stops, a **statutory erasure request** — GDPR Article 17 in the UK/EU, the CCPA/CPRA equivalent in California — carries weight that clicking a delete button does not: it is a legal obligation on the provider rather than a product feature. It is the only route that reaches backups, and the standard practice it triggers is that the data is flagged against restoration and allowed to expire as backups rotate.
+
+What Digital Undo can honestly do here:
+
+- **Generate a pre-filled request** from the receipt — the provider, the dates, the item references — for the user to send **themselves**, from their own email, to the provider's published privacy contact (OpenAI publishes `privacy.openai.com` and a DSAR address **[VERIFIED]**).
+- **Record the request** in the receipt as a distinct evidence type: *request sent*, with its date. Never as *fulfilled*.
+- **Never send it on the user's behalf**, never act as their representative, and never imply the request guarantees an outcome — the same erasure laws carry explicit exemptions for legal claims and legal obligations, which is precisely why legal holds win.
+
+**This is a legal-text feature, and the template must be reviewed by a lawyer before it ships to anyone.** A defective erasure template sent by thousands of users is its own liability. Roadmap position: Phase 6 (§13) — but this section is the argument for pulling it earlier, because it is what makes the "with proof" promise reach past the browser.
+
+#### 1.6.4 Scope limits for v1
+
+- **Read and explain settings. Do not change them.** Toggling another company's privacy settings on a user's behalf is a destructive action wearing a helpful hat: it needs its own confirmation design, its own threat model, and a much better answer to "what if we misread the page." Deep-link and let the user click.
+- **No background monitoring** of settings in v1. A "your training toggle changed" alert needs persistent access we have not justified.
+- **No scoring, no nagging, no dark patterns** in either direction — neither toward deletion nor toward staying subscribed to anything.
+
+#### 1.6.5 What this adds to the build
+
+Small. The checkup reuses the connector interface (§4) with a read-only `read_settings` capability, needs no new permissions beyond origins already granted, and involves no destructive action — so it carries almost none of the risk that makes the cleanup flow expensive. It is the cheapest real value in the whole plan, and the safest thing to demo.
+
+### 1.7 Success definition for v1
+
+A user can, in under ten minutes: see plainly what their AI accounts are currently set to do with their data, fix it at the source, delete a chosen set of ChatGPT and Codex chats, see a truthful receipt, and understand precisely what remains unknown — with no chat content ever leaving their machine.
 
 ---
 
@@ -600,12 +670,12 @@ Go if **all** of these hold after Week 1:
 | Phase | Scope | Why this order | Main new risk |
 |---|---|---|---|
 | **0 — Feasibility** (1 week) | §11 | Cheapest possible truth | — |
-| **1 — MVP** (4–6 weeks) | ChatGPT + Codex; scan, preview, confirm, delete, verify, receipt; zero egress | Proves the promise end-to-end on one provider family | Provider UI change breaking the connector |
+| **1 — MVP** (4–6 weeks) | Exposure Checkup (§1.6); then ChatGPT + Codex scan, preview, confirm, delete, verify, receipt; zero egress | Proves the promise end-to-end on one provider family | Provider UI change breaking the connector |
 | **2 — Claude + Grok** (3–4 weeks) | Two more isolated connectors, same interface, same honesty | Both publish comparable 30-day deletion policies **[VERIFIED]**, so the receipt model transfers cleanly | Connector sprawl; each new provider is permanent maintenance |
 | **3 — GitHub tracing (read-only)** (3 weeks) | A GitHub connector that *reads* to build the deletion map: repos, commits, branches, PRs touched by AI tasks. **No deletion.** Prefer a GitHub App with fine-grained permissions over an OAuth app's broad `repo` scope **[VERIFIED as GitHub's own recommendation]** | Tracing is the differentiator; deleting repos is the liability | Scope creep toward destructive GitHub actions |
 | **4 — Deployments (read-only)** (3 weeks) | Recognise deployment URLs and, where the user connects a host, list matching deployments. Still no deletion — deep-link to the provider's own delete control | Same reasoning as Phase 3 | Every host is a separate integration |
 | **5 — Local-file tracing** (4+ weeks) | Optional native-messaging helper or a separate desktop app that indexes user-nominated folders for artifacts, entirely locally | Highest privacy sensitivity, highest platform friction; must be last | Native host = new attack surface, code signing, per-OS work |
-| **6 — Assisted DSAR** (TBD) | Generate a pre-filled data-subject request for the user to send themselves, using the receipt as an attachment | Reaches the parts automation cannot | Legal representation risk — must remain "we help you write it" |
+| **6 — Assisted DSAR** (TBD) | Generate a pre-filled erasure request for the user to send themselves, using the receipt as an attachment (§1.6.3). **Candidate for pulling earlier** — it is the only lever that reaches backups | Reaches the parts automation cannot | Legal representation risk — must remain "we help you write it"; template needs legal review before it ships |
 
 **Destructive actions outside chat deletion stay off the table until at least Phase 5**, and each one needs its own confirmation design, its own threat model, and its own dry-run mode.
 
@@ -723,28 +793,30 @@ digital-undo/
 12. Invariant tests I1–I5 and marker-string tests
 13. Local run log with append-only semantics
 14. Purge-all-local-data control
+15. **Exposure Checkup** (§1.6.1): read-only settings scan for ChatGPT and Codex, plain-English explanation, deep-link to the provider's own control
+16. **Checkup-before-cleanup ordering** (§1.6.2) — the first screen after connecting a provider
 
 ### Should have (v1.1)
 
-15. Deletion map, read-only, for artifacts visible inside chats (§6)
-16. Search/date-range selection and saved filters
-17. Connector health self-test ("is our model of the page still right?")
-18. Receipt chain hashing
-19. Passphrase encryption for the receipt store
-20. Provider retention disclaimers auto-refreshed from a *locally bundled*, versioned facts file
-21. Guided manual mode: when a connector breaks, walk the user through the provider's own UI and still produce a receipt
-22. Archive-vs-delete education (important for Codex connected-app data **[VERIFIED]**)
+17. Deletion map, read-only, for artifacts visible inside chats (§6)
+18. Search/date-range selection and saved filters
+19. Connector health self-test ("is our model of the page still right?")
+20. Receipt chain hashing
+21. Passphrase encryption for the receipt store
+22. Provider retention disclaimers auto-refreshed from a *locally bundled*, versioned facts file
+23. Guided manual mode: when a connector breaks, walk the user through the provider's own UI and still produce a receipt
+24. Archive-vs-delete education (important for Codex connected-app data **[VERIFIED]**)
 
 ### Later
 
-23. Claude and Grok connectors
-24. GitHub read-only tracing with a fine-grained GitHub App
-25. Deployment tracing
-26. Local-file tracing via a native helper
-27. Assisted DSAR generation
-28. Third-party-verifiable receipt timestamping
-29. Firefox / Safari ports
-30. Team or enterprise mode (a genuinely different product; do not let it leak into v1)
+25. Claude and Grok connectors
+26. GitHub read-only tracing with a fine-grained GitHub App
+27. Deployment tracing
+28. Local-file tracing via a native helper
+29. Assisted DSAR generation
+30. Third-party-verifiable receipt timestamping
+31. Firefox / Safari ports
+32. Team or enterprise mode (a genuinely different product; do not let it leak into v1)
 
 ---
 
@@ -771,6 +843,11 @@ Provider and platform facts referenced above:
 - OpenAI Help Center — *Chat and File Retention Policies in ChatGPT*: https://help.openai.com/en/articles/8983778-chat-and-file-retention-policies-in-chatgpt
 - OpenAI Help Center — *How to archive and delete Codex chats in the ChatGPT app*: https://help.openai.com/en/articles/20001333-how-to-archive-and-delete-codex-chats-in-the-chatgpt-app
 - OpenAI Help Center — *Data Controls FAQ*: https://help.openai.com/en/articles/7730893-data-controls-faq
+- OpenAI Help Center — *What are the Data Controls settings?*: https://help.openai.com/en/articles/8983077-what-are-the-data-controls-settings
+- OpenAI Help Center — *Temporary Chat FAQ*: https://help.openai.com/en/articles/8914046-temporary-chat-faq
+- OpenAI Help Center — *Memory FAQ*: https://help.openai.com/en/articles/8590148-memory-faq
+- OpenAI — *How your data is used to improve model performance*: https://openai.com/policies/how-your-data-is-used-to-improve-model-performance/
+- OpenAI Help Center — *Exporting your ChatGPT history and data*: https://help.openai.com/en/articles/7260999-how-do-i-export-my-chatgpt-history-and-data
 - OpenAI — *Privacy policy* and privacy request portal: https://openai.com/policies/privacy-policy/ , https://privacy.openai.com/
 - Reporting on the NYT-litigation preservation order and its termination (multiple secondary sources; verify current status before relying on it)
 - Chrome for Developers — *Limited Use*: https://developer.chrome.com/docs/webstore/program-policies/limited-use
