@@ -4,6 +4,7 @@ import { BottomNav } from './components/layout/BottomNav';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import { recordReturnVisit } from './lib/funnelAnalytics';
+import Pricing from './pages/Pricing';
 
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Signup = lazy(() => import('./pages/Auth/Signup'));
@@ -24,7 +25,6 @@ const CookingMode = lazy(() => import('./pages/CookingMode'));
 const VetExport = lazy(() => import('./pages/VetExport'));
 const VetApprove = lazy(() => import('./pages/VetApprove'));
 const Settings = lazy(() => import('./pages/Settings'));
-const Pricing = lazy(() => import('./pages/Pricing'));
 const Help = lazy(() => import('./pages/Help'));
 const Privacy = lazy(() => import('./pages/Legal/Privacy'));
 const Terms = lazy(() => import('./pages/Legal/Terms'));
