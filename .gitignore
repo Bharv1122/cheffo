@@ -25,5 +25,8 @@ dist-ssr
 
 .vercel
 
-# Claude Code local config (launch profiles, settings, hooks)
-.claude/
+# Claude Code local config (launch profiles, settings, hooks).
+# settings.json is checked in on purpose: containers are cloned fresh, so a
+# hook only runs if it is tracked. Personal overrides go in settings.local.json.
+.claude/*
+!.claude/settings.json
