@@ -197,7 +197,9 @@ export default function PricingPage() {
         </section>
 
         <p className="mt-6 text-center text-xs text-[#9c9288]">
-          Signed in as {user?.email ?? 'guest'}. Subscriptions renew automatically; cancel anytime from Settings.
+          {user?.email
+            ? <>Signed in as {user.email}. Subscriptions renew automatically; cancel anytime from Settings.</>
+            : <>Browsing as a guest. Sign up before checkout; no charge is made until you confirm on the secure checkout page.</>}
         </p>
       </div>
     </div>

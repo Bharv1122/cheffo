@@ -35,8 +35,8 @@ const VALUE_PROPS = [
   },
   {
     icon: <Stethoscope size={20} />,
-    title: 'Approved by your vet, not some celebrity DVM',
-    body: 'Request your own veterinarian\'s sign-off on any recipe with one click. They fill out a one-page form in ~60 seconds. Recipe gets a real "Approved by Dr. X DVM" badge.',
+    title: 'Built for your own vet to review',
+    body: 'Request your veterinarian\'s review from the recipe page. If they approve it, the recipe records their signed approval instead of making a blanket veterinary claim.',
     color: 'bg-[#efe9ff] text-[#7f56d9]',
   },
 ];
@@ -126,7 +126,7 @@ function DemoVideo() {
         controls
         playsInline
         preload="auto"
-        poster="/demo-poster-v2.png"
+        poster="/cheffo-doggo-logo.png"
         className="block aspect-[16/10] w-full bg-[#21150e] object-contain"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -227,7 +227,7 @@ export default function LandingPage() {
               See pricing
             </Link>
           </div>
-          <p className="mt-4 text-xs text-[#9c9288]">No payment required for your dog&rsquo;s first treat · $8/month or $59/year after</p>
+          <p className="mt-4 text-xs text-[#9c9288]">One free treat recipe · Premium is $8/month or $59/year</p>
         </div>
       </section>
 

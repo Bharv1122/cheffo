@@ -36,6 +36,7 @@ import {
 import { computeSuggestedDoses } from '../../utils/supplementDosing';
 import { buildInstacartSearchUrl } from '../../utils/affiliate';
 import { isSupabaseConfigured } from '../../lib/supabase';
+import { replaceIngredientReference } from '../../utils/recipeMutation';
 import { generateRecipe } from '../../utils/recipeGenerator';
 import type { Recipe, RecipeIngredient, ShoppingListItem } from '../../types/recipe';
 
@@ -146,12 +147,6 @@ function ingredientCategoryToShoppingCategory(category: RecipeIngredient['catego
   if (category === 'supplement') return 'supplement';
   if (category === 'carb') return 'pantry';
   return 'produce';
-}
-
-function replaceIngredientReference(value: string | undefined, previousName: string, nextName: string): string | undefined {
-  if (!value) return value;
-  const escaped = previousName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return value.replace(new RegExp(escaped, 'gi'), nextName);
 }
 
 function rebuildIngredientDisplay(ingredient: RecipeIngredient): RecipeIngredient {
