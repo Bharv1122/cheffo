@@ -1,0 +1,42 @@
+plugins { id 'com.android.application' }
+
+def releaseId = providers.gradleProperty('CHEFFO_APPLICATION_ID').orNull
+def website = providers.gradleProperty('CHEFFO_ORIGIN').getOrElse('https://cheffodoggo.com')
+def originUri = new URI(website)
+if (originUri.scheme != 'https' || !originUri.host || originUri.userInfo || originUri.query || originUri.fragment || !(originUri.path in ['', '/'])) {
+    throw new GradleException('CHEFFO_ORIGIN must be a bare HTTPS website origin.')
+}
+if (releaseId && !(releaseId ==~ /[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+/)) {
+    throw new GradleException('CHEFFO_APPLICATION_ID must be the verified Play Console package ID.')
+}
+def origin = "https://${originUri.authority}"
+gradle.taskGraph.whenReady { graph ->
+    def releaseRequested = graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }
+    if (releaseRequested && (!releaseId || providers.gradleProperty('CHEFFO_RELEASE_READY').orNull != 'true')) {
+        throw new GradleException('Release blocked. Confirm Play package identity, deployment, signing/Digital Asset Links and device QA first; supply CHEFFO_APPLICATION_ID and CHEFFO_RELEASE_READY only after review.')
+    }
+}
+
+android {
+    namespace 'com.cheffodoggo.wrapper'
+    compileSdk 36
+    defaultConfig {
+        // Debug-only fallback is explicitly NOT the production identity.
+        applicationId releaseId ?: 'com.cheffodoggo.unregistered'
+        minSdk 26
+        targetSdk 36
+        versionCode (providers.gradleProperty('CHEFFO_VERSION_CODE').getOrElse('1') as int)
+        versionName '0.1.0'
+        manifestPlaceholders = [cheffoHost: originUri.host]
+        buildConfigField 'String', 'WEB_ORIGIN', '"' + origin + '"'
+        resValue 'string', 'launch_url', origin + '/?distribution=google-play'
+        resValue 'string', 'asset_statements', '[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"' + origin + '\"}}]'
+    }
+    buildFeatures { buildConfig true }
+    buildTypes {
+        debug { applicationIdSuffix '.qa'; versionNameSuffix '-qa'; resValue 'string', 'app_name', 'Cheffo Doggo QA' }
+        release { resValue 'string', 'app_name', 'Cheffo Doggo'; minifyEnabled false }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.3' }

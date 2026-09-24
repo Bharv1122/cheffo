@@ -38,9 +38,8 @@ function jsonError(status: number, message: string): Response {
 // Resolve the calling user from the Supabase access token. Returns the user id
 // on success, or a Response to return as-is on failure.
 //
-// TODO(paywall): once Stripe subscriptions exist, also require an active paid
-// subscription here (look up the user's subscription row) so the LLM becomes
-// premium-only. Today there is no subscription data, so we gate on "signed in".
+// Entitlement and quota checks run after authentication and must succeed
+// before any request can spend the upstream provider budget.
 async function authorizeUser(req: Request): Promise<{ userId: string } | { error: Response }> {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.toLowerCase().startsWith('bearer ') ? authHeader.slice(7) : null;
@@ -72,12 +71,10 @@ export default async function handler(req: Request): Promise<Response> {
   // 2. Premium gate (CHE-36). Chat completions power the premium "Ask Cheffo
   // Doggo" assistant + AI personalization, so they require an active/trialing
   // subscription — matching useSubscription's PREMIUM_STATUSES on the client.
-  // Image generation (`?type=image`) stays open to any signed-in user: the
-  // FREE "1 treat recipe" taste renders its photo through this same proxy, and
-  // free recipe TEXT is template-generated (never hits /api/llm). Without this,
-  // a free user could bypass the client paywall and call chat directly.
+  // Generated images are Premium too. The free treat uses the existing static
+  // image fallback, so direct image requests cannot bypass paid access checks.
   const isImageRequest = new URL(req.url).searchParams.get('type') === 'image';
-  if (!isImageRequest) {
+  {
     try {
       const { data: sub, error: subError } = await getSupabaseAdmin()
         .from('subscriptions')
@@ -85,9 +82,9 @@ export default async function handler(req: Request): Promise<Response> {
         .eq('user_id', auth.userId)
         .maybeSingle();
       if (subError) {
-        // Consistent with the rate limiter below: a broken lookup shouldn't
-        // lock a paying user out of the assistant. Log and allow.
-        console.error('[llm] premium check failed, allowing:', subError.message);
+        // An unavailable entitlement is not a verified entitlement.
+        console.error('[llm] premium check failed:', subError.message);
+        return jsonError(503, 'Could not verify your account access. Please try again shortly.');
       } else {
         // `past_due` is included on purpose: it's the dunning grace window for
         // a paying customer whose card just failed. This MUST match
@@ -105,14 +102,19 @@ export default async function handler(req: Request): Promise<Response> {
         if (!isPremium) {
           return jsonError(
             403,
-            'Ask Cheffo Doggo is a Premium feature — upgrade to chat with the AI assistant.'
+            'AI chat and generated recipe images require Premium access.'
           );
         }
       }
     } catch (premiumError) {
-      console.error('[llm] premium check threw, allowing:', premiumError);
+      console.error('[llm] premium check threw:', premiumError);
+      return jsonError(503, 'Could not verify your account access. Please try again shortly.');
     }
   }
+
+  // Invalid requests must not consume the user's daily AI allowance.
+  const body = await req.text();
+  if (body.length > MAX_BODY_CHARS) return jsonError(413, 'Request body too large');
 
   // 3. Per-user daily rate limit (atomic check-and-increment in Postgres).
   const dailyLimit = Number(process.env.LLM_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
@@ -123,22 +125,21 @@ export default async function handler(req: Request): Promise<Response> {
     });
     const row = Array.isArray(data) ? data[0] : data;
     if (error) {
-      // If the limiter itself errors, log and allow — a broken limiter
-      // shouldn't take down the assistant for legitimate users.
-      console.error('[llm] rate-limit check failed, allowing request:', error.message);
-    } else if (row && row.allowed === false) {
+      console.error('[llm] rate-limit check failed:', error.message);
+      return jsonError(503, 'AI usage limits are temporarily unavailable. Please try again shortly.');
+    } else if (!row || typeof row.allowed !== 'boolean') {
+      return jsonError(503, 'AI usage limits are temporarily unavailable. Please try again shortly.');
+    } else if (row.allowed === false) {
       return jsonError(429, `Daily AI limit reached (${dailyLimit} requests). Try again tomorrow.`);
     }
   } catch (rateError) {
-    console.error('[llm] rate-limit check threw, allowing request:', rateError);
+    console.error('[llm] rate-limit check threw:', rateError);
+    return jsonError(503, 'AI usage limits are temporarily unavailable. Please try again shortly.');
   }
 
   // 4. Forward to the upstream provider. An `?type=image` request goes to the
   // OpenAI-compatible /images/generations endpoint; everything else is a chat
   // completion. Same host, same key — only the path differs.
-  const body = await req.text();
-  if (body.length > MAX_BODY_CHARS) return jsonError(413, 'Request body too large');
-
   const upstreamPath = isImageRequest ? '/images/generations' : '/chat/completions';
 
   let upstream: Response;

@@ -1,6 +1,8 @@
 import React from 'react';
 import { LegalLayout, Section } from './sharedLayout';
 
+import { isGooglePlayApp } from '../../utils/distribution';
+
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
 export default function PrivacyPolicyPage() {
@@ -99,7 +101,7 @@ export default function PrivacyPolicyPage() {
           <li><strong>Export your data.</strong> Settings → Download my data exports a JSON file with everything we hold.</li>
           <li><strong>Delete your account.</strong> Settings → Delete my account permanently removes your data.</li>
           <li><strong>Correct your data.</strong> Edit dog profiles, recipes, and preferences directly in the app.</li>
-          <li><strong>Cancel your subscription.</strong> Settings → Manage subscription opens Stripe's portal.</li>
+          <li><strong>Cancel your subscription.</strong> {isGooglePlayApp() ? 'Contact support to cancel an existing subscription.' : "Settings → Manage subscription opens Stripe's portal."}</li>
           <li>
             <strong>Contact us</strong> at <a className="text-[#f97316] underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> for
             any privacy question, or to exercise a right not directly self-service in the app.

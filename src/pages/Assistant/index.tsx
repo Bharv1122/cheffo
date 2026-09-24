@@ -1,3 +1,4 @@
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Send, BookmarkPlus, Check, Trash2, Sparkles } from 'lucide-react';
@@ -346,7 +347,7 @@ export default function AssistantPage() {
               Ask Cheffo Doggo is a Premium feature
             </p>
             <p className="mt-1">
-              Personalized canine-nutrition chat — portions, supplements, transitions, ingredient swaps — is part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.
+              {isGooglePlayApp() ? ANDROID_ACCESS_MESSAGE : 'Personalized canine-nutrition chat — portions, supplements, transitions, ingredient swaps — is part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.'}
             </p>
           </div>
         )}

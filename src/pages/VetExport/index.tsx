@@ -1,3 +1,4 @@
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Check, Copy, Mail, Printer, Sparkles, Star } from 'lucide-react';
@@ -109,11 +110,11 @@ export default function VetExportPage() {
               Generate a printable, vet-ready summary of any recipe — dog profile, ingredients, calorie + portion plan, supplement recommendations, and questions for your vet. Part of Cheffo Doggo Premium.
             </p>
             <p className="mt-3 text-xs text-[#8b8378]">
-              $8/mo or $59/yr · 14-day money-back guarantee · cancel anytime
+              {isGooglePlayApp() ? ANDROID_ACCESS_MESSAGE : '$8/mo or $59/yr · 14-day money-back guarantee · cancel anytime'}
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <Button variant="secondary" onClick={() => navigate(`/recipes/${id}`)}>Back to recipe</Button>
-              <Button icon={<Star size={16} />} onClick={() => navigate('/pricing')}>See plans</Button>
+              <Button icon={<Star size={16} />} onClick={() => navigate('/pricing')}>{isGooglePlayApp() ? 'View account access' : 'See plans'}</Button>
             </div>
           </section>
         </PageWrapper>

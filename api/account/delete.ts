@@ -70,18 +70,28 @@ export default async function handler(req: Request): Promise<Response> {
   // account must never keep getting billed. If cancellation fails we abort
   // WITHOUT touching the user's data, so they can resolve billing (or retry)
   // rather than ending up deleted-but-still-charged with the link gone.
-  const { data: sub } = await admin
-    .from('subscriptions')
-    .select('stripe_subscription_id, status')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  let sub: { stripe_subscription_id: string | null; status: string } | null;
+  try {
+    const result = await admin
+      .from('subscriptions')
+      .select('stripe_subscription_id, status')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (result.error) throw result.error;
+    sub = result.data;
+  } catch (error) {
+    console.error('[account/delete] could not verify subscription:', error);
+    return jsonResponse(503, {
+      error: 'We could not verify your subscription. Your account has not been deleted. Please try again later.',
+    });
+  }
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   if (sub?.stripe_subscription_id && BILLABLE_STRIPE_STATUSES.has(sub.status as string)) {
     if (!stripeSecretKey) {
       // Misconfigured env (no key) — don't silently leave them billed.
       console.error('[account/delete] live subscription but STRIPE_SECRET_KEY missing — cannot cancel', { userId: user.id });
       return jsonResponse(500, {
-        error: 'We could not cancel your subscription automatically. Please cancel it in Settings → Manage subscription first, then delete your account.',
+        error: 'We could not cancel your subscription automatically. Please contact support for help, then try deleting your account again.',
       });
     }
     try {
@@ -95,13 +105,13 @@ export default async function handler(req: Request): Promise<Response> {
         const errText = await cancelResp.text().catch(() => '');
         console.error('[account/delete] Stripe cancel failed:', cancelResp.status, errText);
         return jsonResponse(502, {
-          error: 'We could not cancel your subscription automatically. Please cancel it in Settings → Manage subscription (or contact support), then try deleting again.',
+          error: 'We could not cancel your subscription automatically. Please contact support for help, then try deleting again.',
         });
       }
     } catch (e) {
       console.error('[account/delete] Stripe cancel threw:', e);
       return jsonResponse(502, {
-        error: 'We could not reach Stripe to cancel your subscription. Please try again in a moment, or cancel in Settings → Manage subscription first.',
+        error: 'We could not reach Stripe to cancel your subscription. Please try again in a moment or contact support.',
       });
     }
   }
@@ -113,19 +123,18 @@ export default async function handler(req: Request): Promise<Response> {
     userClient.from('saved_recipes').delete().eq('user_id', user.id),
     userClient.from('dog_profiles').delete().eq('user_id', user.id),
     userClient.from('user_preferences').delete().eq('user_id', user.id),
+    // These tables have no user-side DELETE policy; check their results too.
+    admin.from('llm_usage').delete().eq('user_id', user.id),
+    admin.from('subscriptions').delete().eq('user_id', user.id),
   ]);
-  // llm_usage and subscriptions are service-role-managed (no user-side DELETE
-  // policy), so we wipe them via the admin client.
-  await admin.from('llm_usage').delete().eq('user_id', user.id);
-  await admin.from('subscriptions').delete().eq('user_id', user.id);
 
   const errors = deletions
     .map(r => r.error)
     .filter((e): e is Exclude<typeof e, null> => Boolean(e));
   if (errors.length > 0) {
+    console.error('[account/delete] data deletion failed:', errors.map(e => e.message));
     return jsonResponse(500, {
       error: 'Some of your data could not be deleted — please contact support.',
-      details: errors.map(e => e.message),
     });
   }
 

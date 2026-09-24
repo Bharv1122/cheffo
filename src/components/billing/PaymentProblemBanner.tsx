@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CreditCard, Loader2, X } from 'lucide-react';
 import { useSubscription } from '../../hooks/useSubscription';
+import { isGooglePlayApp } from '../../utils/distribution';
 import { openBillingPortal } from '../../utils/billingPortal';
 
 // Dismissals last for the browser session only. A failed card is not something
@@ -78,7 +79,7 @@ export function PaymentProblemBanner() {
             {billingProblem.title}
           </p>
           <p className={grace ? 'mt-1 text-sm text-[#7e6b54]' : 'mt-1 text-sm text-red-700'}>
-            {billingProblem.body}
+            {isGooglePlayApp() ? 'Your existing subscription needs attention. Purchases and payment changes are not available in this Android app.' : billingProblem.body}
           </p>
 
           {error && (
@@ -87,7 +88,7 @@ export function PaymentProblemBanner() {
             </p>
           )}
 
-          <button
+          {!isGooglePlayApp() && <button
             type="button"
             onClick={handleFixCard}
             disabled={opening}
@@ -108,7 +109,7 @@ export function PaymentProblemBanner() {
                 Update payment method
               </>
             )}
-          </button>
+          </button>}
         </div>
 
         <button

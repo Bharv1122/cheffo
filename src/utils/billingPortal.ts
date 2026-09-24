@@ -5,6 +5,7 @@
 // unpaid subscriber still has — so this works precisely when they need it.
 
 import { supabase } from '../lib/supabase';
+import { requireWebBilling } from './distribution';
 
 async function buildAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -21,6 +22,7 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
  * Throws with a user-showable message on failure; the caller renders it.
  */
 export async function openBillingPortal(): Promise<void> {
+  requireWebBilling();
   const response = await fetch('/api/stripe/portal', {
     method: 'POST',
     headers: await buildAuthHeaders(),

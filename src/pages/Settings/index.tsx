@@ -9,6 +9,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
 
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
+import { openBillingPortal } from '../../utils/billingPortal';
+
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
 async function buildAuthHeaders(): Promise<Record<string, string>> {
@@ -57,16 +60,7 @@ export default function SettingsPage() {
     setOpeningPortal(true);
     setPortalError(null);
     try {
-      const response = await fetch('/api/stripe/portal', {
-        method: 'POST',
-        headers: await buildAuthHeaders(),
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: 'Could not open billing portal.' }));
-        throw new Error(err.error ?? 'Could not open billing portal.');
-      }
-      const { url } = (await response.json()) as { url: string };
-      window.location.href = url;
+      await openBillingPortal();
     } catch (err) {
       setPortalError(err instanceof Error ? err.message : 'Could not open billing portal.');
       setOpeningPortal(false);
@@ -168,7 +162,12 @@ export default function SettingsPage() {
               {portalError}
             </p>
           )}
-          {billingProblem ? (
+          {isGooglePlayApp() ? (
+            <div className="mt-2 text-sm text-[#6f6459]">
+              <p>{ANDROID_ACCESS_MESSAGE}</p>
+              <a className="mt-3 inline-block text-[#a34c11] underline" href={`mailto:${SUPPORT_EMAIL}?subject=Cancel%20existing%20subscription`}>Contact support to cancel an existing subscription</a>
+            </div>
+          ) : billingProblem ? (
             /* Card trouble takes precedence over both the "you're premium" copy
                and the upsell. An unpaid customer needs to FIX the card they
                already have on file — sending them to a fresh checkout would

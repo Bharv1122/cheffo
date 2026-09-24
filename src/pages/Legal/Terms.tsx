@@ -1,6 +1,8 @@
 import React from 'react';
 import { LegalLayout, Section } from './sharedLayout';
 
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
+
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 const GOVERNING_LAW_STATE = 'the State of California';
 
@@ -47,6 +49,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="Subscription, billing, and auto-renewal">
+        {isGooglePlayApp() && <p className="mb-3">{ANDROID_ACCESS_MESSAGE}</p>}
         <ul className="list-disc pl-5 space-y-1">
           <li>
             <strong>Plans and pricing.</strong> Cheffo Doggo Premium is <strong>$8 USD per month</strong> or
@@ -59,7 +62,7 @@ export default function TermsPage() {
             subscribing you authorize this recurring charge until you cancel.
           </li>
           <li>
-            <strong>Cancellation.</strong> You can cancel at any time from Settings → Manage subscription. Access
+            <strong>Cancellation.</strong> {isGooglePlayApp() ? 'Contact support to cancel an existing subscription.' : 'You can cancel at any time from Settings → Manage subscription.'} Access
             continues through the end of the current billing period; no further charges occur.
           </li>
           <li>

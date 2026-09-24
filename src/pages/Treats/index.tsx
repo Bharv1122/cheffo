@@ -4,9 +4,13 @@ import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useRecipes } from '../../hooks/useRecipes';
+import { usePaywall } from '../../hooks/usePaywall';
+import { UpgradeModal } from '../../components/paywall/UpgradeModal';
 import { generateRecipe } from '../../utils/recipeGenerator';
 
-type TreatTab = 'training' | 'frozen' | 'birthday' | 'everyday';
+import { TREAT_CATALOG, FEATURED_TREAT, BIRTHDAY_TREAT, type TreatCategory } from '../../data/treatCatalog';
+
+type TreatTab = TreatCategory;
 
 const TABS: Array<{ key: TreatTab; label: string }> = [
   { key: 'training', label: 'Training Treats' },
@@ -15,21 +19,13 @@ const TABS: Array<{ key: TreatTab; label: string }> = [
   { key: 'everyday', label: 'Everyday Rewards' },
 ];
 
-const TREATS = [
-  { name: 'Blueberry Yogurt Bites', desc: 'Soft, tasty bites packed with antioxidants and probiotic goodness.', time: '20 min', level: 'Easy', tags: ['Dairy', 'Grain-Free'], category: 'frozen' as const, templateId: 'treat_yogurt_berry_lickmat' },
-  { name: 'Cheesy Pumpkin Bones', desc: 'Gentle on tummies and perfect for training sessions.', time: '30 min', level: 'Easy', tags: ['Dairy', 'Vegetarian'], category: 'training' as const, templateId: 'treat_pumpkin_oat_biscuits' },
-  { name: 'Berry Bliss Paws', desc: 'Cool, refreshing frozen treats for warm days.', time: '10 min', level: 'Easy', tags: ['Fruit', 'Dairy-Free'], category: 'frozen' as const, templateId: 'treat_yogurt_berry_lickmat' },
-  { name: 'Peanut Butter Bites', desc: 'A classic favorite for everyday good behavior.', time: '15 min', level: 'Easy', tags: ['Nut-Free Option', 'Grain-Free'], category: 'everyday' as const, templateId: 'treat_pb_banana_bites' },
-  { name: 'Mini Birthday Stars', desc: 'Crispy little stars to celebrate your pup\'s big day!', time: '40 min', level: 'Moderate', tags: ['Grain-Free', 'Dog-Safe Color'], category: 'birthday' as const, templateId: 'treat_birthday_bowl' },
-  { name: 'Cinnamon Apple Chips', desc: 'Crispy, naturally sweet, and loaded with fiber.', time: '2 hr', level: 'Easy', tags: ['Fruit', 'Grain-Free'], category: 'training' as const, templateId: 'treat_apple_oat_biscuits' },
-  { name: 'Minty Fresh Bones', desc: 'Breath-refreshing frozen bites with parsley & mint.', time: '15 min', level: 'Easy', tags: ['Herbal', 'Dairy-Free'], category: 'everyday' as const, templateId: 'treat_frozen_kong' },
-  { name: 'Oatmeal Blueberry Drops', desc: 'Soft-baked drops with oats and juicy blueberries.', time: '25 min', level: 'Easy', tags: ['Grain', 'Fruit'], category: 'everyday' as const, templateId: 'treat_apple_oat_biscuits' },
-];
+const TREATS = TREAT_CATALOG;
 
 export default function TreatsPage() {
   const navigate = useNavigate();
-  const { activeProfile, profiles } = useDogProfiles();
-  const { recipes, saveRecipe } = useRecipes();
+  const { activeProfile, profiles, loading: profilesLoading } = useDogProfiles();
+  const { recipes, saveRecipe, loading: recipesLoading } = useRecipes();
+  const { canUseFeature, requireUpgrade, upgradePrompt, dismissUpgradePrompt, isPremium, isLoading: accessLoading } = usePaywall();
   const [activeTab, setActiveTab] = useState<TreatTab>('training');
   const [sortOrder, setSortOrder] = useState<'featured' | 'alphabetical'>('featured');
   const [showAll, setShowAll] = useState(false);
@@ -44,6 +40,7 @@ export default function TreatsPage() {
   }, [activeTab, showAll, sortOrder]);
 
   async function handleViewTreatRecipe(templateId: string, name: string) {
+    if (loadingTreat || accessLoading || profilesLoading || recipesLoading) return;
     if (!activeProfile) {
       setError('Add a dog profile first so Cheffo Doggo can personalize treat recipes.');
       navigate('/profiles/new');
@@ -60,16 +57,25 @@ export default function TreatsPage() {
         navigate(`/recipes/${existing.id}`);
         return;
       }
+      if (!canUseFeature('treat')) {
+        requireUpgrade('treat');
+        return;
+      }
       const generated = await generateRecipe({
         dog: activeProfile,
         recipeType: 'treat',
         forceTemplateId: templateId,
+        skipImage: !isPremium,
       });
       const saved = await saveRecipe(generated);
       navigate(`/recipes/${saved.id}`);
     } catch (e) {
       console.error('Failed to generate treat recipe', e);
-      setError('Unable to open this treat recipe right now. Please try again.');
+      const message = e instanceof Error ? e.message : '';
+      // Preserve useful food-safety guidance; do not expose database internals.
+      setError(/^(Selected recipe conflicts|Safety check failed|Recipe planning check failed):?/.test(message)
+        ? message
+        : 'Unable to open this treat recipe right now. Please try again.');
     } finally {
       setLoadingTreat(null);
     }
@@ -81,13 +87,13 @@ export default function TreatsPage() {
       rightRail={
         <>
           <section className="doggo-card p-5">
-            <h3 className="text-[1.35rem] font-semibold">Featured Seasonal Treats 🐾</h3>
+            <h3 className="text-[1.35rem] font-semibold">Featured Treat 🐾</h3>
             <div className="mt-3 rounded-2xl border border-[#eadfce] bg-white p-3">
               <div className="grid h-28 place-items-center rounded-xl bg-[#fff0de] text-5xl">🥕</div>
-              <p className="mt-2 rounded-full bg-[#eaf6ea] px-2 py-0.5 text-xs font-semibold text-[#43a365] inline-block">Spring Special</p>
-              <h4 className="mt-2 text-lg font-semibold">Carrot & Pumpkin Spring Snacks</h4>
-              <p className="mt-1 text-sm text-[#7b7065]">Bright, crunchy, and full of seasonal goodness.</p>
-              <Button size="sm" className="mt-3 w-full" onClick={() => void handleViewTreatRecipe('treat_pumpkin_oat_biscuits', 'Carrot & Pumpkin Spring Snacks')}>
+              <p className="mt-2 rounded-full bg-[#eaf6ea] px-2 py-0.5 text-xs font-semibold text-[#43a365] inline-block">Baked Treat</p>
+              <h4 className="mt-2 text-lg font-semibold">{FEATURED_TREAT.name}</h4>
+              <p className="mt-1 text-sm text-[#7b7065]">{FEATURED_TREAT.desc}</p>
+              <Button size="sm" className="mt-3 w-full" disabled={profilesLoading || recipesLoading || accessLoading || loadingTreat !== null} onClick={() => void handleViewTreatRecipe(FEATURED_TREAT.templateId, FEATURED_TREAT.name)}>
                 Open or create recipe
               </Button>
             </div>
@@ -97,9 +103,9 @@ export default function TreatsPage() {
             <h3 className="text-[1.35rem] font-semibold">Birthday Bowl Spotlight</h3>
             <div className="mt-3 rounded-2xl border border-[#eadfce] bg-white p-3">
               <div className="grid h-24 place-items-center rounded-xl bg-[#f6efff] text-4xl">🎂</div>
-              <p className="mt-2 text-lg font-semibold">Pup's Party Bowl</p>
-              <p className="text-sm text-[#7b7065]">A festive, dog-safe bowl made for celebrations.</p>
-              <Button size="sm" className="mt-3 w-full" onClick={() => void handleViewTreatRecipe('treat_birthday_bowl', 'Pup\'s Party Bowl')}>
+              <p className="mt-2 text-lg font-semibold">{BIRTHDAY_TREAT.name}</p>
+              <p className="text-sm text-[#7b7065]">{BIRTHDAY_TREAT.desc}</p>
+              <Button size="sm" className="mt-3 w-full" disabled={profilesLoading || recipesLoading || accessLoading || loadingTreat !== null} onClick={() => void handleViewTreatRecipe(BIRTHDAY_TREAT.templateId, BIRTHDAY_TREAT.name)}>
                 Open or create recipe
               </Button>
             </div>
@@ -117,6 +123,7 @@ export default function TreatsPage() {
         </>
       }
     >
+      <UpgradeModal open={upgradePrompt.open} onClose={dismissUpgradePrompt} feature={upgradePrompt.feature} />
       <section className="doggo-soft-card overflow-hidden p-7">
         <div className="grid items-center gap-6 lg:grid-cols-[1fr_300px]">
           <div>
@@ -125,14 +132,14 @@ export default function TreatsPage() {
             <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#6f6459]">
               <span>🛡️ Real ingredients</span>
               <span>🧡 Made with love</span>
-              <span>✅ Ingredient checked</span>
+              <span>✅ Review ingredients for your dog</span>
             </div>
           </div>
           <img src="/cheffo-doggo-logo.png" alt="Cheffo Doggo mascot" className="mx-auto h-56 w-56 object-contain" />
         </div>
       </section>
 
-      {profiles.length === 0 && (
+      {!profilesLoading && profiles.length === 0 && (
         <section className="mt-4 rounded-2xl border border-dashed border-[#f2c8a0] bg-[#fffaf4] p-5 text-center">
           <h2 className="text-lg font-semibold text-[#2b2118]">Add a dog to unlock personalized treats</h2>
           <p className="mt-1 text-sm text-[#7f7469]">Cheffo Doggo tailors treat portions and safety notes to your pup's profile.</p>
@@ -195,9 +202,9 @@ export default function TreatsPage() {
                 <div className="grid h-36 place-items-center rounded-xl bg-[#fff4ea] text-4xl">🍪</div>
                 <p className="mt-2 text-lg font-semibold leading-tight">{treat.name}</p>
                 <p className="mt-1 line-clamp-2 text-sm text-[#7f7469]">{treat.desc}</p>
-                <p className="mt-2 text-xs text-[#8f857a]">⏱ {treat.time} &nbsp; • &nbsp; 🌟 {treat.level}</p>
+                <p className="mt-2 text-xs text-[#8f857a]">🌟 {treat.level} · See recipe for preparation and freezing times</p>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {treat.tags.map(tag => (
+                  {treat.ingredients.map(tag => (
                     <span key={tag} className="rounded-full bg-[#f6efe4] px-2 py-0.5 text-xs font-semibold text-[#8f7d69]">{tag}</span>
                   ))}
                 </div>
@@ -205,6 +212,7 @@ export default function TreatsPage() {
                   size="sm"
                   className="mt-3 w-full"
                   loading={loadingTreat === treat.name}
+                  disabled={profilesLoading || recipesLoading || accessLoading || loadingTreat !== null}
                   onClick={() => void handleViewTreatRecipe(treat.templateId, treat.name)}
                 >
                   {loadingTreat === treat.name ? 'Creating and saving…' : 'Open or create recipe'}

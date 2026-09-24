@@ -1,3 +1,4 @@
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChefHat, Sparkles } from 'lucide-react';
@@ -88,6 +89,7 @@ export default function BowlBuilderPage() {
       const recipe = await generateRecipe({
         dog,
         recipeType,
+        skipImage: !isPremium,
         // Batch recipes always feed for a week. Other types make a single meal.
         batchDuration: recipeType === 'batch_week' ? '7day' : '1day',
       });
@@ -182,7 +184,7 @@ export default function BowlBuilderPage() {
                 Premium required
               </p>
               <p className="mt-1">
-                {recipeType === 'treat'
+                {isGooglePlayApp() ? ANDROID_ACCESS_MESSAGE : recipeType === 'treat'
                   ? "You've already made your free treat recipe. Upgrade to make unlimited recipes."
                   : 'Full meals, batches, toppers, and pantry mode are part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.'}
               </p>
@@ -191,7 +193,7 @@ export default function BowlBuilderPage() {
 
           {!isPremium && !isGenerationBlocked && recipeType === 'treat' && (
             <p className="rounded-xl border border-[#d6ebda] bg-[#f2fbf4] px-3 py-2 text-xs text-[#4f8f64]">
-              ✨ Free taste: {treatRecipesRemaining} treat recipe remaining. Upgrade for unlimited.
+              ✨ Free taste: {treatRecipesRemaining} treat recipe remaining.{!isGooglePlayApp() && ' Upgrade for unlimited.'}
             </p>
           )}
 

@@ -1,3 +1,4 @@
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Plus, X, AlertTriangle, ChefHat, Sparkles } from 'lucide-react';
@@ -231,7 +232,7 @@ export default function PantryModePage() {
                 Premium required
               </p>
               <p className="mt-1">
-                Pantry Mode is part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.
+                {isGooglePlayApp() ? ANDROID_ACCESS_MESSAGE : 'Pantry Mode is part of Cheffo Doggo Premium. $8/mo or $59/yr with a 14-day money-back guarantee.'}
               </p>
             </div>
           )}

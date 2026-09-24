@@ -69,7 +69,7 @@ function toDogProfileUpdate(data: Partial<DogProfile>, nowIso: string): DogProfi
     age_years: data.ageYears,
     age_months: data.ageMonths,
     weight_lbs: data.weightLbs,
-    ideal_weight_lbs: data.idealWeightLbs ?? null,
+    ...('idealWeightLbs' in data ? { ideal_weight_lbs: data.idealWeightLbs ?? null } : {}),
     life_stage: data.lifeStage,
     activity_level: data.activityLevel,
     meals_per_day: data.mealsPerDay,

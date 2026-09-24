@@ -1,0 +1,6 @@
+<resources>
+    <string name="offline_title">Cheffo Doggo is offline</string>
+    <string name="offline_message">Connect to the internet to sign in, load your cloud recipes, or save changes. Previously loaded pages may still be available.</string>
+    <string name="offline_retry">Try again</string>
+    <string name="offline_cached">Try previously loaded pages</string>
+</resources>

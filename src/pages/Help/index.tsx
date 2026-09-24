@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Mail, ChefHat, ShieldCheck, Stethoscope, CreditCard, Lock } from 'lucide-react';
 
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
+
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
 interface QA {
@@ -247,7 +249,7 @@ const CATEGORIES: Category[] = [
           <p>
             Open <Link to="/settings" className="text-[#f97316] underline">Settings</Link> → "Delete my account". You'll be asked to type
             your email to confirm. Account deletion is immediate and permanent — your dogs, recipes, preferences, and login are all wiped.
-            Active subscriptions need to be cancelled separately first via the billing portal.
+            Account deletion also cancels your existing Stripe subscription before removing your account data.
           </p>
         ),
       },
@@ -305,7 +307,12 @@ export default function HelpPage() {
         </a>
 
         <div className="mt-8 space-y-6">
-          {CATEGORIES.map(category => (
+          {isGooglePlayApp() && <section className="doggo-card p-5">
+            <h2 className="text-lg font-semibold">Account access on Android</h2>
+            <p className="mt-3 text-sm text-[#5f564d]">{ANDROID_ACCESS_MESSAGE}</p>
+            <p className="mt-2 text-sm text-[#5f564d]">For help with existing access, cancellation, or refunds, email support with your account email. Refresh Settings to check your current plan.</p>
+          </section>}
+          {CATEGORIES.filter(category => !isGooglePlayApp() || category.title !== 'Subscription & billing').map(category => (
             <section key={category.title} className="doggo-card p-5">
               <h2 className="flex items-center gap-3 text-lg font-semibold text-[#2b2118]">
                 <span className={['grid h-9 w-9 place-items-center rounded-xl', category.iconBg, category.iconColor].join(' ')}>

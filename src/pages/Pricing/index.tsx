@@ -6,6 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { supabase } from '../../lib/supabase';
 import { redeemCampaignCode } from '../../lib/campaign';
+import { isGooglePlayApp, requireWebBilling } from '../../utils/distribution';
+import { AndroidAccess } from '../../components/billing/AndroidAccess';
 
 type Plan = 'monthly' | 'yearly';
 
@@ -42,10 +44,11 @@ export default function PricingPage() {
   // If the user already has premium, redirect them to Settings — no point
   // showing pricing to someone already paying.
   useEffect(() => {
-    if (isPremium) navigate('/settings', { replace: true });
+    if (isPremium && !isGooglePlayApp()) navigate('/settings', { replace: true });
   }, [isPremium, navigate]);
 
   async function startCheckout(plan: Plan) {
+    if (isGooglePlayApp()) return;
     if (!isAuthenticated) {
       navigate(`/signup?redirect=/pricing`);
       return;
@@ -53,6 +56,7 @@ export default function PricingPage() {
     setSubmitting(plan);
     setError(null);
     try {
+      requireWebBilling();
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: await buildAuthHeaders(),
@@ -86,6 +90,8 @@ export default function PricingPage() {
     }
     setRedeeming(false);
   }
+
+  if (isGooglePlayApp()) return <main className="min-h-screen bg-[#fffbf5] px-4 py-12"><AndroidAccess /></main>;
 
   if (isAuthenticated && subscriptionLoading) {
     return (

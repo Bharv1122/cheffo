@@ -1,10 +1,14 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/layout/BottomNav';
+import { AccountScope } from './components/auth/AccountScope';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import { recordReturnVisit } from './lib/funnelAnalytics';
 import Pricing from './pages/Pricing';
+import { isGooglePlayApp } from './utils/distribution';
+import { OfflineNotice } from './components/layout/OfflineNotice';
+const AndroidWelcome = lazy(() => import('./pages/AndroidWelcome'));
 
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Signup = lazy(() => import('./pages/Auth/Signup'));
@@ -50,7 +54,7 @@ function RootRoute() {
   // to the in-app Home — ProtectedRoute does the same.
   if (!isSupabaseEnabled) return <Home />;
   if (loading) return <LoadingFallback />;
-  return isAuthenticated ? <Home /> : <Landing />;
+  return isAuthenticated ? <Home /> : isGooglePlayApp() ? <AndroidWelcome /> : <Landing />;
 }
 
 const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/', '/vet-approve/', '/privacy', '/terms'];
@@ -97,6 +101,7 @@ function AppLayout() {
 
   return (
     <>
+      <OfflineNotice />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -225,7 +230,7 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <AccountScope><AppLayout /></AccountScope>
     </BrowserRouter>
   );
 }

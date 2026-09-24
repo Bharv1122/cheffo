@@ -42,19 +42,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let isMounted = true;
+    let authEventObserved = false;
 
     supabase.auth
       .getSession()
       .then(({ data }) => {
-        if (!isMounted) return;
+        if (!isMounted || authEventObserved) return;
         setSession(data.session);
         setUser(data.session?.user ?? null);
       })
+      .catch(() => {
+        if (!isMounted || authEventObserved) return;
+        setSession(null);
+        setUser(null);
+      })
       .finally(() => {
-        if (isMounted) setLoading(false);
+        if (isMounted && !authEventObserved) setLoading(false);
       });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isMounted) return;
+      authEventObserved = true;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);

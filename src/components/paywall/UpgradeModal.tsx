@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, Check } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
 import type { PaywallFeature } from '../../hooks/usePaywall';
 
 interface UpgradeModalProps {
@@ -50,7 +51,7 @@ export function UpgradeModal({ open, onClose, feature }: UpgradeModalProps) {
               navigate('/pricing');
             }}
           >
-            See plans
+            {isGooglePlayApp() ? 'View account access' : 'See plans'}
           </Button>
         </div>
       }
@@ -68,7 +69,7 @@ export function UpgradeModal({ open, onClose, feature }: UpgradeModalProps) {
         ))}
       </ul>
       <p className="mt-4 rounded-xl border border-[#e7e5e4] bg-[#fafaf9] px-3 py-2 text-xs text-[#78716C]">
-        $8/mo or $59/yr · 14-day money-back guarantee · cancel anytime
+        {isGooglePlayApp() ? ANDROID_ACCESS_MESSAGE : '$8/mo or $59/yr · 14-day money-back guarantee · cancel anytime'}
       </p>
     </Modal>
   );
