@@ -1,5 +1,5 @@
 param(
-  [ValidateRange(1,2147483647)][int]$VersionCode=1,
+  [ValidateRange(1,2147483647)][int]$VersionCode=2,
   [ValidateSet('bundle','qa-apk','both')][string]$Artifact='both'
 )
 $ErrorActionPreference='Stop'

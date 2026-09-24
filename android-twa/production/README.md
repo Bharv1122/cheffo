@@ -1,13 +1,13 @@
 # Production Android candidate
 
-Selected package: `com.cheffodoggo.app`. Initial candidate: versionCode `1`, versionName `0.1.0`, target SDK `36`, minimum SDK `26`, origin `https://cheffodoggo.com`. The coordinator confirmed a new draft Play app with no uploaded release. Recheck that state before first upload; a later artifact requires a higher code.
+Selected package: `com.cheffodoggo.app`. Current candidate: versionCode `2`, versionName `0.1.0`, target SDK `36`, minimum SDK `26`, origin `https://cheffodoggo.com`. Code 1 is superseded after a physical-device launch exposed a missing Android Browser Helper activity declaration; it was never uploaded. Code 2 registers that non-exported component and its website-settings metadata. The coordinator confirmed a draft Play app with no uploaded release. Recheck that state before first upload; a later artifact requires a higher code.
 
 The dedicated local upload keystore and DPAPI-protected password are under `%LOCALAPPDATA%\CheffoDoggo\Signing`, outside source control and OneDrive. Directory permissions allow only the current Windows user and SYSTEM. No plaintext signing password is stored in project configuration. Do not regenerate or overwrite this key when troubleshooting.
 
 Set `JAVA_HOME` to JDK 17, `ANDROID_HOME` to the installed SDK, and optionally the existing `GRADLE_USER_HOME`. From `android-twa/`:
 
 ```powershell
-.\production\build-signed.ps1 -VersionCode 1 -Artifact both
+.\production\build-signed.ps1 -VersionCode 2 -Artifact both
 ```
 
 This reads the existing Windows-protected credential, sets `CHEFFO_UPLOAD_STORE_FILE`, `CHEFFO_UPLOAD_STORE_PASSWORD`, `CHEFFO_UPLOAD_KEY_ALIAS`, and `CHEFFO_UPLOAD_KEY_PASSWORD` only for the build, then clears them. Gradle uses a single-use daemon. Output: `app/build/outputs/bundle/release/app-release.aab` and `app/build/outputs/apk/release/app-release.apk`. The APK is a temporary sideload QA candidate with the production package and upload certificate. The default debug ID remains `com.cheffodoggo.unregistered.qa`.
