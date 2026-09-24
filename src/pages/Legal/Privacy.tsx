@@ -62,13 +62,20 @@ export default function PrivacyPolicyPage() {
             subscription status.
           </li>
           <li>
-            <strong>Technical data.</strong> A salted, hashed form of your IP address for rate-limiting public
-            endpoints (we cannot reverse this back to your IP). Browser language and viewport for layout
-            decisions. We use Vercel Web Analytics — a cookieless, aggregate page-view counter that does not
-            track you across sites or store personal identifiers. Vercel Speed Insights also collects page
+            <strong>Technical data.</strong> A hashed form of your IP address for rate-limiting public
+            endpoints. Browser language and viewport for layout decisions. We use Vercel Web Analytics
+            for aggregate page counts, with a temporary visitor hash that expires after 24 hours,
+            browser/device details, and approximate country, region, or city information. It does not
+            track you across sites. Vercel Speed Insights also collects page
             performance measurements, such as loading time, together with page URLs, browser/device details,
             and country-level information. These measurements help us find performance problems. We do not
-            run advertising trackers.
+            run advertising trackers. We restrict app telemetry to known screen names and omit
+            private approval links, record identifiers, and authentication parameters.
+          </li>
+          <li>
+            <strong>Stock recipe images.</strong> Some fallback food photos load directly from Unsplash.
+            Your browser sends the network address, browser details, and any referrer allowed by its
+            policy when requesting those images; Unsplash handles these requests under its privacy policy.
           </li>
         </ul>
       </Section>
@@ -93,6 +100,7 @@ export default function PrivacyPolicyPage() {
           <li><strong>Supabase</strong> — database hosting and authentication. Stores your account, dog profiles, recipes, and approvals.</li>
           <li><strong>Vercel</strong> — application hosting, serverless functions, cookieless aggregate page analytics, and Speed Insights performance measurements.</li>
           <li><strong>Stripe</strong> — subscription billing and payment processing. Handles all card data directly.</li>
+          <li><strong>Unsplash</strong> — serves fallback food photos directly to your browser. See its <a className="text-[#f97316] underline" href="https://unsplash.com/privacy">privacy policy</a> for its processing of image requests.</li>
           <li><strong>Resend</strong> — transactional email (vet-approval emails, password reset).</li>
           <li><strong>Our AI service providers</strong> — process assistant messages and relevant dog-profile information to generate replies, and recipe descriptions and ingredients to generate artwork. Provider processing and retention are governed by the terms applicable to the configured service.</li>
           <li><strong>Your browser or device's speech service</strong> — handles optional voice recognition and spoken playback. Processing may happen on your device or remotely, depending on that service and your settings; its privacy terms also apply.</li>
@@ -112,11 +120,40 @@ export default function PrivacyPolicyPage() {
 
       <Section title="Data retention">
         <p>
-          We retain your information for as long as your account exists. When you delete your account (Settings →
-          Delete my account), we permanently remove all associated data within a reasonable time, including dog
-          profiles, recipes, preferences, approvals, and AI usage records. Stripe customer records persist on
-          Stripe's side as required by financial regulations; please contact Stripe for their data retention.
-          Content reports remain until your account is deleted or we remove them during review.
+          We retain account information while your account exists. Content reports remain until your account
+          is deleted or we remove them during review. The deletion process below removes your associated
+          records from the app's active database. Payment-provider records, security logs, and records we
+          must keep for legal obligations may be retained separately under the applicable requirements
+          and provider policies.
+        </p>
+      </Section>
+
+      <Section title="Delete your account" id="delete-account">
+        <p>
+          In Cheffo Doggo, open Settings, choose Delete my account, and follow the confirmation steps.
+          This requests deletion of your account and associated data, including dog profiles, saved recipes
+          and their images, preferences, vet approvals, content reports, AI usage records, subscription-access
+          records, and your age confirmation. An existing Stripe subscription recorded in your account
+          is cancelled as part of the in-app deletion process.
+        </p>
+        <p>
+          If you cannot use the app, email{' '}
+          <a
+            className="text-[#f97316] underline"
+            href={'mailto:' + SUPPORT_EMAIL + '?subject=Cheffo%20Doggo%20account%20deletion'}
+          >
+            {SUPPORT_EMAIL}
+          </a>{' '}
+          from your account email address with the subject “Cheffo Doggo account deletion” and ask us to
+          delete your account and associated data. We may need to verify account ownership before
+          completing the request.
+        </p>
+        <p>
+          Stripe may retain payment and transaction records under its retention policies and financial
+          requirements. Security logs and records required by law may also be retained; they are not
+          covered by the app's account-record deletion. Chat history and image caches stored only on your
+          device can be removed by clearing Cheffo Doggo site data in your browser. Deleting those local
+          copies alone does not delete your account.
         </p>
       </Section>
 
@@ -124,7 +161,7 @@ export default function PrivacyPolicyPage() {
         <p>You can, at any time:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Export your data.</strong> Settings → Download my data exports a JSON file with everything we hold.</li>
-          <li><strong>Delete your account.</strong> Settings → Delete my account permanently removes your data.</li>
+          <li><strong>Delete your account.</strong> Follow the <a className="text-[#f97316] underline" href="#delete-account">account-deletion steps above</a>, including the email option if you cannot use the app.</li>
           <li><strong>Correct your data.</strong> Edit dog profiles, recipes, and preferences directly in the app.</li>
           <li><strong>Cancel your subscription.</strong> {isGooglePlayApp() ? 'Contact support to cancel an existing subscription.' : "Settings → Manage subscription opens Stripe's portal."}</li>
           <li>
@@ -162,7 +199,7 @@ export default function PrivacyPolicyPage() {
           time of your last visit. Clearing site data removes the browser's local copies; it does not by itself
           delete information already saved to your account.
           We also count a small set of product steps (such as preview started, signup completed, and recipe generated)
-          with page and acquisition source only; these funnel events do not include email, dog details, recipe contents,
+          with a known screen name and supported acquisition-source label only; these funnel events do not include email, dog details, recipe contents,
           or raw IP addresses. We do not use third-party
           tracking cookies or advertising cookies in v1.0.
         </p>

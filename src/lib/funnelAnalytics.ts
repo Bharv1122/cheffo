@@ -1,3 +1,5 @@
+import { telemetryPath, telemetrySource } from './analyticsPrivacy';
+
 export type FunnelEventName =
   | 'preview_started'
   | 'signup_viewed'
@@ -8,6 +10,8 @@ export type FunnelEventName =
 
 export async function trackFunnelEvent(event: FunnelEventName): Promise<void> {
   if (typeof window === 'undefined') return;
+  const path = telemetryPath(window.location.pathname);
+  if (!path) return;
   let source: string | null = null;
   try {
     source = localStorage.getItem('cheffo_src');
@@ -20,8 +24,8 @@ export async function trackFunnelEvent(event: FunnelEventName): Promise<void> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         event,
-        path: window.location.pathname.slice(0, 120),
-        source: source?.slice(0, 60) ?? null,
+        path,
+        source: telemetrySource(source),
       }),
       keepalive: true,
     });

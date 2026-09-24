@@ -70,6 +70,20 @@ export default async function handler(req: Request): Promise<Response> {
   const baseUrl = process.env.LLM_BASE_URL;
   if (!apiKey || !baseUrl) return jsonError(500, 'LLM proxy is not configured');
 
+  // Credentials and user content must never leave over plaintext or be
+  // forwarded through a redirect to a different transport/destination.
+  let upstreamBase: string;
+  try {
+    const parsedBase = new URL(baseUrl);
+    if (parsedBase.protocol !== 'https:' || parsedBase.username || parsedBase.password ||
+        parsedBase.search || parsedBase.hash) {
+      return jsonError(500, 'LLM proxy has an invalid secure endpoint configuration');
+    }
+    upstreamBase = parsedBase.href.replace(/\/+$/, '');
+  } catch {
+    return jsonError(500, 'LLM proxy has an invalid secure endpoint configuration');
+  }
+
   // 1. Authenticate — anonymous visitors cannot spend the LLM budget.
   const auth = await authorizeUser(req);
   if ('error' in auth) return auth.error;
@@ -150,8 +164,9 @@ export default async function handler(req: Request): Promise<Response> {
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${baseUrl.replace(/\/+$/, '')}${upstreamPath}`, {
+    upstream = await fetch(`${upstreamBase}${upstreamPath}`, {
       method: 'POST',
+      redirect: 'error',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
