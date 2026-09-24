@@ -10,10 +10,23 @@ if (releaseId && !(releaseId ==~ /[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+/)) {
     throw new GradleException('CHEFFO_APPLICATION_ID must be the verified Play Console package ID.')
 }
 def origin = "https://${originUri.authority}"
+// Signing secrets arrive only through the local build process environment.
+def uploadStore = providers.environmentVariable('CHEFFO_UPLOAD_STORE_FILE').orNull
+def uploadStorePassword = providers.environmentVariable('CHEFFO_UPLOAD_STORE_PASSWORD').orNull
+def uploadAlias = providers.environmentVariable('CHEFFO_UPLOAD_KEY_ALIAS').orNull
+def uploadKeyPassword = providers.environmentVariable('CHEFFO_UPLOAD_KEY_PASSWORD').orNull
+def uploadSigningReady = uploadStore && uploadStorePassword && uploadAlias && uploadKeyPassword
+
 gradle.taskGraph.whenReady { graph ->
     def releaseRequested = graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }
-    if (releaseRequested && (!releaseId || providers.gradleProperty('CHEFFO_RELEASE_READY').orNull != 'true')) {
-        throw new GradleException('Release blocked. Confirm Play package identity, deployment, signing/Digital Asset Links and device QA first; supply CHEFFO_APPLICATION_ID and CHEFFO_RELEASE_READY only after review.')
+    if (releaseRequested && releaseId != 'com.cheffodoggo.app') {
+        throw new GradleException('Release candidate package must be the selected com.cheffodoggo.app. Debug package overrides remain separate.')
+    }
+    if (releaseRequested && providers.gradleProperty('CHEFFO_RELEASE_READY').orNull != 'true') {
+        throw new GradleException('Release candidate build blocked. Supply the verified CHEFFO_APPLICATION_ID and explicit CHEFFO_RELEASE_READY local-build approval. Store upload, Play signing setup, Digital Asset Links and device QA remain separate release gates.')
+    }
+    if (releaseRequested && (!uploadSigningReady || !file(uploadStore).isFile())) {
+        throw new GradleException('Release candidate requires the existing Cheffo upload keystore and all four CHEFFO_UPLOAD_* environment values. No unsigned/debug-signed release is allowed.')
     }
 }
 
@@ -30,12 +43,24 @@ android {
         manifestPlaceholders = [cheffoHost: originUri.host]
         buildConfigField 'String', 'WEB_ORIGIN', '"' + origin + '"'
         resValue 'string', 'launch_url', origin + '/?distribution=google-play'
-        resValue 'string', 'asset_statements', '[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"' + origin + '\"}}]'
+        // AAPT removes unescaped quotes even when the generated XML looks valid.
+        def assetStatements = groovy.json.JsonOutput.toJson([[relation: ['delegate_permission/common.handle_all_urls'], target: [namespace: 'web', site: origin]]])
+        resValue 'string', 'asset_statements', assetStatements.replace('"', '\\"')
     }
     buildFeatures { buildConfig true }
+    signingConfigs {
+        release {
+            if (uploadSigningReady) {
+                storeFile file(uploadStore)
+                storePassword uploadStorePassword
+                keyAlias uploadAlias
+                keyPassword uploadKeyPassword
+            }
+        }
+    }
     buildTypes {
         debug { applicationIdSuffix '.qa'; versionNameSuffix '-qa'; resValue 'string', 'app_name', 'Cheffo Doggo QA' }
-        release { resValue 'string', 'app_name', 'Cheffo Doggo'; minifyEnabled false }
+        release { resValue 'string', 'app_name', 'Cheffo Doggo'; minifyEnabled false; signingConfig signingConfigs.release }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

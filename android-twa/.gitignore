@@ -3,3 +3,10 @@
 local.properties
 *.jks
 *.keystore
+
+# Never check in private signing descriptors or password material.
+*.p12
+*.dpapi
+signing.private.json
+keystore.properties
+signing.properties
