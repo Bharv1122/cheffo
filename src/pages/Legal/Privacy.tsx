@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { LegalLayout, Section } from './sharedLayout';
 
 import { isGooglePlayApp } from '../../utils/distribution';
@@ -6,6 +6,28 @@ import { isGooglePlayApp } from '../../utils/distribution';
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
 export default function PrivacyPolicyPage() {
+  useEffect(() => {
+    // This public route loads lazily, after the browser's initial fragment jump.
+    // Only the documented deletion target is handled; other hashes are ignored.
+    const showDeletionInstructions = () => {
+      if (window.location.hash !== '#delete-account') return;
+      const section = document.getElementById('delete-account');
+      if (!section) return;
+      section.scrollIntoView({ block: 'start' });
+      const heading = section.querySelector('h2');
+      if (heading) {
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+      }
+    };
+    const frame = window.requestAnimationFrame(showDeletionInstructions);
+    window.addEventListener('hashchange', showDeletionInstructions);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('hashchange', showDeletionInstructions);
+    };
+  }, []);
+
   return (
     <LegalLayout title="Privacy Policy" effectiveDate="September 23, 2026">
       <Section title="Summary">
@@ -16,6 +38,10 @@ export default function PrivacyPolicyPage() {
         </p>
         <p>
           You can export everything we hold for you, or delete your account entirely, from inside Settings.
+        </p>
+        <p>
+          Need to delete your account without the app?{' '}
+          <a className="text-[#f97316] underline" href="#delete-account">Read the account-deletion instructions</a>.
         </p>
       </Section>
 
