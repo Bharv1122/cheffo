@@ -216,7 +216,7 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     upstream = await fetch(`${upstreamBase}${upstreamPath}`, {
       method: 'POST',
-      redirect: 'error',
+      redirect: 'manual',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
@@ -225,6 +225,15 @@ export default async function handler(req: Request): Promise<Response> {
     });
   } catch (error) {
     logUpstreamFetchFailure(error, apiKey, upstreamBase);
+    return jsonError(502, 'Upstream LLM request failed');
+  }
+
+  // Never follow provider redirects or expose their destinations. Manual mode
+  // lets the Edge runtime return a redirect response instead of an opaque fetch
+  // exception; deny it before constructing the downstream response.
+  if ((upstream.status >= 300 && upstream.status < 400) || upstream.type === 'opaqueredirect') {
+    await upstream.body?.cancel().catch(() => undefined);
+    console.error('[llm] upstream_failure', { stage: 'redirect_rejected', status: upstream.status });
     return jsonError(502, 'Upstream LLM request failed');
   }
 

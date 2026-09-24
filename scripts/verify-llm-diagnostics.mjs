@@ -21,7 +21,7 @@ function checkSafe(logs){const serialized=JSON.stringify(logs);for(const word of
 async function failure(name,error,errorName='unknown',causeCode='unknown',{expected={},...options}={}){
  const {response,logs,state}=await run(()=>{throw error;},options);assert.equal(response.status,502,name);assert.deepEqual(await response.json(),{error:'Upstream LLM request failed'});
  assert.deepEqual(logs,[['[llm] upstream_failure',{stage:'fetch_exception',status:502,errorName,causeCode,errorHint:'unknown',authorizationValueValid:true,keyHasLineBreak:false,keyHasOuterWhitespace:false,providerIsGoogle:false,baseHasExpectedGooglePath:false,...expected}]],name);checkSafe(logs);
- assert.equal(state.auth,1);assert.equal(state.quota,1);assert.equal(state.requests.length,1);assert.equal(state.requests[0].options.redirect,'error');cases++;
+ assert.equal(state.auth,1);assert.equal(state.quota,1);assert.equal(state.requests.length,1);assert.equal(state.requests[0].options.redirect,'manual');cases++;
 }
 await failure('ordinary edge fetch exception',new TypeError('synthetic-private-url https://synthetic-private-host.invalid/'),'TypeError');
 for(const causeCode of ['ENOTFOUND','EAI_AGAIN','ECONNREFUSED','ECONNRESET','ETIMEDOUT','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','UND_ERR_SOCKET','CERT_HAS_EXPIRED','DEPTH_ZERO_SELF_SIGNED_CERT','ERR_TLS_CERT_ALTNAME_INVALID','UNABLE_TO_VERIFY_LEAF_SIGNATURE','UNABLE_TO_GET_ISSUER_CERT_LOCALLY']){
