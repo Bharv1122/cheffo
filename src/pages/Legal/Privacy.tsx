@@ -7,7 +7,7 @@ const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalLayout title="Privacy Policy" effectiveDate="August 10, 2026">
+    <LegalLayout title="Privacy Policy" effectiveDate="September 23, 2026">
       <Section title="Summary">
         <p>
           Cheffo Doggo helps you cook homemade meals for your dog. To do that, we collect the minimum information
@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>
             <strong>Account information.</strong> Email address and a password (hashed; we never see the
-            plaintext). Provided by you at signup.
+            plaintext). Provided by you at signup. We also record your confirmation that you are at least 18, the time of that confirmation, and the applicable age-policy version. We do not collect a birth date or identity document for this self-attestation.
           </li>
           <li>
             <strong>Dog profiles.</strong> Information about your dog(s) — name, breed, age, weight, life stage,
@@ -40,6 +40,23 @@ export default function PrivacyPolicyPage() {
             attached to each conversation. Used to personalize replies and saved locally for conversation history.
           </li>
           <li>
+            <strong>Content reports.</strong> When you report a saved recipe, image, or assistant response,
+            we receive the selected content, your reason, any optional note, and your account ID for private
+            review. Assistant-message snapshots are submitted by you when you choose to report them.
+          </li>
+          <li>
+            <strong>Recipe-image requests.</strong> For recipes that use AI-generated artwork, the recipe title,
+            type, and ingredient descriptions are sent to our AI service to create an image. Generated images
+            can be cached in your browser and included with recipes you save to your account.
+          </li>
+          <li>
+            <strong>Optional voice controls.</strong> Cooking Mode can use your browser's speech features after
+            you choose Voice Control and grant any microphone permission requested. Depending on your browser
+            and device, its speech service may process audio remotely. Cheffo Doggo does not record or store
+            the microphone audio; recognized commands are used in the current cooking session. You can stop
+            listening or use the on-screen controls instead.
+          </li>
+          <li>
             <strong>Billing information.</strong> If you subscribe to Premium, Stripe processes your payment.
             <strong> We do not see or store your card number.</strong> We receive only a Stripe customer ID and
             subscription status.
@@ -48,7 +65,10 @@ export default function PrivacyPolicyPage() {
             <strong>Technical data.</strong> A salted, hashed form of your IP address for rate-limiting public
             endpoints (we cannot reverse this back to your IP). Browser language and viewport for layout
             decisions. We use Vercel Web Analytics — a cookieless, aggregate page-view counter that does not
-            track you across sites or store personal identifiers. We do not run advertising trackers.
+            track you across sites or store personal identifiers. Vercel Speed Insights also collects page
+            performance measurements, such as loading time, together with page URLs, browser/device details,
+            and country-level information. These measurements help us find performance problems. We do not
+            run advertising trackers.
           </li>
         </ul>
       </Section>
@@ -57,10 +77,13 @@ export default function PrivacyPolicyPage() {
         <ul className="list-disc pl-5 space-y-1">
           <li>To generate personalized recipes and run ingredient safety checks against your dog's allergies and medications.</li>
           <li>To deliver the AI assistant — your messages and dog profile are sent to our language model provider to generate a response.</li>
+          <li>To generate recipe artwork from recipe descriptions and ingredients.</li>
+          <li>To respond to optional spoken cooking commands through your browser's speech service.</li>
+          <li>To measure page performance and improve reliability.</li>
           <li>To process subscriptions and refunds via Stripe.</li>
           <li>To send vet-approval emails (only when you request one) and account emails (password reset, billing receipts) via our email provider.</li>
           <li>To prevent abuse (rate limits on the AI assistant and public approval endpoints).</li>
-          <li>To respond to your support requests.</li>
+          <li>To respond to your support requests and privately review reported content.</li>
         </ul>
       </Section>
 
@@ -68,10 +91,11 @@ export default function PrivacyPolicyPage() {
         <p>We share data only with the services we need to operate the app:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Supabase</strong> — database hosting and authentication. Stores your account, dog profiles, recipes, and approvals.</li>
-          <li><strong>Vercel</strong> — application hosting, serverless functions, and cookieless aggregate page analytics.</li>
+          <li><strong>Vercel</strong> — application hosting, serverless functions, cookieless aggregate page analytics, and Speed Insights performance measurements.</li>
           <li><strong>Stripe</strong> — subscription billing and payment processing. Handles all card data directly.</li>
           <li><strong>Resend</strong> — transactional email (vet-approval emails, password reset).</li>
-          <li><strong>Our language-model provider</strong> — processes your assistant chat messages and dog profile to generate responses. We do not allow the provider to train their models on your data.</li>
+          <li><strong>Our AI service providers</strong> — process assistant messages and relevant dog-profile information to generate replies, and recipe descriptions and ingredients to generate artwork. Provider processing and retention are governed by the terms applicable to the configured service.</li>
+          <li><strong>Your browser or device's speech service</strong> — handles optional voice recognition and spoken playback. Processing may happen on your device or remotely, depending on that service and your settings; its privacy terms also apply.</li>
         </ul>
         <p>We do not sell your data. We do not share data with advertisers.</p>
       </Section>
@@ -92,6 +116,7 @@ export default function PrivacyPolicyPage() {
           Delete my account), we permanently remove all associated data within a reasonable time, including dog
           profiles, recipes, preferences, approvals, and AI usage records. Stripe customer records persist on
           Stripe's side as required by financial regulations; please contact Stripe for their data retention.
+          Content reports remain until your account is deleted or we remove them during review.
         </p>
       </Section>
 
@@ -116,9 +141,9 @@ export default function PrivacyPolicyPage() {
 
       <Section title="Children's privacy">
         <p>
-          Cheffo Doggo is not directed at children. We do not knowingly collect personal information from anyone
-          under 13 years old (or under 16, in jurisdictions where that's the applicable age). If you believe a
-          child has created an account, email us and we'll delete it.
+          Cheffo Doggo is intended only for adults aged 18 and older. We do not knowingly collect personal
+          information from anyone under 18. If you believe someone under 18 has created an account, contact
+          us so we can investigate and delete the account and associated information.
         </p>
       </Section>
 
@@ -133,7 +158,9 @@ export default function PrivacyPolicyPage() {
       <Section title="Cookies and local storage">
         <p>
           We use browser local storage to keep your authentication session, your conversation history with the
-          AI assistant, lightweight preferences (units, recently-used templates), and the time of your last visit.
+          AI assistant, generated-image cache, lightweight preferences (units, recently-used templates), and the
+          time of your last visit. Clearing site data removes the browser's local copies; it does not by itself
+          delete information already saved to your account.
           We also count a small set of product steps (such as preview started, signup completed, and recipe generated)
           with page and acquisition source only; these funnel events do not include email, dog details, recipe contents,
           or raw IP addresses. We do not use third-party

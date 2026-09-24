@@ -8,6 +8,7 @@ import {
   updatePassword,
 } from '../lib/auth';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { confirmAdultAccount } from '../lib/adultConfirmation';
 import { PUBLIC_CAMPAIGN_CODE, redeemCampaignCode } from '../lib/campaign';
 
 interface AuthContextValue {
@@ -17,7 +18,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isSupabaseEnabled: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, campaignCode?: string) => Promise<{
+  signUp: (email: string, password: string, campaignCode?: string, adultConfirmed?: boolean) => Promise<{
     error: string | null;
     campaignError: string | null;
     needsEmailVerification: boolean;
@@ -90,7 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   }
 
-  async function signUp(email: string, password: string, campaignCode = '') {
+  async function signUp(email: string, password: string, campaignCode = '', adultConfirmed = false) {
+    if (adultConfirmed !== true) return { error: 'You must confirm that you are at least 18 years old.', campaignError: null, needsEmailVerification: false };
     const normalizedCode = campaignCode.trim().toUpperCase();
     if (normalizedCode && normalizedCode !== PUBLIC_CAMPAIGN_CODE) {
       return { error: 'That code is not recognized.', campaignError: null, needsEmailVerification: false };
@@ -115,6 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...(normalizedCode ? { campaign_code: normalizedCode } : {}),
       }
     );
+    // The checkbox is explicit input. If email verification delays the session,
+    // or this save fails, the first AI action asks again; no client claim grants access.
+    if (!error && nextSession) {
+      await confirmAdultAccount(nextSession.access_token).catch(() => undefined);
+    }
     let campaignError: string | null = null;
     if (!error && nextSession && normalizedCode) {
       const result = await redeemCampaignCode(normalizedCode, nextSession.access_token);

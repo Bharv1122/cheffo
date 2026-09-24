@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChefHat, ChevronDown, Heart, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, RefreshCw } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
+import { ReportContentButton } from '../../components/reports/ReportContentButton';
 import { Modal } from '../../components/ui/Modal';
 import { IngredientCard } from '../../components/ingredients/IngredientCard';
 import { SupplementChecklist } from '../../components/supplements/SupplementChecklist';
@@ -697,6 +698,10 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
+      <div className="mb-2 flex flex-wrap gap-2">
+        <ReportContentButton target={{ source: 'recipe', recipeId: recipe.id }} label="Report recipe" />
+        {recipe.imageUrl && <ReportContentButton target={{ source: 'image', recipeId: recipe.id }} label="Report image" />}
+      </div>
       <section className="doggo-card overflow-hidden p-5">
         <div className="grid gap-5 xl:grid-cols-[1fr_1.2fr]">
           <div>

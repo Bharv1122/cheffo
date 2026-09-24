@@ -34,6 +34,12 @@ export type SubscriptionStatus =
 export type Database = {
   public: {
     Tables: {
+      ai_content_reports: {
+        Row: { id: string; user_id: string; recipe_id: string | null; source: 'recipe' | 'chat' | 'image'; reason: string; details: string; content_title: string; content_snapshot: Json; status: 'new' | 'reviewed' | 'resolved'; created_at: string; reviewed_at: string | null };
+        Insert: { id?: string; user_id: string; recipe_id?: string | null; source: 'recipe' | 'chat' | 'image'; reason: string; details?: string; content_title: string; content_snapshot: Json; status?: 'new' | 'reviewed' | 'resolved'; created_at?: string; reviewed_at?: string | null };
+        Update: { status?: 'new' | 'reviewed' | 'resolved'; reviewed_at?: string | null };
+        Relationships: [];
+      };
       funnel_events: {
         Row: { id: string; event_name: string; path: string | null; source: string | null; created_at: string };
         Insert: { id?: string; event_name: string; path?: string | null; source?: string | null; created_at?: string };
@@ -327,6 +333,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      insert_ai_content_report_limited: {
+        Args: { p_user_id: string; p_recipe_id: string | null; p_source: string; p_reason: string; p_details: string; p_content_title: string; p_content_snapshot: Json };
+        Returns: string | null;
+      };
       redeem_3dayfree_campaign: {
         Args: { p_user_id: string; p_email_hash: string; p_source: string | null };
         Returns: { trial_end: string }[];

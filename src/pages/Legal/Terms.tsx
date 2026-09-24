@@ -8,7 +8,7 @@ const GOVERNING_LAW_STATE = 'the State of California';
 
 export default function TermsPage() {
   return (
-    <LegalLayout title="Terms of Service" effectiveDate="August 10, 2026">
+    <LegalLayout title="Terms of Service" effectiveDate="September 23, 2026">
       <Section title="Acceptance">
         <p>
           By creating a Cheffo Doggo account or otherwise using our website, mobile apps, or services
@@ -41,7 +41,7 @@ export default function TermsPage() {
 
       <Section title="Account eligibility and security">
         <ul className="list-disc pl-5 space-y-1">
-          <li>You must be at least 13 years old (or 16 in jurisdictions where that's the applicable age) to create an account.</li>
+          <li>You must be at least 18 years old to create an account or use the Service. We require your self-attestation before AI features can be used; this is not independent age verification.</li>
           <li>You agree to provide accurate information about yourself and your dog. Inaccurate dog profiles can produce inappropriate recipes.</li>
           <li>You're responsible for keeping your password confidential. Notify us immediately at <a className="text-[#f97316] underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> if you suspect unauthorized access.</li>
           <li>One account per person. Premium subscriptions cover one account; if you need multiple household members to have their own logins, contact us.</li>

@@ -15,6 +15,7 @@ import { chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../..
 import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 import { recipeFromChatJson, validateChatRecipe } from '../../utils/chatRecipeConverter';
 import { generateId } from '../../utils/storage';
+import { ReportContentButton } from '../../components/reports/ReportContentButton';
 import type { ChatMessage } from '../../types/assistant';
 
 const STARTER_CHAT: ChatMessage[] = [
@@ -299,6 +300,7 @@ export default function AssistantPage() {
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
+              {message.role === 'assistant' && message.content && <ReportContentButton target={{ source: 'chat', message: message.content }} label="Report reply" />}
               {message.role === 'assistant' && message.content && (message.parsedRecipe || looksLikeRecipe(message.content)) && (
                 <div className="mt-1.5 max-w-[78%]">
                   {message.savedRecipeId ? (

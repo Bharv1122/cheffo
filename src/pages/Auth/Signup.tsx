@@ -11,6 +11,7 @@ import { trackFunnelEvent } from '../../lib/funnelAnalytics';
 export default function SignupPage() {
   const { signUp, isAuthenticated, isSupabaseEnabled } = useAuth();
 
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [campaignCode, setCampaignCode] = useState('');
@@ -40,6 +41,10 @@ export default function SignupPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!adultConfirmed) {
+      setError('You must confirm that you are at least 18 years old.');
+      return;
+    }
     if (password.length < 8) {
       setError('Use at least 8 characters for better security.');
       return;
@@ -50,7 +55,7 @@ export default function SignupPage() {
     setMessage('');
 
     const { error: signUpError, campaignError, needsEmailVerification } = await signUp(
-      email.trim(), password, campaignCode,
+      email.trim(), password, campaignCode, adultConfirmed,
     );
 
     if (signUpError) {
@@ -142,6 +147,11 @@ export default function SignupPage() {
           required
           hint="Tip: use a unique password you do not reuse elsewhere."
         />
+
+        <label className="flex items-start gap-3 text-sm text-[#57534e]">
+          <input type="checkbox" required checked={adultConfirmed} onChange={event => setAdultConfirmed(event.target.checked)} className="mt-1 h-4 w-4" />
+          <span>I confirm that I am at least 18 years old.</span>
+        </label>
 
         {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         {message && <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{message}</p>}

@@ -7,7 +7,7 @@
 // this endpoint be called from another user's token, they'd only see their own
 // rows.
 
-import { getUserClient } from '../_lib/supabaseAdmin';
+import { getUserClient, getSupabaseAdmin } from '../_lib/supabaseAdmin';
 
 export const config = { runtime: 'edge' };
 
@@ -34,13 +34,15 @@ export default async function handler(req: Request): Promise<Response> {
   // All user-owned tables read in parallel. RLS scopes each query to the
   // calling user, so even if a column filter were missing here we'd still only
   // see this user's rows.
-  const [profiles, recipes, preferences, approvals, llmUsage, subscriptions] = await Promise.all([
+  const [profiles, recipes, preferences, approvals, llmUsage, subscriptions, reports] = await Promise.all([
     userClient.from('dog_profiles').select('*'),
     userClient.from('saved_recipes').select('*'),
     userClient.from('user_preferences').select('*'),
     userClient.from('approvals').select('*'),
     userClient.from('llm_usage').select('*'),
     userClient.from('subscriptions').select('*'),
+    // Reports are private to the service role; always scope this export to the verified user.
+    getSupabaseAdmin().from('ai_content_reports').select('*').eq('user_id', user.id),
   ]);
 
   const bundle = {
@@ -51,6 +53,11 @@ export default async function handler(req: Request): Promise<Response> {
       email: user.email,
       createdAt: user.created_at,
       lastSignInAt: user.last_sign_in_at,
+      ageConfirmation: {
+        confirmed: user.app_metadata?.cheffo_adult_confirmed === true,
+        confirmedAt: user.app_metadata?.cheffo_adult_confirmed_at ?? null,
+        policy: user.app_metadata?.cheffo_adult_policy ?? null,
+      },
     },
     dogProfiles: profiles.data ?? [],
     savedRecipes: recipes.data ?? [],
@@ -58,7 +65,8 @@ export default async function handler(req: Request): Promise<Response> {
     approvals: approvals.data ?? [],
     llmUsage: llmUsage.data ?? [],
     subscriptions: subscriptions.data ?? [],
-    errors: [profiles.error, recipes.error, preferences.error, approvals.error, llmUsage.error, subscriptions.error]
+    contentReports: reports.data ?? [],
+    errors: [profiles.error, recipes.error, preferences.error, approvals.error, llmUsage.error, subscriptions.error, reports.error]
       .filter((e): e is Exclude<typeof e, null> => Boolean(e))
       .map(e => ({ message: e.message, code: e.code })),
   };

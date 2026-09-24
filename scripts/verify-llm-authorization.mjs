@@ -28,7 +28,7 @@ let upstreamCalls = 0;
 globalThis.fetch = async () => { upstreamCalls++; return new Response('{"ok":true}'); };
 async function check(name, changes, expectedStatus, image = false, authenticated = true) {
   globalThis.__cheffoTest = {
-    auth: {data: {user: {id: 'unit-user'}}, error: null},
+    auth: {data: {user: {id: 'unit-user', app_metadata: {cheffo_adult_confirmed: true}}}, error: null},
     subscription: {data: {status: 'active'}, error: null},
     quota: {data: [{allowed: true}], error: null}, quotaCalls: 0,
     ...changes,
@@ -58,4 +58,13 @@ await check('free image requests cannot bypass entitlement', {subscription: {dat
 await check('premium image generation accepted', {}, 200, true);
 await check('image quota outage fails closed', {quotaThrow: true}, 503, true);
 await check('oversized body does not consume quota', {requestBody: 'x'.repeat(300_001)}, 413);
-console.log('LLM authorization verified: 19 auth, entitlement, outage and quota cases; denied requests never reach the paid provider.');
+for (const [name, user] of [
+  ['missing confirmation', {id:'adult-test'}],
+  ['false confirmation', {id:'adult-test',app_metadata:{cheffo_adult_confirmed:false}}],
+  ['string confirmation', {id:'adult-test',app_metadata:{cheffo_adult_confirmed:'true'}}],
+  ['user metadata bypass', {id:'adult-test',user_metadata:{cheffo_adult_confirmed:true}}],
+  ['admin has no exemption', {id:'adult-test',app_metadata:{role:'admin'}}],
+]) {
+  for (const image of [false,true]) await check(name, {auth:{data:{user},error:null},requestBody:JSON.stringify({adult_confirmed:true,app_metadata:{cheffo_adult_confirmed:true}})}, 403, image);
+}
+console.log('LLM authorization verified: 29 auth, entitlement, outage and quota cases; denied requests never reach the paid provider.');

@@ -51,6 +51,12 @@ async function authorizeUser(req: Request): Promise<{ userId: string } | { error
     if (error || !data?.user) {
       return { error: jsonError(401, 'Your session has expired — please sign in again.') };
     }
+    // Fresh server-authenticated data; no user_metadata, body, or admin exemption.
+    if (data.user.app_metadata?.cheffo_adult_confirmed !== true) {
+      return { error: new Response(JSON.stringify({ error: 'Confirm that you are at least 18 before using AI features.', code: 'ADULT_CONFIRMATION_REQUIRED' }), {
+        status: 403, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      }) };
+    }
     return { userId: data.user.id };
   } catch {
     return { error: jsonError(401, 'Could not verify your session.') };

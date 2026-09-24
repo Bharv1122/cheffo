@@ -1,7 +1,7 @@
 import type { DogProfile } from '../types/dog';
 import type { ChatMessage, ParsedChatRecipe } from '../types/assistant';
 import { getFallbackAssistantResponse } from '../data/assistantResponses';
-import { supabase } from '../lib/supabase';
+import { AdultConfirmationError, buildAdultAiHeaders } from '../lib/adultConfirmation';
 
 // The LLM key lives only in the server-side proxy (api/llm.ts). The client
 // posts to the same-origin /api/llm endpoint — no provider key. The proxy is
@@ -9,17 +9,6 @@ import { supabase } from '../lib/supabase';
 const LLM_PROXY_URL = '/api/llm';
 const MODEL = 'gemini-flash-lite-latest';
 
-// Build the request headers for an /api/llm call, including the Supabase
-// access token so the auth-gated proxy accepts the request.
-async function buildLlmHeaders(): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (supabase) {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
-}
 // Trim long histories to control token usage. Keep the most recent N turns.
 const MAX_HISTORY_MESSAGES = 16;
 
@@ -424,7 +413,7 @@ async function streamLlm(
 ): Promise<string> {
   const response = await fetch(LLM_PROXY_URL, {
     method: 'POST',
-    headers: await buildLlmHeaders(),
+    headers: await buildAdultAiHeaders(),
     body: JSON.stringify({
       model: MODEL,
       messages: apiMessages,
@@ -521,6 +510,10 @@ export async function chatWithAssistant({
     onChunk?.(cleaned);
     return { text: cleaned, parsedRecipe: null };
   } catch (error) {
+    if (error instanceof AdultConfirmationError) {
+      onChunk?.(error.message);
+      return { text: error.message, parsedRecipe: null };
+    }
     console.error('[assistantChat] LLM call failed, using fallback', error);
     const text = await getFallbackAssistantResponse(userMessage, {
       dogName: dogProfile?.name,
@@ -550,7 +543,7 @@ export async function extractRecipeFromText(recipeText: string): Promise<ParsedC
   try {
     const response = await fetch(LLM_PROXY_URL, {
       method: 'POST',
-      headers: await buildLlmHeaders(),
+      headers: await buildAdultAiHeaders(),
       body: JSON.stringify({
         model: MODEL,
         messages: [

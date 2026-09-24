@@ -1,5 +1,5 @@
 import type { Recipe, RecipeIngredient, RecipeType } from '../types/recipe';
-import { supabase } from '../lib/supabase';
+import { buildAdultAiHeaders } from '../lib/adultConfirmation';
 
 const IMAGE_CACHE_STORAGE_KEY = 'chef-doggo:recipe-image-cache:v1';
 
@@ -190,13 +190,7 @@ export async function generateRecipeImage(
   if (!IMAGE_GEN_ENABLED) return null;
 
   try {
-    // The /api/llm proxy is auth-gated (CHE-14) — attach the user's token.
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (supabase) {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token) headers.Authorization = `Bearer ${token}`;
-    }
+    const headers = await buildAdultAiHeaders();
     const response = await fetch(IMAGE_PROXY_URL, {
       method: 'POST',
       headers,

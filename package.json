@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion",
+    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports",
     "lint": "eslint .",
     "preview": "vite preview",
     "verify:audit-bundle": "node scripts/verify-audit-bundle.mjs",
@@ -15,7 +15,9 @@
     "verify:product-integrity": "node scripts/verify-product-integrity.mjs",
     "verify:treat-catalog": "node scripts/verify-treat-catalog.mjs",
     "verify:llm-authorization": "node scripts/verify-llm-authorization.mjs",
-    "verify:account-deletion": "node scripts/verify-account-deletion.mjs"
+    "verify:account-deletion": "node scripts/verify-account-deletion.mjs",
+    "verify:adult-confirmation": "node scripts/verify-adult-confirmation.mjs",
+    "verify:content-reports": "node scripts/verify-content-reports.mjs && node scripts/verify-report-export.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",

@@ -10,6 +10,7 @@ import { useRecipes } from '../../hooks/useRecipes';
 import { chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../../utils/assistantChat';
 import { recipeFromChatJson, validateChatRecipe } from '../../utils/chatRecipeConverter';
 import { generateId } from '../../utils/storage';
+import { ReportContentButton } from '../reports/ReportContentButton';
 import type { ChatMessage } from '../../types/assistant';
 
 const QUICK_PROMPTS = [
@@ -226,7 +227,8 @@ export function FloatingChatHead() {
                 ? <span className="text-[#9a9186]">…</span>
                 : <MessageContent content={message.content} />}
             </div>
-            {message.role === 'assistant' && message.content && (message.parsedRecipe || looksLikeRecipe(message.content)) && (
+            {message.role === 'assistant' && message.content && <ReportContentButton target={{ source: 'chat', message: message.content }} label="Report reply" />}
+              {message.role === 'assistant' && message.content && (message.parsedRecipe || looksLikeRecipe(message.content)) && (
               <div className="mt-1.5 max-w-[85%]">
                 {message.savedRecipeId ? (
                   <Link
