@@ -414,7 +414,9 @@ export default async function handler(req: Request): Promise<Response> {
     recipeUpdatedByVet = true;
   }
 
-  const { error: updateError } = await admin
+  // The pending check above is only a snapshot. Claim the decision in the
+  // update itself so concurrent submissions cannot overwrite each other.
+  const { data: submittedApproval, error: updateError } = await admin
     .from('approvals')
     .update({
       status,
@@ -427,8 +429,14 @@ export default async function handler(req: Request): Promise<Response> {
       recipe_updated_by_vet: recipeUpdatedByVet,
       submitted_at: new Date().toISOString(),
     })
-    .eq('id', approval.id);
+    .eq('id', approval.id)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle();
   if (updateError) return jsonResponse(500, { error: updateError.message });
+  if (!submittedApproval) {
+    return jsonResponse(409, { error: 'This approval has already been submitted or is no longer available' });
+  }
 
   // Apply the recipe update AFTER the approval row succeeded. If this fails,
   // the approval still stands (the recipe is just unchanged) — log only.
