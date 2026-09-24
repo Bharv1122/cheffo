@@ -12,9 +12,13 @@ export interface ParsedChatRecipe {
   instructions: string[];
 }
 
+export type AssistantFailureCode = 'adult_confirmation' | 'sign_in' | 'access' | 'limit' | 'unavailable' | 'incomplete';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
+  status?: 'error';
+  errorCode?: AssistantFailureCode;
   content: string;
   timestamp: string;
   parsedRecipe?: ParsedChatRecipe;

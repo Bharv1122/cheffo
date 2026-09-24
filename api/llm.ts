@@ -35,6 +35,33 @@ function jsonError(status: number, message: string): Response {
   });
 }
 
+// Provider diagnostics deliberately omit messages, stacks, destinations,
+// headers and bodies. Only fixed labels and allowlisted transport codes leave
+// this boundary; unknown runtime-specific values are represented as unknown.
+const SAFE_FETCH_ERROR_NAMES = new Set(['Error', 'TypeError', 'AbortError', 'TimeoutError', 'NetworkError']);
+const SAFE_FETCH_CAUSE_CODES = new Set([
+  'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT',
+  'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT', 'UND_ERR_SOCKET',
+  'CERT_HAS_EXPIRED', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'ERR_TLS_CERT_ALTNAME_INVALID',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+]);
+
+function logUpstreamFetchFailure(error: unknown): void {
+  let errorName = 'unknown';
+  let causeCode = 'unknown';
+  // Be defensive about arbitrary rejection values, including throwing getters.
+  try {
+    if (error && typeof error === 'object') {
+      const value = error as { name?: unknown; cause?: { code?: unknown } };
+      const name = value.name;
+      if (typeof name === 'string' && SAFE_FETCH_ERROR_NAMES.has(name)) errorName = name;
+      const code = value.cause?.code;
+      if (typeof code === 'string' && SAFE_FETCH_CAUSE_CODES.has(code)) causeCode = code;
+    }
+  } catch { /* Keep fixed unknown values; never inspect or stringify the error. */ }
+  console.error('[llm] upstream_failure', { stage: 'fetch_exception', status: 502, errorName, causeCode });
+}
+
 // Resolve the calling user from the Supabase access token. Returns the user id
 // on success, or a Response to return as-is on failure.
 //
@@ -173,8 +200,13 @@ export default async function handler(req: Request): Promise<Response> {
       },
       body,
     });
-  } catch {
+  } catch (error) {
+    logUpstreamFetchFailure(error);
     return jsonError(502, 'Upstream LLM request failed');
+  }
+
+  if (!upstream.ok) {
+    console.error('[llm] upstream_failure', { stage: 'http_response', status: upstream.status });
   }
 
   // Stream the upstream response through unbuffered — keeps SSE chat working.

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -41,6 +41,34 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
   const { user, signOut, isSupabaseEnabled } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  const mobileOverlayRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!mobileMenuOpen || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const fitVisibleViewport = () => {
+      const overlay = mobileOverlayRef.current;
+      if (!overlay) return;
+      // Pinch zoom can make the visible viewport smaller than fixed inset-0.
+      // Fit the menu without changing the user's zoom or underlying page.
+      Object.assign(overlay.style, {
+        left: viewport.offsetLeft + 'px',
+        top: viewport.offsetTop + 'px',
+        width: viewport.width + 'px',
+        height: viewport.height + 'px',
+        right: 'auto',
+        bottom: 'auto',
+      });
+    };
+    fitVisibleViewport();
+    viewport.addEventListener('resize', fitVisibleViewport);
+    viewport.addEventListener('scroll', fitVisibleViewport);
+    return () => {
+      viewport.removeEventListener('resize', fitVisibleViewport);
+      viewport.removeEventListener('scroll', fitVisibleViewport);
+    };
+  }, [mobileMenuOpen]);
 
   const displayName = user?.email?.split('@')[0] ?? 'Guest';
 
@@ -133,17 +161,17 @@ export function AppShell({ active, children, rightRail }: AppShellProps) {
       </header>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[70] lg:hidden">
+        <div ref={mobileOverlayRef} className="fixed inset-0 z-[70] lg:hidden">
           <button
             className="absolute inset-0 bg-black/40"
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Close menu"
           />
-          <aside className="relative ml-auto h-full w-[86%] max-w-sm bg-[#fffbf5] p-4 shadow-2xl">
+          <aside className="relative ml-auto h-full w-[86%] max-w-sm overflow-y-auto overscroll-contain bg-[#fffbf5] p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <Logo size="sm" />
               <button
-                className="grid h-10 w-10 place-items-center rounded-xl border border-[#eadfce] bg-white text-[#7f7469]"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#eadfce] bg-white text-[#7f7469]"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close menu"
               >

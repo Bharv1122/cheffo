@@ -1,6 +1,5 @@
 import type { DogProfile } from '../types/dog';
-import type { ChatMessage, ParsedChatRecipe } from '../types/assistant';
-import { getFallbackAssistantResponse } from '../data/assistantResponses';
+import type { AssistantFailureCode, ChatMessage, ParsedChatRecipe } from '../types/assistant';
 import { AdultConfirmationError, buildAdultAiHeaders } from '../lib/adultConfirmation';
 
 // The LLM key lives only in the server-side proxy (api/llm.ts). The client
@@ -74,10 +73,12 @@ Rules:
 interface OpenAIChatChoice {
   message?: { role?: string; content?: string };
   delta?: { role?: string; content?: string };
+  finish_reason?: string | null;
 }
 
 interface OpenAIChatResponse {
   choices?: OpenAIChatChoice[];
+  error?: unknown;
 }
 
 function buildDogContext(dog: DogProfile | null | undefined): string {
@@ -407,6 +408,36 @@ function normalizeParsedRecipe(value: unknown): ParsedChatRecipe | null {
   return { name, description, type, ingredients, instructions };
 }
 
+export const ASSISTANT_UNAVAILABLE_MESSAGE = "Ask Chef couldn't get an AI reply. Please try again in a moment.";
+
+class AssistantRequestError extends Error {
+  code: AssistantFailureCode;
+  constructor(code: AssistantFailureCode, message: string) { super(message); this.code = code; }
+}
+
+async function responseError(response: Response): Promise<AssistantRequestError> {
+  const body = await response.json().catch(() => null) as { error?: unknown; code?: unknown } | null;
+  // Only recognize this app's fixed messages. Provider error bodies can contain
+  // private diagnostics and must never be displayed or logged by the client.
+  if (body?.code === 'ADULT_CONFIRMATION_REQUIRED') {
+    return new AssistantRequestError('adult_confirmation', 'Confirm that you are at least 18 before using AI features.');
+  }
+  if (response.status === 401 && [
+    'Sign in to use the AI assistant.',
+    'Your session has expired — please sign in again.',
+    'Could not verify your session.',
+  ].includes(String(body?.error))) {
+    return new AssistantRequestError('sign_in', 'Please sign in again to use Ask Chef.');
+  }
+  if (response.status === 403 && body?.error === 'AI chat and generated recipe images require Premium access.') {
+    return new AssistantRequestError('access', 'Ask Chef requires Premium access. Check your account access in Settings.');
+  }
+  if (response.status === 429 && typeof body?.error === 'string' && /^Daily AI limit reached \(\d+ requests\)\. Try again tomorrow\.$/.test(body.error)) {
+    return new AssistantRequestError('limit', 'Your daily AI limit has been reached. Try again tomorrow.');
+  }
+  return new AssistantRequestError('unavailable', ASSISTANT_UNAVAILABLE_MESSAGE);
+}
+
 async function streamLlm(
   apiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   onChunk: (visibleText: string) => void
@@ -414,64 +445,57 @@ async function streamLlm(
   const response = await fetch(LLM_PROXY_URL, {
     method: 'POST',
     headers: await buildAdultAiHeaders(),
-    body: JSON.stringify({
-      model: MODEL,
-      messages: apiMessages,
-      temperature: 0.4,
-      max_tokens: 1800,
-      stream: true,
-    }),
+    body: JSON.stringify({ model: MODEL, messages: apiMessages, temperature: 0.4, max_tokens: 1800, stream: true }),
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Chat completion failed (${response.status}): ${errorText}`);
+  if (!response.ok) throw await responseError(response);
+  if (!(response.headers.get('content-type') ?? '').includes('text/event-stream')) {
+    throw new AssistantRequestError('unavailable', ASSISTANT_UNAVAILABLE_MESSAGE);
   }
-
-  // The Vite dev server has no /api functions and answers /api/llm with the
-  // SPA's index.html. Treat a non-streaming HTML reply as "proxy unavailable"
-  // so the caller's canned fallback engages instead of an empty response.
-  if ((response.headers.get('content-type') ?? '').includes('text/html')) {
-    throw new Error('LLM proxy unavailable — run `vercel dev` for the live assistant');
-  }
-
   const reader = response.body?.getReader();
-  if (!reader) throw new Error('Chat completion response had no body to stream');
-
+  if (!reader) throw new AssistantRequestError('unavailable', ASSISTANT_UNAVAILABLE_MESSAGE);
   const decoder = new TextDecoder();
-  let buffer = '';
-  let fullText = '';
-  let lastEmitted = '';
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    let lineEnd: number;
-    while ((lineEnd = buffer.indexOf('\n')) !== -1) {
-      const line = buffer.slice(0, lineEnd).trim();
-      buffer = buffer.slice(lineEnd + 1);
-      if (!line || !line.startsWith('data:')) continue;
-      const payload = line.slice(5).trim();
-      if (payload === '[DONE]') continue;
-      try {
-        const event = JSON.parse(payload) as OpenAIChatResponse;
-        const delta = event.choices?.[0]?.delta?.content;
-        if (!delta) continue;
-        fullText += delta;
-        const visible = stripThoughtBlocks(fullText);
-        if (visible !== lastEmitted) {
-          onChunk(visible);
-          lastEmitted = visible;
-        }
-      } catch {
-        // Ignore malformed SSE lines — some providers emit keep-alives.
-      }
+  let buffer = '', fullText = '', lastEmitted = '';
+  let completed = false;
+  function consumeLine(raw: string) {
+    const line = raw.trim();
+    if (!line.startsWith('data:')) return; // SSE comments/keep-alives are not content.
+    const payload = line.slice(5).trim();
+    if (!payload) return;
+    if (payload === '[DONE]') { completed = true; return; }
+    let event: OpenAIChatResponse;
+    try { event = JSON.parse(payload) as OpenAIChatResponse; }
+    catch { throw new AssistantRequestError('unavailable', ASSISTANT_UNAVAILABLE_MESSAGE); }
+    if (!event || typeof event !== 'object' || event.error) throw new AssistantRequestError('unavailable', ASSISTANT_UNAVAILABLE_MESSAGE);
+    const choice = event.choices?.[0];
+    if (choice?.finish_reason && choice.finish_reason !== 'stop') {
+      throw new AssistantRequestError('incomplete', "The AI reply was interrupted. Please try your question again.");
     }
+    const delta = choice?.delta?.content;
+    if (typeof delta === 'string') {
+      fullText += delta;
+      const visible = stripThoughtBlocks(fullText);
+      if (visible !== lastEmitted) { onChunk(visible); lastEmitted = visible; }
+    }
+    if (choice?.finish_reason === 'stop') completed = true;
   }
-
-  return fullText;
+  try {
+    while (!completed) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      let lineEnd: number;
+      while ((lineEnd = buffer.indexOf('\n')) !== -1 && !completed) {
+        consumeLine(buffer.slice(0, lineEnd)); buffer = buffer.slice(lineEnd + 1);
+      }
+      if (done) { if (!completed && buffer.trim()) consumeLine(buffer); break; }
+    }
+    if (!completed || !stripThoughtBlocks(fullText)) {
+      throw new AssistantRequestError('incomplete', "Ask Chef didn't receive a complete AI reply. Please try again.");
+    }
+    return fullText;
+  } finally {
+    await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
 }
 
 export interface ChatRequest {
@@ -484,6 +508,8 @@ export interface ChatRequest {
 export interface ChatResponse {
   text: string;
   parsedRecipe: ParsedChatRecipe | null;
+  status: 'success' | 'error';
+  errorCode?: AssistantFailureCode;
 }
 
 export async function chatWithAssistant({
@@ -493,7 +519,7 @@ export async function chatWithAssistant({
   onChunk,
 }: ChatRequest): Promise<ChatResponse> {
   const systemContent = `${SYSTEM_PROMPT}\n\n---\n\n${buildDogContext(dogProfile ?? null)}`;
-  const trimmed = trimHistory(history);
+  const trimmed = trimHistory(history.filter(message => message.status !== 'error' && message.content.trim()));
 
   const apiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     { role: 'system', content: systemContent },
@@ -508,19 +534,16 @@ export async function chatWithAssistant({
     const fullText = await streamLlm(apiMessages, chunk => onChunk?.(chunk));
     const cleaned = stripThoughtBlocks(fullText);
     onChunk?.(cleaned);
-    return { text: cleaned, parsedRecipe: null };
+    return { text: cleaned, parsedRecipe: null, status: 'success' };
   } catch (error) {
     if (error instanceof AdultConfirmationError) {
-      onChunk?.(error.message);
-      return { text: error.message, parsedRecipe: null };
+      return { text: error.message, parsedRecipe: null, status: 'error', errorCode: 'adult_confirmation' };
     }
-    console.error('[assistantChat] LLM call failed, using fallback', error);
-    const text = await getFallbackAssistantResponse(userMessage, {
-      dogName: dogProfile?.name,
-      dogWeightLbs: dogProfile?.weightLbs,
-    });
-    onChunk?.(text);
-    return { text, parsedRecipe: null };
+    const failure = error instanceof AssistantRequestError
+      ? error
+      : new AssistantRequestError('unavailable', ASSISTANT_UNAVAILABLE_MESSAGE);
+    // A failed provider request is a service notice, never a canned AI answer.
+    return { text: failure.message, parsedRecipe: null, status: 'error', errorCode: failure.code };
   }
 }
 

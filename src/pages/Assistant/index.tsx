@@ -11,7 +11,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useRecipes } from '../../hooks/useRecipes';
 import { usePaywall } from '../../hooks/usePaywall';
 import { useAuth } from '../../contexts/AuthContext';
-import { chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../../utils/assistantChat';
+import { ASSISTANT_UNAVAILABLE_MESSAGE, chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../../utils/assistantChat';
 import { SHORT_VET_DISCLAIMER } from '../../utils/safetyValidator';
 import { recipeFromChatJson, validateChatRecipe } from '../../utils/chatRecipeConverter';
 import { generateId } from '../../utils/storage';
@@ -99,12 +99,11 @@ export default function AssistantPage() {
       setMessages(prev =>
         prev.map(m =>
           m.id === assistantId
-            ? { ...m, content: result.text, parsedRecipe: result.parsedRecipe ?? undefined }
+            ? { ...m, content: result.text, parsedRecipe: result.parsedRecipe ?? undefined, status: result.status === 'error' ? 'error' : undefined, errorCode: result.errorCode }
             : m
         )
       );
-    } catch (error) {
-      console.error('[AssistantPage] chat send failed', error);
+    } catch {
       // Replace the empty placeholder with a visible error message so the
       // user isn't stuck staring at a blank bubble. The user can retry by
       // re-sending the same prompt.
@@ -113,7 +112,9 @@ export default function AssistantPage() {
           m.id === assistantId
             ? {
                 ...m,
-                content: "⚠️ Sorry, I couldn't reach Cheffo Doggo just now. Check your connection and try again.",
+                content: ASSISTANT_UNAVAILABLE_MESSAGE,
+                status: 'error',
+                errorCode: 'unavailable',
               }
             : m
         )
@@ -132,7 +133,7 @@ export default function AssistantPage() {
   }
 
   async function handleSaveRecipe(message: ChatMessage) {
-    if (!activeProfile || extractingForId || savingRecipeForId) return;
+    if (loading || message.status === 'error' || !activeProfile || extractingForId || savingRecipeForId) return;
     setSaveError(null);
     try {
       let parsed = message.parsedRecipe;
@@ -293,6 +294,7 @@ export default function AssistantPage() {
                   ? 'rounded-br-md bg-[#fff1df] text-[#453729] border border-[#f4d8b7]'
                   : 'rounded-bl-md bg-white border border-[#eadfce] text-[#2b2118]',
               ].join(' ')}>
+                {message.status === 'error' && <p role="status" className="mb-1 font-semibold text-[#a54835]">AI reply unavailable</p>}
                 {message.role === 'assistant' && !message.content && loading
                   ? <span className="text-[#9a9186]">…</span>
                   : <MessageContent content={message.content} />}
@@ -300,8 +302,8 @@ export default function AssistantPage() {
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
-              {message.role === 'assistant' && message.content && <ReportContentButton target={{ source: 'chat', message: message.content }} label="Report reply" />}
-              {message.role === 'assistant' && message.content && (message.parsedRecipe || looksLikeRecipe(message.content)) && (
+              {message.role === 'assistant' && !loading && message.status !== 'error' && message.content && <ReportContentButton target={{ source: 'chat', message: message.content }} label="Report reply" />}
+              {message.role === 'assistant' && !loading && message.status !== 'error' && message.content && (message.parsedRecipe || looksLikeRecipe(message.content)) && (
                 <div className="mt-1.5 max-w-[78%]">
                   {message.savedRecipeId ? (
                     <Link

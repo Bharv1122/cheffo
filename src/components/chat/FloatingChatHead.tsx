@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDogProfiles } from '../../hooks/useDogProfiles';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useRecipes } from '../../hooks/useRecipes';
-import { chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../../utils/assistantChat';
+import { ASSISTANT_UNAVAILABLE_MESSAGE, chatWithAssistant, extractRecipeFromText, looksLikeRecipe } from '../../utils/assistantChat';
 import { recipeFromChatJson, validateChatRecipe } from '../../utils/chatRecipeConverter';
 import { generateId } from '../../utils/storage';
 import { ReportContentButton } from '../reports/ReportContentButton';
@@ -78,10 +78,14 @@ export function FloatingChatHead() {
       setMessages(prev =>
         prev.map(m =>
           m.id === assistantId
-            ? { ...m, content: result.text, parsedRecipe: result.parsedRecipe ?? undefined }
+            ? { ...m, content: result.text, parsedRecipe: result.parsedRecipe ?? undefined, status: result.status === 'error' ? 'error' : undefined, errorCode: result.errorCode }
             : m
         )
       );
+    } catch {
+      setMessages(prev => prev.map(m => m.id === assistantId
+        ? { ...m, content: ASSISTANT_UNAVAILABLE_MESSAGE, status: 'error', errorCode: 'unavailable' }
+        : m));
     } finally {
       setLoading(false);
     }
@@ -96,7 +100,7 @@ export function FloatingChatHead() {
   }
 
   async function handleSaveRecipe(message: ChatMessage) {
-    if (!activeProfile || extractingForId || savingRecipeForId) return;
+    if (loading || message.status === 'error' || !activeProfile || extractingForId || savingRecipeForId) return;
     setSaveError(null);
     try {
       let parsed = message.parsedRecipe;
@@ -223,12 +227,13 @@ export function FloatingChatHead() {
                 ? 'rounded-br-md bg-[#fff1df] text-[#453729] border border-[#f4d8b7]'
                 : 'rounded-bl-md bg-white border border-[#eadfce] text-[#2b2118]',
             ].join(' ')}>
-              {message.role === 'assistant' && !message.content && loading
+              {message.status === 'error' && <p role="status" className="mb-1 font-semibold text-[#a54835]">AI reply unavailable</p>}
+                {message.role === 'assistant' && !message.content && loading
                 ? <span className="text-[#9a9186]">…</span>
                 : <MessageContent content={message.content} />}
             </div>
-            {message.role === 'assistant' && message.content && <ReportContentButton target={{ source: 'chat', message: message.content }} label="Report reply" />}
-              {message.role === 'assistant' && message.content && (message.parsedRecipe || looksLikeRecipe(message.content)) && (
+            {message.role === 'assistant' && !loading && message.status !== 'error' && message.content && <ReportContentButton target={{ source: 'chat', message: message.content }} label="Report reply" />}
+              {message.role === 'assistant' && !loading && message.status !== 'error' && message.content && (message.parsedRecipe || looksLikeRecipe(message.content)) && (
               <div className="mt-1.5 max-w-[85%]">
                 {message.savedRecipeId ? (
                   <Link
