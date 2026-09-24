@@ -46,20 +46,43 @@ const SAFE_FETCH_CAUSE_CODES = new Set([
   'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
 ]);
 
-function logUpstreamFetchFailure(error: unknown): void {
+function fixedFetchHint(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 2048) return 'unknown';
+  if (/unexpected redirect|redirect mode (?:is set to|is) ["']?error|redirects? (?:are |is )?not allowed/i.test(value)) return 'redirect_rejected';
+  if (/invalid character in header|invalid header value|not a valid (?:header|bytestring)|cannot convert.*bytestring/i.test(value)) return 'invalid_header';
+  if (/getaddrinfo (?:ENOTFOUND|EAI_AGAIN)|DNS (?:lookup|resolution) failed/i.test(value)) return 'dns_failure';
+  if (/certificate has expired|unable to verify the first certificate|self.signed certificate|TLS handshake failed/i.test(value)) return 'tls_failure';
+  return 'unknown';
+}
+
+function logUpstreamFetchFailure(error: unknown, apiKey: string, upstreamBase: string): void {
   let errorName = 'unknown';
   let causeCode = 'unknown';
+  let errorHint = 'unknown';
   // Be defensive about arbitrary rejection values, including throwing getters.
   try {
     if (error && typeof error === 'object') {
-      const value = error as { name?: unknown; cause?: { code?: unknown } };
+      const value = error as { name?: unknown; message?: unknown; cause?: { code?: unknown; message?: unknown } };
       const name = value.name;
       if (typeof name === 'string' && SAFE_FETCH_ERROR_NAMES.has(name)) errorName = name;
-      const code = value.cause?.code;
+      errorHint = fixedFetchHint(value.message);
+      const cause = value.cause;
+      const code = cause?.code;
       if (typeof code === 'string' && SAFE_FETCH_CAUSE_CODES.has(code)) causeCode = code;
+      if (errorHint === 'unknown') errorHint = fixedFetchHint(cause?.message);
     }
-  } catch { /* Keep fixed unknown values; never inspect or stringify the error. */ }
-  console.error('[llm] upstream_failure', { stage: 'fetch_exception', status: 502, errorName, causeCode });
+  } catch { /* Keep only the fixed values already obtained. Never stringify errors. */ }
+  // Structural booleans only: no credential value, length, host or path is logged.
+  let authorizationValueValid = true;
+  try { new Headers({ Authorization: `Bearer ${apiKey}` }); } catch { authorizationValueValid = false; }
+  const endpoint = new URL(upstreamBase); // Already parsed and validated by the handler.
+  console.error('[llm] upstream_failure', {
+    stage: 'fetch_exception', status: 502, errorName, causeCode, errorHint,
+    authorizationValueValid, keyHasLineBreak: /[\r\n]/.test(apiKey),
+    keyHasOuterWhitespace: apiKey !== apiKey.trim(),
+    providerIsGoogle: endpoint.hostname === 'generativelanguage.googleapis.com',
+    baseHasExpectedGooglePath: endpoint.pathname.replace(/\/+$/, '') === '/v1beta/openai',
+  });
 }
 
 // Resolve the calling user from the Supabase access token. Returns the user id
@@ -201,7 +224,7 @@ export default async function handler(req: Request): Promise<Response> {
       body,
     });
   } catch (error) {
-    logUpstreamFetchFailure(error);
+    logUpstreamFetchFailure(error, apiKey, upstreamBase);
     return jsonError(502, 'Upstream LLM request failed');
   }
 
