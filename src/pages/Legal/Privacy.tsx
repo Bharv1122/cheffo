@@ -37,7 +37,7 @@ export default function PrivacyPolicyPage() {
           ads, and don't share information with third parties beyond the services we use to operate the app.
         </p>
         <p>
-          You can export everything we hold for you, or delete your account entirely, from inside Settings.
+          You can download your account records or request account deletion from Settings.
         </p>
         <p>
           Need to delete your account without the app?{' '}
@@ -84,8 +84,8 @@ export default function PrivacyPolicyPage() {
           </li>
           <li>
             <strong>Billing information.</strong> If you subscribe to Premium, Stripe processes your payment.
-            <strong> We do not see or store your card number.</strong> We receive only a Stripe customer ID and
-            subscription status.
+            <strong> We do not see or store your card number.</strong> We receive customer and subscription
+            identifiers, plan details, subscription status, billing-period and cancellation dates, and trial information.
           </li>
           <li>
             <strong>Technical data.</strong> A hashed form of your IP address for rate-limiting public
@@ -186,7 +186,7 @@ export default function PrivacyPolicyPage() {
       <Section title="Your rights">
         <p>You can, at any time:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li><strong>Export your data.</strong> Settings → Download my data exports a JSON file with everything we hold.</li>
+          <li><strong>Export your data.</strong> Settings → Download my data exports a JSON file with your account information and records from the app's active database. Browser-local chat history and image caches, provider-held records, and security logs are not included.</li>
           <li><strong>Delete your account.</strong> Follow the <a className="text-[#f97316] underline" href="#delete-account">account-deletion steps above</a>, including the email option if you cannot use the app.</li>
           <li><strong>Correct your data.</strong> Edit dog profiles, recipes, and preferences directly in the app.</li>
           <li><strong>Cancel your subscription.</strong> {isGooglePlayApp() ? 'Contact support to cancel an existing subscription.' : "Settings → Manage subscription opens Stripe's portal."}</li>
