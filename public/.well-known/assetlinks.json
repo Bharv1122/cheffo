@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cheffodoggo.app",
+      "sha256_cert_fingerprints": [
+        "A8:25:8E:EC:06:2B:E4:5D:54:18:15:AA:23:D5:4E:EE:B9:15:CD:FD:A7:D8:8A:8C:0D:78:09:C6:D0:06:78:C6"
+      ]
+    }
+  }
+]
