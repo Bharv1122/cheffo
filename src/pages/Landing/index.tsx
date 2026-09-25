@@ -10,7 +10,6 @@ import {
   Package,
   MessageCircle,
   Check,
-  X,
   ArrowRight,
   Leaf,
   Clock,
@@ -23,47 +22,29 @@ const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 const VALUE_PROPS = [
   {
     icon: <Leaf size={20} />,
-    title: 'Real food, no fillers',
-    body: 'Whole-food ingredients you\'d cook with yourself — named meats, real produce, simple supplements. No "meat by-products," no rendered protein, no BHA/BHT, no mystery.',
+    title: 'Ingredients you recognize',
+    body: 'See every ingredient, amount, and preparation step. Know what goes into the bowl.',
     color: 'bg-[#eaf6ea] text-[#43a365]',
   },
   {
     icon: <Heart size={20} />,
     title: 'Personalized to your dog',
-    body: 'Weight, age, life stage, activity level, allergies, picky-eater flag — Cheffo Doggo scales portions and picks ingredients for the dog in front of you, not "an average 30-pound dog".',
+    body: 'Recipes shaped around your dog’s weight, life stage, activity, and ingredient preferences.',
     color: 'bg-[#ffe8cf] text-[#f97316]',
   },
   {
     icon: <Stethoscope size={20} />,
     title: 'Built for your own vet to review',
-    body: 'Request your veterinarian\'s review from the recipe page. If they approve it, the recipe records their signed approval instead of making a blanket veterinary claim.',
+    body: 'Share recipes, portions, and supplement notes with your own veterinarian before changing your dog’s diet.',
     color: 'bg-[#efe9ff] text-[#7f56d9]',
   },
-];
-
-const PROCESSED_INGREDIENTS = [
-  '"Meat by-products" — parts that don\'t make the cut for human food',
-  'Rendered protein — cooked to slurry at high heat, then dried',
-  '"Poultry" or "meat" with no species named on the label',
-  'Ground corn, soybean meal as bulk filler',
-  'BHA, BHT, ethoxyquin (chemical preservatives)',
-  'Artificial colors so kibble "looks" like food',
-];
-
-const REAL_INGREDIENTS = [
-  'Lean chicken, ground turkey, salmon — named, whole-muscle cuts',
-  'Sweet potato, brown rice, quinoa, butternut squash, oats',
-  'Carrots, green beans, spinach, kale, blueberries',
-  'Olive oil, fish oil, ground flaxseed for healthy fats',
-  'Eggshell powder for calcium — no chemical preservatives',
-  'Ingredients you can buy at any grocery store',
 ];
 
 const BATCH_BENEFITS = [
   {
     icon: <Clock size={20} />,
     title: 'One session, a whole week',
-    body: 'Set aside an hour. Cook a single big batch instead of prepping a fresh bowl every single night — homemade that actually fits a real schedule.',
+    body: 'A weekly recipe and one shopping list. Prep a batch when it suits your schedule.',
     color: 'bg-[#ffe8cf] text-[#f97316]',
   },
   {
@@ -109,7 +90,7 @@ const RECIPE_TYPES = [
 
 const FAQ_TEASERS = [
   { q: 'Is this a substitute for veterinary advice?', a: 'No — Cheffo Doggo is educational guidance. Always consult your vet for medical decisions.' },
-  { q: 'Why no raw food?', a: 'Lightly-cooked positioning. Raw carries Salmonella, E. coli, Toxoplasma, and salmon-poisoning risk. Cooked is safer with most of the nutritional upside.' },
+  { q: 'Why no raw food?', a: 'Cheffo Doggo focuses on cooked recipes, with preparation instructions and ingredient notes to discuss with your veterinarian.' },
   { q: 'How much does it cost?', a: '$8/month or $59/year. 14-day money-back guarantee. One free treat recipe to try first.' },
 ];
 
@@ -125,8 +106,8 @@ function DemoVideo() {
         src="/cheffo-doggo-demo-v6.mp4"
         controls
         playsInline
-        preload="auto"
-        poster="/cheffo-doggo-logo.png"
+        preload="none"
+        poster="/demo-poster-v2.png"
         className="block aspect-[16/10] w-full bg-[#21150e] object-contain"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -154,7 +135,7 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
           <Link to="/" className="flex items-center gap-2 text-[#2b2118]">
             <img src="/cheffo-doggo-logo.png" alt="" className="h-9 w-9 rounded-full object-cover" />
-            <span className="text-lg font-bold tracking-tight">Cheffo Doggo</span>
+            <span className="whitespace-nowrap text-base sm:text-lg font-bold tracking-tight">Cheffo Doggo</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-3 text-sm">
             <Link to="/pricing" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Pricing</Link>
@@ -163,130 +144,51 @@ export default function LandingPage() {
                 a <Link> would client-route into the catch-all redirect. */}
             <a href="/learn/" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Learn</a>
             <Link to="/help" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Help</Link>
-            <Link to="/login" className="px-3 py-2 text-[#5f564d] hover:text-[#2b2118] font-medium">Sign in</Link>
+            <Link to="/login" className="whitespace-nowrap px-2 sm:px-3 py-2 text-[#5f564d] hover:text-[#2b2118] font-medium">Sign in</Link>
             <Link
               to="/signup"
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-[#f97316] px-4 py-2 text-white font-semibold shadow-sm hover:bg-[#ea6a0c]"
+              className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-2xl bg-[#f97316] px-3 sm:px-4 py-2 text-white font-semibold shadow-sm hover:bg-[#ea6a0c]"
             >
-              Get started
+              Free treat
               <ArrowRight size={14} aria-hidden="true" />
             </Link>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="px-4 py-8 sm:py-24">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf6ea] px-3 py-1 text-xs font-semibold text-[#2f8e56]">
-            <Leaf size={12} aria-hidden="true" />
-            Real human-food ingredients
-          </p>
-          <h1 className="mt-4 text-3xl font-bold leading-tight text-[#2b2118] sm:mt-5 sm:text-5xl">
-            From ultra-processed kibble<br className="hidden sm:inline" />{' '}
-            to <span className="text-[#f97316]">homemade human food.</span>
-          </h1>
-          <p className="mt-3 text-base leading-relaxed text-[#5f564d] sm:mt-4 sm:text-lg">
-            Cheffo Doggo turns the same fresh ingredients you cook with — lean chicken, salmon,
-            sweet potato, leafy greens — into personalized meal plans you can review with your veterinarian.
-            No "meat by-products," no preservatives, no mystery.
-          </p>
-          {/* Guest funnel: let a stranger see a real recipe for their own dog
-              before we ask for anything. Runs entirely client-side (treat text
-              is template-generated), so it costs nothing per visitor. This is
-              the Cheffo twin of the Recipe Reborn guest scan, which is the only
-              mechanic that has converted a cold stranger.
-
-              It sits directly under the headline so it clears the fold on a
-              375x812 phone — the batch-cooking line and the brand quote below
-              are still here, just moved under the box rather than in front of
-              it. Show first, sell second. */}
-          <div className="mt-5 sm:mt-8">
-            <GuestTreat />
+      <main>
+      <section className="px-5 pb-12 pt-7 sm:px-8 sm:pb-20 sm:pt-16">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
+          <div>
+            <p className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#97602f]"><Leaf size={15} aria-hidden="true" /> A little homemade. A lot of love.</p>
+            <h1 className="text-4xl font-bold leading-[1.06] tracking-tight text-[#2b2118] sm:text-6xl">Homemade meals.<br /><span className="text-[#bd4a0b]">Made for<br className="hidden lg:block" /> your dog.</span></h1>
+            <p className="mt-4 sm:mt-6 max-w-lg text-base sm:text-lg leading-relaxed text-[#5f564d]">Fresh ingredients. Portions for your pup. Simple recipes and weekly meal plans to make cooking for your dog feel doable.</p>
+            <a href="#free-treat" className="mt-5 sm:mt-7 inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-[#bd4a0b] px-7 py-3.5 font-bold text-white shadow-sm hover:bg-[#993b09]">Try a free treat recipe <ArrowRight size={18} aria-hidden="true" /></a>
+            <p className="mt-3 text-sm text-[#756657]">Preview first. No card needed.</p>
+            <div className="mt-5 sm:mt-8 flex items-center gap-3 border-t border-[#e3d4c2] pt-5 text-[#3e4933]"><CalendarDays size={24} aria-hidden="true" /><div><p className="font-bold">Cook once. Feed all week.</p><p className="text-sm text-[#756657]">Your plan, shopping list, and freezer portions.</p></div></div>
           </div>
-
-          <p className="mt-6 text-base font-medium text-[#3a302a]">
-            And homemade doesn’t mean cooking every night — <span className="text-[#f97316] font-semibold">batch a whole week in one session</span>, portion, freeze, and serve.
-          </p>
-          <p className="mt-2 italic text-[#7f7469]">
-            "Real food first. Supplements only when food can't get there."
-          </p>
-
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link
-              to="/signup"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
-            >
-              Try a free treat recipe — no card needed
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-            <Link
-              to="/pricing"
-              className="inline-flex items-center gap-2 rounded-2xl border border-[#eadfce] bg-white px-6 py-3 text-base font-semibold text-[#2b2118] shadow-sm hover:bg-[#fff6ec]"
-            >
-              See pricing
-            </Link>
-          </div>
-          <p className="mt-4 text-xs text-[#9c9288]">One free treat recipe · Premium is $8/month or $59/year</p>
-        </div>
-      </section>
-
-      {/* Transformation: what's actually in your dog's food? */}
-      <section className="px-4 py-16 bg-white border-y border-[#eadfce]">
-        <div className="mx-auto max-w-5xl">
-          <header className="text-center">
-            <h2 className="text-3xl font-bold text-[#2b2118]">What's actually in your dog's food?</h2>
-            <p className="mt-2 text-[#7f7469] max-w-2xl mx-auto">
-              You wouldn't eat ultra-processed food yourself. Your dog deserves better than the
-              kibble industry's version of fast food.
-            </p>
-          </header>
-
-          <div className="mt-10 grid gap-5 md:grid-cols-2">
-            {/* Processed side */}
-            <div className="rounded-3xl border border-[#e7e5e4] bg-[#fafaf9] p-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#a3a39e]">
-                Typical commercial dog food
-              </p>
-              <h3 className="mt-2 text-xl font-semibold text-[#5f564d]">Ultra-processed kibble</h3>
-              <ul className="mt-5 space-y-3 text-sm text-[#6f6459]">
-                {PROCESSED_INGREDIENTS.map(item => (
-                  <li key={item} className="flex items-start gap-2.5">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#fee2e2] text-[#b91c1c]">
-                      <X size={11} strokeWidth={3} aria-hidden="true" />
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Real side */}
-            <div className="rounded-3xl border-2 border-[#43a365] bg-[#f2fbf4] p-6 shadow-[0_8px_24px_-12px_rgba(67,163,101,0.35)]">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#2f8e56]">
-                A Cheffo Doggo recipe
-              </p>
-              <h3 className="mt-2 text-xl font-semibold text-[#1f5a36]">Real homemade human food</h3>
-              <ul className="mt-5 space-y-3 text-sm text-[#1f5a36]">
-                {REAL_INGREDIENTS.map(item => (
-                  <li key={item} className="flex items-start gap-2.5">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#bfe7cb] text-[#1f5a36]">
-                      <Check size={11} strokeWidth={3} aria-hidden="true" />
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+          <div className="relative pb-9">
+            <img src="/landing-dog-bowl.webp" alt="Cooper beside a bowl of cooked chicken, vegetables, and rice in a sunny kitchen" width="1536" height="1024" fetchPriority="high" className="aspect-[4/5] max-h-[580px] w-full rounded-[2rem] object-cover sm:aspect-[1.05/1]" />
+            <div className="absolute bottom-0 left-4 right-4 rounded-2xl border border-[#e3d4c2] bg-white p-5 shadow-lg sm:left-6 sm:right-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#97602f]">Inside Cheffo Doggo · sample recipe</p>
+              <h2 className="mt-2 text-xl font-bold text-[#2b2118]">Turkey, Oat &amp; Veggie Bowl</h2>
+              <p className="mt-1 text-sm text-[#756657]">Ingredients → portions → cooking steps</p>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-[#3e4933]"><span>✓ Shopping list</span><span>✓ Batch plan</span><span>✓ Vet review packet</span></div>
             </div>
           </div>
-
-          <p className="mt-8 text-center text-base text-[#3a302a]">
-            <strong className="font-semibold">Make the swap.</strong>{' '}
-            You can see every ingredient, portion, and preparation step — and review the plan with your veterinarian.
-          </p>
         </div>
       </section>
-
+      <section className="border-y border-[#e3d4c2] bg-[#f2ecdf] px-5 py-7">
+        <div className="mx-auto grid max-w-6xl gap-5 sm:grid-cols-3">
+          {VALUE_PROPS.map(prop => <div key={prop.title} className="flex gap-3"><span className="mt-1 text-[#bd4a0b]">{prop.icon}</span><div><h2 className="font-bold text-[#2b2118]">{prop.title}</h2><p className="mt-1 text-sm leading-relaxed text-[#5f564d]">{prop.body}</p></div></div>)}
+        </div>
+      </section>
+      <section id="free-treat" className="scroll-mt-24 px-5 py-14 sm:py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-9 lg:grid-cols-[0.8fr_1.2fr]">
+          <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#97602f]">Start with something small</p><h2 className="mt-3 text-3xl font-bold tracking-tight text-[#2b2118] sm:text-4xl">A treat with<br />their name on it.</h2><p className="mt-4 max-w-md leading-relaxed text-[#5f564d]">Tell us a little about your dog to see a real treat idea. Create a free account when you’re ready for the amounts and steps.</p><p className="mt-4 text-sm text-[#756657]">One free treat recipe. Meal plans and weekly batches are included with Premium.</p></div>
+          <GuestTreat />
+        </div>
+      </section>
       {/* Batch cooking: cook once, feed all week */}
       <section className="px-4 py-16">
         <div className="mx-auto max-w-5xl">
@@ -297,9 +199,8 @@ export default function LandingPage() {
             </p>
             <h2 className="mt-4 text-3xl font-bold text-[#2b2118]">Cook once. Feed all week.</h2>
             <p className="mt-2 text-[#7f7469] max-w-2xl mx-auto">
-              The #1 reason people never switch to homemade is time. So Cheffo Doggo is built
-              around batch cooking — make a full week of real meals in a single session, then
-              just scoop, thaw, and serve.
+              Make room for homemade in a busy week. Plan your meals, prep a batch,
+              portion it out, and freeze what you’ll need later.
             </p>
           </header>
 
@@ -327,29 +228,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Value props */}
-      <section className="px-4 py-12 bg-white border-y border-[#eadfce]">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid gap-6 md:grid-cols-3">
-            {VALUE_PROPS.map(prop => (
-              <div key={prop.title} className="rounded-3xl bg-[#fffbf5] p-6">
-                <div className={['grid h-12 w-12 place-items-center rounded-2xl', prop.color].join(' ')}>
-                  {prop.icon}
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#2b2118]">{prop.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#5f564d]">{prop.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* How it works */}
       <section className="px-4 py-16">
         <div className="mx-auto max-w-3xl">
           <header className="text-center">
             <h2 className="text-3xl font-bold text-[#2b2118]">How it works</h2>
-            <p className="mt-2 text-[#7f7469]">Three steps. About a minute. Then cook.</p>
+            <p className="mt-2 text-[#7f7469]">From your dog’s profile to a plan you can review with your vet.</p>
           </header>
           <ol className="mt-10 space-y-6">
             {STEPS.map(step => (
@@ -376,11 +260,10 @@ export default function LandingPage() {
               Full site demo
             </p>
             <h2 className="mt-4 text-3xl font-bold leading-tight text-[#2b2118]">
-              Watch someone use the whole Cheffo Doggo site.
+              See what’s cooking.
             </h2>
             <p className="mt-3 leading-relaxed text-[#5f564d]">
-              The demo walks from the landing page through recipe types, weekly batch planning,
-              pricing, help, account screens, and the completed vet approval packet.
+              Take a look at the recipes, batch plans, and vet review tools before you sign up.
             </p>
 
             <div className="mt-6 rounded-3xl border border-[#eadfce] bg-[#fffbf5] p-5">
@@ -389,13 +272,13 @@ export default function LandingPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#f97316]">Vet Approval Packet</p>
                   <h3 className="mt-1 font-semibold text-[#2b2118]">Turkey + sweet potato weekly batch</h3>
                 </div>
-                <span className="rounded-full bg-[#eaf6ea] px-3 py-1 text-xs font-bold text-[#2f8e56]">Ready to send</span>
+                <span className="rounded-full bg-[#eaf6ea] px-3 py-1 text-xs font-bold text-[#2f8e56]">Example packet</span>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {[
                   ['Dog profile', 'Molly | 42 lb | Adult'],
                   ['Recipe', '14 containers + freezer plan'],
-                  ['Daily portion', '2 meals | 508 kcal/day'],
+                  ['Daily portion', 'Calculated for your dog'],
                   ['Approval request', 'Approve or request edits'],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl border border-[#eadfce] bg-white p-3">
@@ -443,7 +326,7 @@ export default function LandingPage() {
       {/* Pricing teaser */}
       <section className="px-4 py-16">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold text-[#2b2118]">One free treat recipe. Food recipes are paid.</h2>
+          <h2 className="text-3xl font-bold text-[#2b2118]">Start with a treat. Stay for mealtime.</h2>
           <p className="mt-2 text-[#7f7469]">
             Non-subscribers get exactly one free treat recipe. Full meals, weekly batches,
             toppers, pantry food recipes, and vet packets require a paid plan.
@@ -452,7 +335,7 @@ export default function LandingPage() {
             <div className="rounded-3xl border border-[#eadfce] bg-white p-6 text-left">
               <p className="text-sm font-semibold uppercase tracking-wide text-[#7f7469]">Free</p>
               <p className="mt-3 text-4xl font-bold text-[#2b2118]">1 treat</p>
-              <p className="mt-2 text-sm text-[#5f564d]">one non-subscriber treat recipe, no meal or batch recipes</p>
+              <p className="mt-2 text-sm text-[#5f564d]">One complete treat recipe to try with a free account.</p>
             </div>
             <div className="rounded-3xl border border-[#eadfce] bg-white p-6 text-left">
               <p className="text-sm font-semibold uppercase tracking-wide text-[#7f7469]">Monthly</p>
@@ -518,6 +401,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      </main>
       {/* Footer */}
       <footer className="px-4 py-10 bg-[#2b2118] text-[#cbb9a3]">
         <div className="mx-auto max-w-5xl">
@@ -525,7 +409,7 @@ export default function LandingPage() {
             <div>
               <div className="flex items-center gap-2 text-white">
                 <img src="/cheffo-doggo-logo.png" alt="" className="h-9 w-9 rounded-full object-cover" />
-                <span className="text-lg font-bold tracking-tight">Cheffo Doggo</span>
+                <span className="whitespace-nowrap text-base sm:text-lg font-bold tracking-tight">Cheffo Doggo</span>
               </div>
               <p className="mt-3 text-sm max-w-sm">
                 Real food first. Supplements only when food can't get there.
@@ -548,15 +432,11 @@ export default function LandingPage() {
         </div>
       </footer>
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#eadfce] bg-[#fffbf5]/95 p-3 shadow-[0_-8px_24px_rgba(43,33,24,0.12)] backdrop-blur-sm sm:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-[0.9fr_1.1fr] gap-2">
-          <Link to="/calculator?src=mobile-sticky" className="flex min-h-11 items-center justify-center rounded-xl border border-[#eadfce] bg-white px-3 text-sm font-semibold text-[#2b2118]">
-            Free calculator
-          </Link>
-          <Link to="/signup?src=mobile-sticky" className="flex min-h-11 items-center justify-center rounded-xl bg-[#f97316] px-3 text-sm font-semibold text-white shadow-sm">
-            Unlock free recipe
-          </Link>
+        <div className="mx-auto max-w-md">
+          <a href="#free-treat" className="flex min-h-11 items-center justify-center rounded-full bg-[#bd4a0b] px-3 text-sm font-semibold text-white shadow-sm">Try a free treat recipe</a>
         </div>
       </div>
     </div>
   );
 }
+
