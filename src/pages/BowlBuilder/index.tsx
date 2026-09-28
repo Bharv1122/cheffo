@@ -37,7 +37,7 @@ export default function BowlBuilderPage() {
   // so we can greet them with a "Now let's make a recipe for X" line instead
   // of dropping them on a generic form.
   const welcomeDogName = searchParams.get('welcome');
-  const { recipes, saveRecipe } = useRecipes();
+  const { saveRecipe } = useRecipes();
   const { activeProfile, profiles, loading: profilesLoading } = useDogProfiles();
 
   const [chosenType, setChosenType] = useState<RecipeType | null>(() =>
@@ -94,15 +94,8 @@ export default function BowlBuilderPage() {
         batchDuration: recipeType === 'batch_week' ? '7day' : '1day',
       });
       await trackFunnelEvent('recipe_generated');
-      const existing = recipes.find(savedRecipe =>
-        savedRecipe.dogProfileId === recipe.dogProfileId &&
-        savedRecipe.type === recipe.type &&
-        savedRecipe.sourceTemplateId === recipe.sourceTemplateId
-      );
-      if (existing) {
-        navigate(`/recipes/${existing.id}`);
-        return;
-      }
+      // A matching template can have older portions or user substitutions.
+      // Keep that saved recipe intact and save the plan just generated.
       const saved = await saveRecipe(recipe);
       navigate(`/recipes/${saved.id}`);
     } catch (e) {

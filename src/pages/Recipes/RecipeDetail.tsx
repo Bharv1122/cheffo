@@ -1101,7 +1101,7 @@ export default function RecipeDetailPage() {
           <div className="rounded-2xl border border-[#eadfce] bg-[#fff9f0] p-4 text-center">
             <p className="text-2xl font-bold text-[#2b2118]">{selectedBatchCups}</p>
             <p className="text-[11px] uppercase tracking-wide text-[#8b8378]">cups total</p>
-            <p className="mt-0.5 text-xs text-[#7f7469]">~{selectedBatch.totalYieldGrams}g</p>
+            <p className="mt-0.5 text-xs text-[#7f7469]">~{Math.round(selectedBatch.totalYieldGrams)}g</p>
           </div>
           <div className="rounded-2xl border border-[#eadfce] bg-[#fff9f0] p-4 text-center">
             <p className="text-2xl font-bold text-[#2b2118]">{selectedBatch.numberOfMeals}</p>
