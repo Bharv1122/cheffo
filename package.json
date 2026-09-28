@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports",
+    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports",
     "lint": "eslint .",
     "preview": "vite preview",
     "verify:audit-bundle": "node scripts/verify-audit-bundle.mjs",
     "verify:portion-scaling": "node scripts/verify-portion-scaling.mjs",
+    "verify:chat-recipe-amounts": "node scripts/verify-chat-recipe-amounts.mjs",
     "verify:recipe-detail-batch-default": "node scripts/verify-recipe-detail-batch-default.mjs",
     "verify:real-photos-and-vet-template": "node scripts/verify-real-photos-and-vet-template.mjs",
     "verify:product-integrity": "node scripts/verify-product-integrity.mjs",

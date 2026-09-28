@@ -1,6 +1,7 @@
 import type { DogProfile } from '../types/dog';
 import type { AssistantFailureCode, ChatMessage, ParsedChatRecipe } from '../types/assistant';
 import { AdultConfirmationError, buildAdultAiHeaders } from '../lib/adultConfirmation';
+import { coerceGrams, INGREDIENT_AMOUNT_RE } from './chatRecipeAmounts';
 
 // The LLM key lives only in the server-side proxy (api/llm.ts). The client
 // posts to the same-origin /api/llm endpoint — no provider key. The proxy is
@@ -161,49 +162,16 @@ const VALID_RECIPE_TYPES: ReadonlyArray<ParsedChatRecipe['type']> = [
   'pantry',
 ];
 
-// Pull a gram count out of whatever the model emitted: a number, a bare-number
-// string ("200"), a grams string ("200g"), or another unit ("8 oz", "1 cup",
-// "1.5 lb", "1 tbsp"). Returns null if we can't get a positive number out.
-function coerceGrams(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
-    return Math.round(value);
-  }
-  if (typeof value !== 'string') return null;
-  const match = value.match(/(-?\d+(?:\.\d+)?)/);
-  if (!match) return null;
-  const n = parseFloat(match[1]);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  const lower = value.toLowerCase();
-  if (/\boz\b|ounce/.test(lower)) return Math.round(n * 28);
-  if (/\blb\b|pound/.test(lower)) return Math.round(n * 454);
-  if (/\bcup/.test(lower)) return Math.round(n * 200);
-  if (/\btbsp|tablespoon/.test(lower)) return Math.round(n * 15);
-  if (/\btsp|teaspoon/.test(lower)) return Math.round(n * 5);
-  return Math.round(n); // assume grams when no unit is given
-}
-
 // Heuristic fallback extractor: parses a recipe directly out of natural-
 // language chat text using regex. Used when the LLM extract call returns
 // nothing usable. Conservative on purpose — returns null unless it finds an
 // Ingredients section with at least one parseable amount and a few steps.
-const INGREDIENT_AMOUNT_RE = /(\d+(?:\.\d+)?(?:\/\d+)?|\d*\s*½|\d*\s*¼|\d*\s*¾)\s*(g(?:rams?)?|oz|ounces?|lb|lbs|pounds?|cups?|tbsp|tablespoons?|tsp|teaspoons?)\b/i;
-
-function fractionToNumber(value: string): number {
-  if (value.includes('½')) return parseFloat(value.replace('½', '').trim() || '0') + 0.5;
-  if (value.includes('¼')) return parseFloat(value.replace('¼', '').trim() || '0') + 0.25;
-  if (value.includes('¾')) return parseFloat(value.replace('¾', '').trim() || '0') + 0.75;
-  if (value.includes('/')) {
-    const [num, den] = value.split('/').map(s => parseFloat(s.trim()));
-    if (Number.isFinite(num) && Number.isFinite(den) && den !== 0) return num / den;
-  }
-  return parseFloat(value);
-}
 
 function parseIngredientLine(raw: string): ParsedChatRecipe['ingredients'][number] | null {
   // Strip leading list markers (-, *, •, numbers) and bold/italic markdown
   const line = raw
-    .replace(/^\s*[-*•]+\s*/, '')
-    .replace(/^\s*\d+[.)]\s*/, '')
+    .replace(/^\s*[-*•]+\s+/, '')
+    .replace(/^\s*\d+[.)]\s+/, '')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
     .replace(/[*_`]/g, '')
@@ -212,10 +180,7 @@ function parseIngredientLine(raw: string): ParsedChatRecipe['ingredients'][numbe
 
   const amountMatch = line.match(INGREDIENT_AMOUNT_RE);
   if (!amountMatch) return null;
-  const qty = fractionToNumber(amountMatch[1]);
-  if (!Number.isFinite(qty) || qty <= 0) return null;
-  const unit = amountMatch[2].toLowerCase();
-  const grams = coerceGrams(`${qty} ${unit}`);
+  const grams = coerceGrams(`${amountMatch[1]} ${amountMatch[2]}`);
   if (!grams) return null;
 
   // Strip the amount itself; whatever's left is the name (plus a prep note).
@@ -294,6 +259,9 @@ export function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
     if (classifyHeader(lines[i])) continue; // skip the header line itself
     if (hasIngredientsSection && !ingredientSectionNames.has(sectionAtLine[i])) continue;
     const parsed = parseIngredientLine(lines[i]);
+    // A partial import can silently drop the main protein. In an explicit
+    // ingredient section, refuse the import if any nonblank row is unreadable.
+    if (hasIngredientsSection && lines[i].trim() && !parsed) return null;
     if (parsed) ingredients.push(parsed);
   }
   if (ingredients.length < 2) {
@@ -366,9 +334,9 @@ export function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
 
 // Normalize whatever the extract LLM returned into our `ParsedChatRecipe`
 // shape. More forgiving than a strict type-check: coerces string grams, accepts
-// missing `description`, defaults `type`, and drops only the unparseable
-// ingredient rows rather than failing the whole recipe.
-function normalizeParsedRecipe(value: unknown): ParsedChatRecipe | null {
+// missing `description`, and defaults `type`. Reject incomplete ingredient
+// lists rather than silently dropping foods with unreadable amounts.
+export function normalizeParsedRecipe(value: unknown): ParsedChatRecipe | null {
   if (!value || typeof value !== 'object') return null;
   const v = value as Record<string, unknown>;
 
@@ -397,7 +365,7 @@ function normalizeParsedRecipe(value: unknown): ParsedChatRecipe | null {
       return { name: ingredientName, grams, prepNote };
     })
     .filter((entry): entry is ParsedChatRecipe['ingredients'][number] => entry !== null);
-  if (ingredients.length === 0) return null;
+  if (ingredients.length === 0 || ingredients.length !== v.ingredients.length) return null;
 
   if (!Array.isArray(v.instructions)) return null;
   const instructions = v.instructions
