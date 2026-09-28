@@ -3,7 +3,7 @@ export function replaceIngredientReference(
   previousName: string,
   nextName: string,
 ): string | undefined {
-  if (!value) return value;
+  if (!value || !previousName) return value;
   const escaped = previousName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return value.replace(new RegExp(escaped, 'gi'), nextName);
 }

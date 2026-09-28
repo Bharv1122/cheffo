@@ -12,7 +12,15 @@ The launcher appends the marker on every launch and incoming deep link, preserve
 
 Requires JDK 17, Android SDK platform 36, build-tools 35.0.0, and Gradle 8.13. Android Gradle Plugin is pinned to 8.13.2 and Android Browser Helper to 2.7.3.
 
-Set JAVA_HOME and ANDROID_HOME, then run from this directory:
+The documented AGP compatibility values are build-runtime prerequisites, separate from the Java 17 source/target level in `app/build.gradle`. For a reproducible Linux/cloud debug build, set `JAVA_HOME` to JDK 17 and either `ANDROID_SDK_ROOT` or `ANDROID_HOME` to an SDK that already contains Platform 36 and Build-Tools 35.0.0, then run:
+
+```bash
+./build-debug.sh
+```
+
+The script performs prerequisite checks, uses the checked-in wrapper with `--no-daemon`, runs only `:app:assembleDebug`, and verifies `app/build/outputs/apk/debug/app-debug.apk`. It never installs SDK components, accepts licenses, accesses signing material, or runs a release task. Install and accept any Android SDK terms outside this script through an owner-approved process.
+
+On Windows, set `JAVA_HOME` and `ANDROID_HOME`, then run from this directory:
 
 ```powershell
 .\gradlew.bat :app:assembleDebug :app:lintDebug

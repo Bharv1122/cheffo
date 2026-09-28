@@ -21,6 +21,12 @@ assert.equal(
   'ingredient names with regular-expression characters must be replaced literally',
 );
 
+assert.equal(
+  replaceIngredientReference('Keep this instruction unchanged.', '', 'Chicken Breast'),
+  'Keep this instruction unchanged.',
+  'an empty previous ingredient name must preserve the original instruction',
+);
+
 for (const requiredUpdate of [
   'instructions: nextInstructions',
   'nutrition: nextNutrition',
