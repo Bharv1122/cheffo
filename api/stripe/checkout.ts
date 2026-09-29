@@ -172,9 +172,8 @@ export default async function handler(req: Request): Promise<Response> {
     );
     return jsonResponse(200, { url: session.url });
   } catch (error) {
+    // Full Stripe error stays in the server log; the browser gets a generic message.
     console.error('[stripe/checkout] failed:', error);
-    return jsonResponse(500, {
-      error: error instanceof Error ? error.message : 'Could not start checkout.',
-    });
+    return jsonResponse(500, { error: 'Could not start checkout. Please try again.' });
   }
 }

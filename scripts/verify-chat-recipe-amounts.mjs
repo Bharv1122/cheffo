@@ -53,4 +53,10 @@ for (const invalid of ['1 fillet', '1,5 kg', '-1 kg']) {
   }), null, 'do not silently omit an unreadable protein amount');
   assert.equal(heuristicExtractRecipe(`Ingredients:\nWhitefish Fillets: ${invalid}\nZucchini: 400 g\nGreen Beans: 200 g\nInstructions:\n1. Cook fish.\n2. Steam vegetables.\n3. Combine.`), null, 'fallback must reject an incomplete ingredient list');
 }
+// Headerless responses (no "Ingredients:" line) must also refuse a bulleted
+// ingredient list with an unreadable row, but still accept a clean one.
+assert.equal(heuristicExtractRecipe('Here is a bowl for Cooper.\n- Whitefish fillets: 1 fillet\n- Zucchini: 400 g\n- Green beans: 200 g\n\n1. Cook the fish thoroughly.\n2. Steam the vegetables.\n3. Combine after cooling.'), null, 'headerless fallback must reject an incomplete bulleted ingredient list');
+const headerless = heuristicExtractRecipe('Here is a bowl for Cooper.\n- Whitefish fillets: 1 kg\n- Zucchini: 400 g\n\n1. Cook the fish thoroughly.\n2. Stir in the zucchini.\n3. Combine after cooling.');
+assert.ok(headerless, 'headerless fallback still accepts a complete list');
+assert.equal(headerless.ingredients[0].grams, 1000, 'headerless whitefish amount');
 console.log('Chat quantity regression checks passed: kilograms, grouped grams, fractions, malformed units and both extraction paths.');

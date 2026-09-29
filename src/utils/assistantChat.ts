@@ -226,6 +226,38 @@ function classifyHeader(line: string): { name: string } | null {
   return { name: m[1].toLowerCase() };
 }
 
+function listMarker(line: string): 'bullet' | 'number' | null {
+  if (/^\s*[-*•]\s+/.test(line)) return 'bullet';
+  if (/^\s*\d+[.)]\s+/.test(line)) return 'number';
+  return null;
+}
+
+// Headerless responses: within each block of consecutive nonblank lines that
+// contains a parsed bulleted ingredient, every bulleted item must also parse.
+// Only bullets are checked: numbered lines are usually cooking steps, and a
+// step like "2. Stir in the rice" legitimately has no amount.
+function hasUnreadableHeaderlessIngredient(lines: string[], isUsableLine: (i: number) => boolean): boolean {
+  let start = 0;
+  while (start < lines.length) {
+    while (start < lines.length && !lines[start].trim()) start++;
+    let end = start;
+    while (end < lines.length && lines[end].trim() && !classifyHeader(lines[end])) end++;
+
+    const isBullet = (i: number) => isUsableLine(i) && listMarker(lines[i]) === 'bullet';
+    let blockHasIngredient = false;
+    for (let i = start; i < end; i++) {
+      if (isBullet(i) && parseIngredientLine(lines[i])) blockHasIngredient = true;
+    }
+    if (blockHasIngredient) {
+      for (let i = start; i < end; i++) {
+        if (isBullet(i) && !parseIngredientLine(lines[i])) return true;
+      }
+    }
+    start = Math.max(end, start + 1);
+  }
+  return false;
+}
+
 export function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
   const lines = text.split(/\r?\n/);
 
@@ -264,6 +296,11 @@ export function heuristicExtractRecipe(text: string): ParsedChatRecipe | null {
     if (hasIngredientsSection && lines[i].trim() && !parsed) return null;
     if (parsed) ingredients.push(parsed);
   }
+  // Without an Ingredients header, prose lines can't all be required to parse,
+  // but a list item sitting in the same block as parsed ingredients is part of
+  // that ingredient list. If one of those is unreadable, refuse the import
+  // rather than save a recipe that silently lost a food.
+  if (!hasIngredientsSection && hasUnreadableHeaderlessIngredient(lines, isUsableLine)) return null;
   if (ingredients.length < 2) {
     console.warn('[assistantChat] heuristic: only found', ingredients.length, 'ingredient(s). Source text:', text);
     return null;
