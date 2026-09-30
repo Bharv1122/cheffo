@@ -13,19 +13,19 @@
 //   * zod-validated, length-bounded inputs; no LLM or paid API is ever called;
 //   * logs carry the method, status and timing only, never tool arguments.
 //
-// Edge runtime, like the other functions: Vercel bundles Edge functions, so
-// the extensionless relative imports shared with src/ resolve. (On the
-// unbundled Node runtime they fail with ERR_MODULE_NOT_FOUND in this ESM
-// package.) The SDK's default JSON-schema validator (ajv) compiles with
-// `new Function`, which Edge forbids, so the eval-free @cfworker validator is
-// passed instead. scripts/verify-mcp-tools.mjs runs the bundled handler in
-// Vercel's edge-runtime sandbox to check this.
+// Node.js runtime with Web-standard named handlers (POST/GET/DELETE). Vercel
+// doesn't bundle Node functions and this package is ESM, so every relative
+// import on this file's runtime import graph carries an explicit `.js`
+// extension (ERR_MODULE_NOT_FOUND otherwise). The Edge bundler couldn't
+// resolve the SDK's subpath exports, so Edge isn't an option here.
+// scripts/verify-mcp-deploy.mjs compiles the graph the way Vercel does and
+// imports it with plain Node to catch regressions.
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { CfWorkerJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/cfworker';
 import { z } from 'zod';
-import { checkIpRateLimit, tooManyRequestsResponse } from './_lib/rateLimit';
+import { checkIpRateLimit, tooManyRequestsResponse } from './_lib/rateLimit.js';
 import {
   ACTIVITY_LEVELS,
   LIFE_STAGES,
@@ -34,9 +34,7 @@ import {
   checkFoodSafety,
   dailyCalorieEstimate,
   treatIdea,
-} from './_lib/mcpTools';
-
-export const config = { runtime: 'edge' };
+} from './_lib/mcpTools.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
 const LOCAL_WINDOW_MS = 60_000;
@@ -149,14 +147,7 @@ function jsonRpcError(status: number, message: string, headers: Record<string, s
   });
 }
 
-// ── HTTP handler ─────────────────────────────────────────────────────────────
-
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method === 'POST') return POST(req);
-  // Stateless server: no SSE stream to open and no session to delete.
-  const message = req.method === 'DELETE' ? 'Method not allowed. This server is stateless.' : 'Method not allowed. POST JSON-RPC messages to this endpoint.';
-  return jsonRpcError(405, message, { Allow: 'POST' });
-}
+// ── HTTP handlers (Vercel Node.js runtime, Web Request/Response signature) ───
 
 export async function POST(req: Request): Promise<Response> {
   const startedAt = Date.now();
@@ -192,4 +183,13 @@ export async function POST(req: Request): Promise<Response> {
     void transport.close();
     void server.close();
   }
+}
+
+// Stateless server: no SSE stream to open and no session to delete.
+export function GET(): Response {
+  return jsonRpcError(405, 'Method not allowed. POST JSON-RPC messages to this endpoint.', { Allow: 'POST' });
+}
+
+export function DELETE(): Response {
+  return jsonRpcError(405, 'Method not allowed. This server is stateless.', { Allow: 'POST' });
 }

@@ -24,7 +24,7 @@ registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier.startsWith('.') && context.parentURL?.startsWith('file:')) {
       const base = dirname(fileURLToPath(context.parentURL));
-      for (const candidate of [`${specifier}.ts`, `${specifier}.tsx`, `${specifier}/index.ts`]) {
+      for (const candidate of [`${specifier.replace(/\.js$/, '')}.ts`, `${specifier}.tsx`, `${specifier}/index.ts`]) {
         const absolute = resolvePath(base, candidate);
         if (existsSync(absolute)) {
           return { url: pathToFileURL(absolute).href, shortCircuit: true };

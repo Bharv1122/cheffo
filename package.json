@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports && npm run verify:mcp-tools && npm run verify:mcp-edge && npm run verify:kitchen-engine && npm run verify:xr-lazy",
+    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports && npm run verify:mcp-tools && npm run verify:mcp-deploy && npm run verify:kitchen-engine && npm run verify:xr-lazy",
     "lint": "eslint .",
     "preview": "vite preview",
     "verify:audit-bundle": "node scripts/verify-audit-bundle.mjs",
@@ -20,7 +20,7 @@
     "verify:adult-confirmation": "node scripts/verify-adult-confirmation.mjs",
     "verify:content-reports": "node scripts/verify-content-reports.mjs && node scripts/verify-report-export.mjs",
     "verify:mcp-tools": "node scripts/verify-mcp-tools.mjs",
-    "verify:mcp-edge": "node scripts/verify-mcp-edge.mjs",
+    "verify:mcp-deploy": "node scripts/verify-mcp-deploy.mjs",
     "verify:kitchen-engine": "node scripts/verify-kitchen-engine.mjs",
     "verify:xr-lazy": "node scripts/verify-xr-lazy.mjs"
   },
@@ -48,7 +48,6 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^6.0.1",
-    "edge-runtime": "^4.0.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

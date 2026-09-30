@@ -12,11 +12,11 @@
 //   * no cure / prevent / heal / "treats <condition>" claims;
 //   * never a quantity that isn't already in the source data.
 
-import { TOXIC_INGREDIENTS, RISKY_PATTERNS, type ToxicEntry } from '../../src/data/toxicIngredients';
-import { INGREDIENT_SAFETY, type IngredientSafetyRecord } from '../../src/data/assistantKnowledge';
-import { TREAT_CATALOG, type TreatCategory } from '../../src/data/treatCatalog';
-import { TREAT_TEMPLATES } from '../../src/data/recipeTemplates';
-import { calcDER, calcRER, lbsToKg } from '../../src/utils/calculator';
+import { TOXIC_INGREDIENTS, RISKY_PATTERNS, type ToxicEntry } from '../../src/data/toxicIngredients.js';
+import { INGREDIENT_SAFETY, type IngredientSafetyRecord } from '../../src/data/assistantKnowledge.js';
+import { TREAT_CATALOG, type TreatCategory } from '../../src/data/treatCatalog.js';
+import { TREAT_TEMPLATES } from '../../src/data/recipeTemplates.js';
+import { calcDER, calcRER, lbsToKg } from '../../src/utils/calculator.js';
 import type { DogProfile, LifeStage, ActivityLevel } from '../../src/types/dog';
 
 export const SITE_URL = 'https://cheffodoggo.com';

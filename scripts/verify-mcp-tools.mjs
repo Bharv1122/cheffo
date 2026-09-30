@@ -14,10 +14,10 @@ const stub = `export function getSupabaseAdmin() { return { async rpc(name, args
 }}; }`;
 globalThis.__mcpTest = {rpcCalls: [], sharedDeny: false};
 registerHooks({resolve(specifier, context, nextResolve) {
-  if (specifier === './supabaseAdmin' && context.parentURL?.endsWith('/api/_lib/rateLimit.ts'))
+  if ((specifier === './supabaseAdmin' || specifier === './supabaseAdmin.js') && context.parentURL?.endsWith('/api/_lib/rateLimit.ts'))
     return {url: 'data:text/javascript,' + encodeURIComponent(stub), shortCircuit: true};
   if (specifier.startsWith('.') && context.parentURL?.startsWith('file:')) {
-    const candidate = resolve(dirname(fileURLToPath(context.parentURL)), `${specifier}.ts`);
+    const candidate = resolve(dirname(fileURLToPath(context.parentURL)), `${specifier.replace(/\.js$/, '')}.ts`);
     if (existsSync(candidate)) return {url: pathToFileURL(candidate).href, shortCircuit: true};
   }
   return nextResolve(specifier, context);
@@ -25,7 +25,7 @@ registerHooks({resolve(specifier, context, nextResolve) {
 
 const {Client} = await import('@modelcontextprotocol/sdk/client/index.js');
 const {StreamableHTTPClientTransport} = await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
-const {default: handler, POST} = await import('../api/mcp.ts');
+const {POST, GET, DELETE} = await import('../api/mcp.ts');
 const {VET_LINE, checkFoodSafety, treatIdea} = await import('../api/_lib/mcpTools.ts');
 const {TREAT_CATALOG} = await import('../src/data/treatCatalog.ts');
 
@@ -124,8 +124,8 @@ await client.close();
 
 // Raw HTTP behaviour.
 const headers = {'content-type': 'application/json', accept: 'application/json, text/event-stream'};
-assert.equal((await handler(new Request('https://x.test/api/mcp'))).status, 405);
-assert.equal((await handler(new Request('https://x.test/api/mcp', {method: 'DELETE'}))).status, 405);
+assert.equal(GET().status, 405);
+assert.equal(DELETE().status, 405);
 assert.equal((await POST(new Request('https://x.test/api/mcp', {method: 'POST', headers: {...headers, 'x-forwarded-for': nextIp()}, body: 'x'.repeat(17 * 1024)}))).status, 413);
 assert.equal((await POST(new Request('https://x.test/api/mcp', {method: 'POST', headers: {...headers, 'x-forwarded-for': nextIp()}, body: '{not json'}))).status, 400);
 const floodIp = nextIp();
