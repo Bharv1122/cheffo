@@ -22,6 +22,17 @@ const FEATURE_HEADLINES: Record<PaywallFeature, string> = {
   vet_export: 'Unlock Vet Export',
 };
 
+// Android (Google Play) build: describe access without purchase calls to action.
+const ANDROID_FEATURE_NAMES: Record<PaywallFeature, string> = {
+  full_meal: 'Full-meal recipes',
+  batch_week: 'Weekly batch recipes',
+  topper: 'Topper recipes',
+  pantry: 'Pantry Mode',
+  treat: 'More treat recipes',
+  assistant: 'Ask Cheffo Doggo',
+  vet_export: 'Vet Export',
+};
+
 const HIGHLIGHTS = [
   'Unlimited personalized full-meal & batch recipes',
   'AI ingredient swaps and pantry-mode generation',
@@ -31,7 +42,10 @@ const HIGHLIGHTS = [
 
 export function UpgradeModal({ open, onClose, feature }: UpgradeModalProps) {
   const navigate = useNavigate();
-  const headline = feature ? FEATURE_HEADLINES[feature] : 'Upgrade to Cheffo Doggo Premium';
+  const android = isGooglePlayApp();
+  const headline = android
+    ? `${feature ? ANDROID_FEATURE_NAMES[feature] : 'This feature'} ${feature === 'treat' ? 'are' : 'is'} included with Premium accounts`
+    : feature ? FEATURE_HEADLINES[feature] : 'Upgrade to Cheffo Doggo Premium';
 
   return (
     <Modal
@@ -51,7 +65,7 @@ export function UpgradeModal({ open, onClose, feature }: UpgradeModalProps) {
               navigate('/pricing');
             }}
           >
-            {isGooglePlayApp() ? 'View account access' : 'See plans'}
+            {android ? 'View account access' : 'See plans'}
           </Button>
         </div>
       }
@@ -69,7 +83,7 @@ export function UpgradeModal({ open, onClose, feature }: UpgradeModalProps) {
         ))}
       </ul>
       <p className="mt-4 rounded-xl border border-[#e7e5e4] bg-[#fafaf9] px-3 py-2 text-xs text-[#78716C]">
-        {isGooglePlayApp() ? ANDROID_ACCESS_MESSAGE : '$8/mo or $59/yr · 14-day money-back guarantee · cancel anytime'}
+        {android ? ANDROID_ACCESS_MESSAGE : '$8/mo or $59/yr · 14-day money-back guarantee · cancel anytime'}
       </p>
     </Modal>
   );

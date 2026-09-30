@@ -95,7 +95,7 @@
 
     <h2>How Cheffo Doggo measures up</h2>
     <p>Point by point, same order: every generated recipe runs through a toxic-ingredient database; recipes are built per dog profile (weight, age, allergies, medications — with food-drug interaction flags); portions are computed and shown in kitchen units; full meals, weekly batches, toppers, and treats all scale; every recipe can be exported as a one-page summary and sent to <em>your own</em> vet for review — approvals show as "reviewed by Dr. X" only when a real vet actually reviewed it; and we're lightly-cooked only, with medical-condition cases pointed at professionals.</p>
-    <p>Pricing, since you'll wonder: the first treat recipe is free, no card. Premium is <strong>$8/month or $59/year</strong>, with a 14-day no-questions money-back guarantee.</p>
+    <p data-web-only>Pricing, since you'll wonder: the first treat recipe is free, no card. Premium is <strong>$8/month or $59/year</strong>, with a 14-day no-questions money-back guarantee.</p>
 
     <h2>Questions to ask any app (or blog, or spreadsheet)</h2>
     <ul>
@@ -118,5 +118,17 @@
       <p style="margin-top:8px">Educational content, not veterinary advice. Always consult your veterinarian before changing your dog's diet.</p>
     </footer>
   </div>
+<script>
+      // Android (Google Play) app: hide prices and pricing links, matching src/utils/distribution.ts.
+      (function () {
+        try {
+          var key = 'cheffo:distribution';
+          if (new URLSearchParams(location.search).get('distribution') === 'google-play') sessionStorage.setItem(key, 'google-play');
+          if (sessionStorage.getItem(key) !== 'google-play') return;
+          document.querySelectorAll('a[href="/pricing"], [data-web-only]').forEach(function (el) { el.remove(); });
+        } catch (e) { /* storage unavailable: leave the page as is */ }
+      })();
+    </script>
+  </body>
 </body>
 </html>

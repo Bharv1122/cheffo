@@ -51,11 +51,11 @@ export default function TermsPage() {
       <Section title="Subscription, billing, and auto-renewal">
         {isGooglePlayApp() && <p className="mb-3">{ANDROID_ACCESS_MESSAGE}</p>}
         <ul className="list-disc pl-5 space-y-1">
-          <li>
+          {!isGooglePlayApp() && <li>
             <strong>Plans and pricing.</strong> Cheffo Doggo Premium is <strong>$8 USD per month</strong> or
             <strong> $59 USD per year</strong>. Prices are exclusive of taxes, which may be added based on your
             jurisdiction.
-          </li>
+          </li>}
           <li>
             <strong>Auto-renewal.</strong> Subscriptions renew automatically at the end of each billing period
             (monthly or yearly) at the then-current published price, charged to the payment method on file. By

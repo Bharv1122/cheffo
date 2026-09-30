@@ -119,5 +119,17 @@
       <p style="margin-top:8px">Educational content, not veterinary advice. Always consult your veterinarian before changing your dog's diet.</p>
     </footer>
   </div>
+<script>
+      // Android (Google Play) app: hide prices and pricing links, matching src/utils/distribution.ts.
+      (function () {
+        try {
+          var key = 'cheffo:distribution';
+          if (new URLSearchParams(location.search).get('distribution') === 'google-play') sessionStorage.setItem(key, 'google-play');
+          if (sessionStorage.getItem(key) !== 'google-play') return;
+          document.querySelectorAll('a[href="/pricing"], [data-web-only]').forEach(function (el) { el.remove(); });
+        } catch (e) { /* storage unavailable: leave the page as is */ }
+      })();
+    </script>
+  </body>
 </body>
 </html>

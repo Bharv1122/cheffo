@@ -225,7 +225,7 @@ export default function LandingPage() {
               to="/signup"
               className="inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
             >
-              Subscribe for weekly batches
+              {android ? 'Create a free account' : 'Subscribe for weekly batches'}
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>

@@ -378,7 +378,7 @@ export default function AssistantPage() {
                   sendMessage(input);
                 }
               }}
-              placeholder={assistantAllowed ? 'Ask Cheffo Doggo anything about homemade dog food...' : 'Upgrade to Premium to chat with Cheffo Doggo'}
+              placeholder={assistantAllowed ? 'Ask Cheffo Doggo anything about homemade dog food...' : (isGooglePlayApp() ? 'Ask Cheffo Doggo is included with Premium accounts' : 'Upgrade to Premium to chat with Cheffo Doggo')}
               className="doggo-input flex-1 border-none"
             />
             <Button
