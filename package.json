@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports",
+    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports && npm run verify:voice-lab",
     "lint": "eslint .",
     "preview": "vite preview",
     "verify:audit-bundle": "node scripts/verify-audit-bundle.mjs",
@@ -18,9 +18,11 @@
     "verify:llm-authorization": "node scripts/verify-llm-authorization.mjs",
     "verify:account-deletion": "node scripts/verify-account-deletion.mjs",
     "verify:adult-confirmation": "node scripts/verify-adult-confirmation.mjs",
-    "verify:content-reports": "node scripts/verify-content-reports.mjs && node scripts/verify-report-export.mjs"
+    "verify:content-reports": "node scripts/verify-content-reports.mjs && node scripts/verify-report-export.mjs",
+    "verify:voice-lab": "node scripts/verify-voice-lab.mjs"
   },
   "dependencies": {
+    "@google/genai": "^2.24.0",
     "@supabase/supabase-js": "^2.104.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "2.0.0",
