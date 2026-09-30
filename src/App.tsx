@@ -31,6 +31,8 @@ const Help = lazy(() => import('./pages/Help'));
 const Privacy = lazy(() => import('./pages/Legal/Privacy'));
 const Terms = lazy(() => import('./pages/Legal/Terms'));
 const Landing = lazy(() => import('./pages/Landing'));
+// Owner-only provider comparison; unlinked, and the server allowlists access.
+const VoiceLab = lazy(() => import('./pages/VoiceLab'));
 
 function LoadingFallback() {
   return (
@@ -199,6 +201,14 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <VetExport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-lab"
+            element={
+              <ProtectedRoute>
+                <VoiceLab />
               </ProtectedRoute>
             }
           />
