@@ -18,6 +18,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_ORDER = ['protein', 'produce', 'pantry', 'supplement', 'equipment'];
+const PRINT_PORTAL_ID = 'cheffo-print-portal';
 
 function escapeHtml(input: string): string {
   return input
@@ -181,42 +182,38 @@ export function ShoppingList({ items, recipeName }: Props) {
       })
       .join('');
 
-    const html = `
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Cheffo Doggo Shopping List</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 24px; color: #1C1917; }
-          h1 { margin-bottom: 4px; font-size: 24px; }
-          .subtitle { color: #78716C; margin-bottom: 18px; }
-          section { margin-bottom: 18px; }
-          h3 { margin-bottom: 8px; color: #44403C; }
-          ul { margin: 0; padding-left: 18px; }
-          li { margin-bottom: 8px; }
-          .item-row { font-weight: 600; }
-          .note { margin: 2px 0 0; font-size: 12px; color: #78716C; }
-        </style>
-      </head>
-      <body>
-        <h1>🐾 Cheffo Doggo Shopping List</h1>
-        <p class="subtitle">${recipeName ? `${escapeHtml(recipeName)} • ` : ''}${new Date().toLocaleDateString()}</p>
-        ${groupedHtml}
-      </body>
-      </html>
+    // Print in place instead of via a pop-up window: pop-ups are blocked by
+    // many browsers and open outside the Android app, so printing silently
+    // failed there. Only this container is visible while printing (index.css).
+    document.getElementById(PRINT_PORTAL_ID)?.remove();
+    const portal = document.createElement('div');
+    portal.id = PRINT_PORTAL_ID;
+    portal.innerHTML = `
+      <style>
+        #${PRINT_PORTAL_ID} { font-family: Arial, sans-serif; margin: 24px; color: #1C1917; }
+        #${PRINT_PORTAL_ID} h1 { margin-bottom: 4px; font-size: 24px; }
+        #${PRINT_PORTAL_ID} .subtitle { color: #78716C; margin-bottom: 18px; }
+        #${PRINT_PORTAL_ID} section { margin-bottom: 18px; }
+        #${PRINT_PORTAL_ID} h3 { margin-bottom: 8px; color: #44403C; }
+        #${PRINT_PORTAL_ID} ul { margin: 0; padding-left: 18px; }
+        #${PRINT_PORTAL_ID} li { margin-bottom: 8px; }
+        #${PRINT_PORTAL_ID} .item-row { font-weight: 600; }
+        #${PRINT_PORTAL_ID} .note { margin: 2px 0 0; font-size: 12px; color: #78716C; }
+      </style>
+      <h1>🐾 Cheffo Doggo Shopping List</h1>
+      <p class="subtitle">${recipeName ? `${escapeHtml(recipeName)} • ` : ''}${new Date().toLocaleDateString()}</p>
+      ${groupedHtml}
     `;
+    document.body.appendChild(portal);
+    document.body.classList.add(PRINT_PORTAL_ID);
 
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      alert('Please allow pop-ups to open the print preview.');
-      return;
-    }
-
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    const cleanup = () => {
+      portal.remove();
+      document.body.classList.remove(PRINT_PORTAL_ID);
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.print();
   };
 
   return (
