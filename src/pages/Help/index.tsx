@@ -9,6 +9,9 @@ const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 interface QA {
   q: string;
   a: React.ReactNode;
+  // Prices and payment-portal steps are hidden in the Android app (Google Play
+  // consumption-only policy). Everything else is shown on both platforms.
+  webOnly?: boolean;
 }
 
 interface Category {
@@ -190,6 +193,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: 'How much does Premium cost?',
+        webOnly: true,
         a: (
           <p>
             <strong>$8 per month</strong> or <strong>$59 per year</strong> (roughly $4.92/month — saves 38%). Both renew automatically; cancel
@@ -199,6 +203,7 @@ const CATEGORIES: Category[] = [
       },
       {
         q: 'How do I cancel?',
+        webOnly: true,
         a: (
           <p>
             Open <Link to="/settings" className="text-[#f97316] underline">Settings</Link> → "Manage subscription" → cancel from Stripe's
@@ -312,7 +317,10 @@ export default function HelpPage() {
             <p className="mt-3 text-sm text-[#5f564d]">{ANDROID_ACCESS_MESSAGE}</p>
             <p className="mt-2 text-sm text-[#5f564d]">For help with existing access, cancellation, or refunds, email support with your account email. Refresh Settings to check your current plan.</p>
           </section>}
-          {CATEGORIES.filter(category => !isGooglePlayApp() || category.title !== 'Subscription & billing').map(category => (
+          {CATEGORIES.map(category => ({
+            ...category,
+            questions: category.questions.filter(qa => !isGooglePlayApp() || !qa.webOnly),
+          })).map(category => (
             <section key={category.title} className="doggo-card p-5">
               <h2 className="flex items-center gap-3 text-lg font-semibold text-[#2b2118]">
                 <span className={['grid h-9 w-9 place-items-center rounded-xl', category.iconBg, category.iconColor].join(' ')}>

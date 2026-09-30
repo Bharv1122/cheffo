@@ -16,6 +16,7 @@ import {
   Snowflake,
 } from 'lucide-react';
 import { GuestTreat } from '../../components/landing/GuestTreat';
+import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
 
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
@@ -91,7 +92,7 @@ const RECIPE_TYPES = [
 const FAQ_TEASERS = [
   { q: 'Is this a substitute for veterinary advice?', a: 'No — Cheffo Doggo is educational guidance. Always consult your vet for medical decisions.' },
   { q: 'Why no raw food?', a: 'Cheffo Doggo focuses on cooked recipes, with preparation instructions and ingredient notes to discuss with your veterinarian.' },
-  { q: 'How much does it cost?', a: '$8/month or $59/year. 14-day money-back guarantee. One free treat recipe to try first.' },
+  { q: 'How much does it cost?', a: '$8/month or $59/year. 14-day money-back guarantee. One free treat recipe to try first.', webOnly: true },
 ];
 
 function DemoVideo() {
@@ -128,6 +129,9 @@ function DemoVideo() {
 }
 
 export default function LandingPage() {
+  // The Android app shows this same page, minus prices and purchase links
+  // (Google Play consumption-only policy). Everything else stays identical.
+  const android = isGooglePlayApp();
   return (
     <div className="min-h-screen bg-[#fffbf5] pb-20 sm:pb-0">
       {/* Sticky top nav */}
@@ -138,7 +142,7 @@ export default function LandingPage() {
             <span className="whitespace-nowrap text-base sm:text-lg font-bold tracking-tight">Cheffo Doggo</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-3 text-sm">
-            <Link to="/pricing" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Pricing</Link>
+            {!android && <Link to="/pricing" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Pricing</Link>}
             <Link to="/calculator" className="hidden sm:inline-block px-3 py-2 text-[#5f564d] hover:text-[#2b2118]">Calculator</Link>
             {/* Plain <a>: /learn/ is a static page outside the SPA router —
                 a <Link> would client-route into the catch-all redirect. */}
@@ -324,6 +328,18 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing teaser */}
+      {android ? (
+      <section className="px-4 py-16">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-3xl font-bold text-[#2b2118]">Start with a treat. Stay for mealtime.</h2>
+          <p className="mt-2 text-[#7f7469]">
+            Free accounts get one complete treat recipe. Full meals, weekly batches,
+            toppers, pantry food recipes, and vet packets are included with Premium.
+          </p>
+          <p className="mt-4 text-sm text-[#7f7469]">{ANDROID_ACCESS_MESSAGE}</p>
+        </div>
+      </section>
+      ) : (
       <section className="px-4 py-16">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl font-bold text-[#2b2118]">Start with a treat. Stay for mealtime.</h2>
@@ -363,6 +379,7 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
+      )}
 
       {/* FAQ teaser */}
       <section className="px-4 py-12 bg-white border-t border-[#eadfce]">
@@ -371,7 +388,7 @@ export default function LandingPage() {
             <h2 className="text-2xl font-bold text-[#2b2118]">Common questions</h2>
           </header>
           <div className="mt-6 space-y-4">
-            {FAQ_TEASERS.map(faq => (
+            {FAQ_TEASERS.filter(faq => !android || !faq.webOnly).map(faq => (
               <div key={faq.q} className="rounded-2xl bg-[#fffbf5] p-5">
                 <p className="font-semibold text-[#2b2118]">{faq.q}</p>
                 <p className="mt-1 text-sm text-[#5f564d]">{faq.a}</p>
@@ -390,7 +407,11 @@ export default function LandingPage() {
       <section className="px-4 py-20 bg-gradient-to-b from-[#fff6ec] to-[#fff0de]">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold text-[#2b2118]">Ready to cook for your dog?</h2>
-          <p className="mt-3 text-[#5f564d]">Try the free treat recipe first, then subscribe for homemade meals and weekly batches.</p>
+          <p className="mt-3 text-[#5f564d]">
+            {android
+              ? 'Try the free treat recipe first, then sign in for everything included with your account.'
+              : 'Try the free treat recipe first, then subscribe for homemade meals and weekly batches.'}
+          </p>
           <Link
             to="/signup"
             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-[#ea6a0c]"
@@ -416,7 +437,7 @@ export default function LandingPage() {
               </p>
             </div>
             <nav className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm sm:grid-cols-3">
-              <Link to="/pricing" className="hover:text-white">Pricing</Link>
+              {!android && <Link to="/pricing" className="hover:text-white">Pricing</Link>}
               <Link to="/calculator" className="hover:text-white">Calculator</Link>
               <a href="/learn/" className="hover:text-white">Learn</a>
               <Link to="/help" className="hover:text-white">Help center</Link>

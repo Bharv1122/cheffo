@@ -6,9 +6,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import { recordReturnVisit } from './lib/funnelAnalytics';
 import Pricing from './pages/Pricing';
-import { isGooglePlayApp } from './utils/distribution';
 import { OfflineNotice } from './components/layout/OfflineNotice';
-const AndroidWelcome = lazy(() => import('./pages/AndroidWelcome'));
 
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Signup = lazy(() => import('./pages/Auth/Signup'));
@@ -54,7 +52,7 @@ function RootRoute() {
   // to the in-app Home — ProtectedRoute does the same.
   if (!isSupabaseEnabled) return <Home />;
   if (loading) return <LoadingFallback />;
-  return isAuthenticated ? <Home /> : isGooglePlayApp() ? <AndroidWelcome /> : <Landing />;
+  return isAuthenticated ? <Home /> : <Landing />;
 }
 
 const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/', '/vet-approve/', '/privacy', '/terms'];
