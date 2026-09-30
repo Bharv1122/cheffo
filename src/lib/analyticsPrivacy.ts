@@ -4,7 +4,11 @@ const SCREENS = new Set([
   '/profiles', '/profiles/new', '/recipes', '/bowl-builder', '/pantry', '/treats',
   '/assistant', '/settings',
 ]);
-const SOURCES = new Set(['card', 'fb', 'guest-treat', 'calculator', 'mobile-sticky']);
+const SOURCES = new Set([
+  'card', 'fb', 'guest-treat', 'calculator', 'mobile-sticky',
+  // Promotion channels: Instagram, TikTok, Nextdoor, DMs, YouTube, Reddit, press.
+  'ig', 'tt', 'nd', 'dm', 'yt', 'rd', 'press',
+]);
 
 export function telemetryPath(pathname: string): string | null {
   return SCREENS.has(pathname) ? pathname : null;
