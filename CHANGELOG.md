@@ -5,7 +5,7 @@ All notable changes to **Chef Doggo** are documented in this file.
 ## [Unreleased] - Muse connector + hands-free kitchen
 
 ### Muse / MCP connector
-- **Public MCP server at `/api/mcp` (`api/mcp.ts`, `api/_lib/mcpTools.ts`)**: streamable HTTP, stateless, official `@modelcontextprotocol/sdk`. Three read-only, no-user-data tools: `check_food_safety`, `daily_calorie_estimate` and `treat_idea`. They answer only from the existing toxic-food list, ingredient-safety records, RER/DER calculator and treat catalog, with no LLM calls. Every answer ends with a check-with-your-vet line. There are no cure/prevent claims, unknown foods return "unknown", and treat ideas include no amounts. Inputs are validated with zod, the body is capped at 16 KB, requests are limited per IP (in-memory plus the shared Supabase limiter), and logs contain no arguments.
+- **Public MCP server at `/api/mcp` (`api/mcp.ts`, `api/_lib/mcpTools.ts`)**: streamable HTTP, stateless, official `@modelcontextprotocol/sdk`, Edge runtime with the eval-free @cfworker JSON-schema validator. Three read-only, no-user-data tools: `check_food_safety`, `daily_calorie_estimate` and `treat_idea`. They answer only from the existing toxic-food list, ingredient-safety records, RER/DER calculator and treat catalog, with no LLM calls. Every answer ends with a check-with-your-vet line. There are no cure/prevent claims, unknown foods return "unknown", and treat ideas include no amounts. Inputs are validated with zod, the body is capped at 16 KB, requests are limited per IP (in-memory plus the shared Supabase limiter), and logs contain no arguments.
 - `docs/muse-connector.md` holds the submission packet (not submitted). `public/muse-icon-512.png` is the 512×512 icon.
 
 ### Hands-free kitchen
@@ -14,7 +14,7 @@ All notable changes to **Chef Doggo** are documented in this file.
 - **WebXR kitchen (`/kitchen/:recipeId/xr`, public `/kitchen/demo/xr`)**: passthrough when available, floating step/ingredient/timer panels, seated or standing layout, recenter, hands-only (poke and pinch; buttons act on release, so slow pinches register). Lazy-loaded @react-three/fiber + @react-three/xr v6, following HAL's patterns. Hand models are self-hosted because of the CSP. See `docs/kitchen-vr.md`.
 
 ### Verification
-- New build checks: `verify:mcp-tools`, `verify:kitchen-engine` and `verify:xr-lazy` (no three.js/WebXR code in the initial load).
+- New build checks: `verify:mcp-tools`, `verify:mcp-edge` (bundled handler in Vercel's edge-runtime sandbox), `verify:kitchen-engine` and `verify:xr-lazy` (no three.js/WebXR code in the initial load).
 - `tests/verify-kitchen-screens.cjs`: headless screenshots with the real site CSP applied. On the dev server it also runs an emulated Quest hands-only session.
 
 ## [v1.2.0] - 2026-05-11

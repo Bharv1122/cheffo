@@ -57,7 +57,7 @@ Safety and copy rules (checked by `scripts/verify-mcp-tools.mjs`):
 
 ## Before submitting — checklist for Beth
 
-- [ ] Merge and deploy. Then check `POST https://cheffodoggo.com/api/mcp` answers `initialize` / `tools/list`. **Unverified:** it runs on Vercel's Node.js runtime with Web `Request → Response` handlers (`export function POST`). That pattern is supported for non-Next projects, but it wasn't deployed from here.
+- [ ] Merge and deploy. Then check `POST https://cheffodoggo.com/api/mcp` answers `initialize` / `tools/list`. It runs on the Edge runtime like the other functions, with the eval-free @cfworker JSON-schema validator. `npm run verify:mcp-edge` runs the bundled handler in Vercel's `edge-runtime` sandbox, and the PR preview deploy answers GET with 405 as designed. A full POST against a deploy wasn't possible from the build container.
 - [ ] Try it from a real MCP client, e.g. `npx @modelcontextprotocol/inspector` → Streamable HTTP → the URL above.
 - [ ] Check `/privacy` and `/terms` load on the live site. They exist as public routes in the app (`src/App.tsx`), are listed in `public/sitemap.xml`, and render "Privacy Policy" / "Terms of Service" in a local production build. **The live URLs couldn't be fetched from the build container (egress blocked), so live status is unverified.**
 - [ ] Optional: the Privacy Policy already covers hashed IPs for rate-limiting public endpoints. It doesn't specifically mention requests from AI assistants such as Muse (tool inputs are processed per request and not stored). Consider one sentence on that before submitting.
@@ -67,4 +67,5 @@ Safety and copy rules (checked by `scripts/verify-mcp-tools.mjs`):
 
 ```bash
 npm run verify:mcp-tools   # drives api/mcp.ts through the official MCP client, no network
+npm run verify:mcp-edge    # bundles it and runs it in Vercel's edge-runtime sandbox
 ```
