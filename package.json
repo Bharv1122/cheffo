@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports",
+    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports && npm run verify:mcp-tools && npm run verify:kitchen-engine && npm run verify:xr-lazy",
     "lint": "eslint .",
     "preview": "vite preview",
     "verify:audit-bundle": "node scripts/verify-audit-bundle.mjs",
@@ -18,9 +18,15 @@
     "verify:llm-authorization": "node scripts/verify-llm-authorization.mjs",
     "verify:account-deletion": "node scripts/verify-account-deletion.mjs",
     "verify:adult-confirmation": "node scripts/verify-adult-confirmation.mjs",
-    "verify:content-reports": "node scripts/verify-content-reports.mjs && node scripts/verify-report-export.mjs"
+    "verify:content-reports": "node scripts/verify-content-reports.mjs && node scripts/verify-report-export.mjs",
+    "verify:mcp-tools": "node scripts/verify-mcp-tools.mjs",
+    "verify:kitchen-engine": "node scripts/verify-kitchen-engine.mjs",
+    "verify:xr-lazy": "node scripts/verify-xr-lazy.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@react-three/fiber": "^9.3.0",
+    "@react-three/xr": "^6.6.31",
     "@supabase/supabase-js": "^2.104.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "2.0.0",
@@ -28,7 +34,9 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "three": "^0.180.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -36,6 +44,7 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -46,5 +55,13 @@
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",
     "vite-plugin-pwa": "^1.3.0"
+  },
+  "overrides": {
+    "@iwer/devui": {
+      "three": "$three"
+    },
+    "@iwer/sem": {
+      "three": "$three"
+    }
   }
 }
