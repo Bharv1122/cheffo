@@ -6,9 +6,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import { recordReturnVisit } from './lib/funnelAnalytics';
 import Pricing from './pages/Pricing';
-import { isGooglePlayApp } from './utils/distribution';
 import { OfflineNotice } from './components/layout/OfflineNotice';
-const AndroidWelcome = lazy(() => import('./pages/AndroidWelcome'));
 
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Signup = lazy(() => import('./pages/Auth/Signup'));
@@ -33,6 +31,8 @@ const Help = lazy(() => import('./pages/Help'));
 const Privacy = lazy(() => import('./pages/Legal/Privacy'));
 const Terms = lazy(() => import('./pages/Legal/Terms'));
 const Landing = lazy(() => import('./pages/Landing'));
+// Owner-only provider comparison; unlinked, and the server allowlists access.
+const VoiceLab = lazy(() => import('./pages/VoiceLab'));
 const KitchenDemo = lazy(() => import('./pages/Kitchen').then(m => ({ default: m.KitchenDemoPage })));
 const KitchenSaved = lazy(() => import('./pages/Kitchen').then(m => ({ default: m.KitchenSavedPage })));
 
@@ -56,7 +56,7 @@ function RootRoute() {
   // to the in-app Home — ProtectedRoute does the same.
   if (!isSupabaseEnabled) return <Home />;
   if (loading) return <LoadingFallback />;
-  return isAuthenticated ? <Home /> : isGooglePlayApp() ? <AndroidWelcome /> : <Landing />;
+  return isAuthenticated ? <Home /> : <Landing />;
 }
 
 const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/kitchen/', '/vet-export/', '/vet-approve/', '/privacy', '/terms'];
@@ -223,6 +223,14 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <VetExport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-lab"
+            element={
+              <ProtectedRoute>
+                <VoiceLab />
               </ProtectedRoute>
             }
           />

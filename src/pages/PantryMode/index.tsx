@@ -247,7 +247,7 @@ export default function PantryModePage() {
             {loading
               ? 'Building recipe & image…'
               : !pantryAllowed
-                ? 'Upgrade to build'
+                ? (isGooglePlayApp() ? 'Included with Premium' : 'Upgrade to build')
                 : 'Build a Recipe'}
           </Button>
 

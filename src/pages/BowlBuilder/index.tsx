@@ -203,7 +203,7 @@ export default function BowlBuilderPage() {
               : paywallLoading
                 ? 'Loading…'
                 : isGenerationBlocked
-                  ? 'Upgrade to generate'
+                  ? (isGooglePlayApp() ? 'Included with Premium' : 'Upgrade to generate')
                   : 'Generate Recipe'}
           </Button>
         </div>
