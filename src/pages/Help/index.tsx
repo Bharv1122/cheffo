@@ -185,9 +185,10 @@ const CATEGORIES: Category[] = [
         q: 'What\'s free?',
         a: (
           <p>
-            Free users get one treat recipe as a taste. Everything else is Premium. There's no traditional free trial — instead we offer a
+            Free users get one treat recipe as a taste. Everything else is Premium.
+            {!isGooglePlayApp() && <> There's no traditional free trial — instead we offer a
             14-day money-back guarantee. If Premium isn't right for you and your dog, email us within 14 days for a full refund. No
-            questions asked.
+            questions asked.</>}
           </p>
         ),
       },
