@@ -2,6 +2,21 @@
 
 All notable changes to **Chef Doggo** are documented in this file.
 
+## [Unreleased] - Muse connector + hands-free kitchen
+
+### Muse / MCP connector
+- **Public MCP server at `/api/mcp` (`api/mcp.ts`, `api/_lib/mcpTools.ts`)**: streamable HTTP, stateless, official `@modelcontextprotocol/sdk`, Node.js runtime. Relative imports on its graph use explicit `.js` extensions. Three read-only, no-user-data tools: `check_food_safety`, `daily_calorie_estimate` and `treat_idea`. They answer only from the existing toxic-food list, ingredient-safety records, RER/DER calculator and treat catalog, with no LLM calls. Every answer ends with a check-with-your-vet line. There are no cure/prevent claims, unknown foods return "unknown", and treat ideas include no amounts. Inputs are validated with zod, the body is capped at 16 KB, requests are limited per IP (in-memory plus the shared Supabase limiter), and logs contain no arguments.
+- `docs/muse-connector.md` holds the submission packet (not submitted). `public/muse-icon-512.png` is the 512×512 icon.
+
+### Hands-free kitchen
+- **Shared step engine (`src/kitchen/`)**: pure reducer for steps and timers (end-timestamp timers, pause/resume, max 4). Step timers are offered only when the recipe gives a time. Also includes the voice/keyboard command parser, screen wake lock and optional Web Speech.
+- **Kitchen display (`/kitchen/:recipeId`, public `/kitchen/demo`)**: large-type steps and amounts, 80 px Back/Repeat/Next, landscape and portrait layouts, quick timers, arrow-key control, optional voice and read-aloud. Linked from the recipe page.
+- **WebXR kitchen (`/kitchen/:recipeId/xr`, public `/kitchen/demo/xr`)**: passthrough when available, floating step/ingredient/timer panels, seated or standing layout, recenter, hands-only (poke and pinch; buttons act on release, so slow pinches register). Lazy-loaded @react-three/fiber + @react-three/xr v6, following HAL's patterns. Hand models are self-hosted because of the CSP. See `docs/kitchen-vr.md`.
+
+### Verification
+- New build checks: `verify:mcp-tools`, `verify:mcp-deploy` (transpiles the handler's graph file by file like Vercel's Node runtime and serves it with plain Node), `verify:kitchen-engine` and `verify:xr-lazy` (no three.js/WebXR code in the initial load).
+- `tests/verify-kitchen-screens.cjs`: headless screenshots with the real site CSP applied. On the dev server it also runs an emulated Quest hands-only session.
+
 ## [v1.2.0] - 2026-05-11
 
 ### Release summary

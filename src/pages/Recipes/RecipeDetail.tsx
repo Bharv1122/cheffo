@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChefHat, ChevronDown, Heart, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, RefreshCw } from 'lucide-react';
+import { ChefHat, ChevronDown, Heart, MonitorSmartphone, Printer, ShoppingBag, ShoppingCart, ExternalLink, ShieldAlert, ShieldCheck, Package, RefreshCw } from 'lucide-react';
 import { AppShell } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { ReportContentButton } from '../../components/reports/ReportContentButton';
@@ -780,6 +780,10 @@ export default function RecipeDetailPage() {
               <Button onClick={() => navigate(`/cook/${recipe.id}`)}>
                 <ChefHat size={18} className="mr-2" />
                 Start Cooking Mode
+              </Button>
+              <Button variant="secondary" onClick={() => navigate(`/kitchen/${recipe.id}`)}>
+                <MonitorSmartphone size={18} className="mr-2" />
+                Kitchen Display
               </Button>
               <Button variant="secondary" onClick={() => window.print()}>
                 <Printer size={18} className="mr-2" />

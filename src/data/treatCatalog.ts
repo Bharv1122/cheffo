@@ -1,5 +1,5 @@
-import { TREAT_TEMPLATES } from './recipeTemplates';
-import { INGREDIENTS } from './ingredients';
+import { TREAT_TEMPLATES } from './recipeTemplates.js';
+import { INGREDIENTS } from './ingredients.js';
 
 export type TreatCategory = 'training' | 'frozen' | 'birthday' | 'everyday';
 

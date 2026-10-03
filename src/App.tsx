@@ -33,6 +33,8 @@ const Terms = lazy(() => import('./pages/Legal/Terms'));
 const Landing = lazy(() => import('./pages/Landing'));
 // Owner-only provider comparison; unlinked, and the server allowlists access.
 const VoiceLab = lazy(() => import('./pages/VoiceLab'));
+const KitchenDemo = lazy(() => import('./pages/Kitchen').then(m => ({ default: m.KitchenDemoPage })));
+const KitchenSaved = lazy(() => import('./pages/Kitchen').then(m => ({ default: m.KitchenSavedPage })));
 
 function LoadingFallback() {
   return (
@@ -57,7 +59,7 @@ function RootRoute() {
   return isAuthenticated ? <Home /> : <Landing />;
 }
 
-const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/vet-export/', '/vet-approve/', '/privacy', '/terms'];
+const NO_BOTTOM_NAV_PREFIXES = ['/cook/', '/kitchen/', '/vet-export/', '/vet-approve/', '/privacy', '/terms'];
 // Routes that don't render the in-app header / bottom nav — landing and legal
 // pages have their own marketing chrome. The Home page at `/` also doesn't
 // (its layout is special); RootRoute switches between Landing and Home.
@@ -193,6 +195,26 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <CookingMode />
+              </ProtectedRoute>
+            }
+          />
+          {/* Hands-free kitchen display + WebXR kitchen. The sample recipe is
+              public (no login) so judges and visitors can try both surfaces. */}
+          <Route path="/kitchen/demo" element={<KitchenDemo />} />
+          <Route path="/kitchen/demo/xr" element={<KitchenDemo surface="xr" />} />
+          <Route
+            path="/kitchen/:recipeId"
+            element={
+              <ProtectedRoute>
+                <KitchenSaved />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kitchen/:recipeId/xr"
+            element={
+              <ProtectedRoute>
+                <KitchenSaved surface="xr" />
               </ProtectedRoute>
             }
           />

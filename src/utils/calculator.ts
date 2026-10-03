@@ -6,7 +6,7 @@ import type {
   RecipeIngredient,
   UnitPreference,
 } from '../types/recipe';
-import { findIngredientByName } from '../data/ingredients';
+import { findIngredientByName } from '../data/ingredients.js';
 
 // ── RER / DER ─────────────────────────────────────────────────────────────────
 // All results are ESTIMATES. Label them clearly in the UI.

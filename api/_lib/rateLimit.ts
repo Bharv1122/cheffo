@@ -5,7 +5,7 @@
 // cost of a flood of guessing requests. Default budget is generous; tune via
 // env if a real bot ever shows up.
 
-import { getSupabaseAdmin } from './supabaseAdmin';
+import { getSupabaseAdmin } from './supabaseAdmin.js';
 
 declare const process: { env: Record<string, string | undefined> };
 

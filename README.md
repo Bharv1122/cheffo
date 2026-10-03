@@ -58,6 +58,11 @@ npm run lint     # eslint
 npm run preview  # preview production build
 ```
 
+## Muse connector and hands-free kitchen
+
+- Public MCP server for Meta's Muse agent at `/api/mcp`: [`docs/muse-connector.md`](./docs/muse-connector.md)
+- Kitchen display (`/kitchen/demo`) and WebXR kitchen (`/kitchen/demo/xr`): [`docs/kitchen-vr.md`](./docs/kitchen-vr.md)
+
 ## Notes
 
 - Build passes successfully (`npm run build`).

@@ -1,0 +1,13 @@
+{
+  "results": [
+    "kitchen-tablet-landscape",
+    "kitchen-tablet-portrait",
+    "kitchen-phone",
+    "kitchen-saved-fixture",
+    "xr-desktop",
+    "xr-phone"
+  ],
+  "log": [
+    "note: no immersive-ar offered (production build or no emulator); session step skipped"
+  ]
+}
