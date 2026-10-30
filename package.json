@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports && npm run verify:voice-lab",
+    "build": "tsc -b && vite build && npm run verify:audit-bundle && npm run verify:portion-scaling && npm run verify:chat-recipe-amounts && npm run verify:product-integrity && npm run verify:treat-catalog && npm run verify:llm-authorization && npm run verify:account-deletion && npm run verify:adult-confirmation && npm run verify:content-reports && npm run verify:voice-lab && npm run verify:ingredient-safety",
     "lint": "eslint .",
     "preview": "vite preview",
     "verify:audit-bundle": "node scripts/verify-audit-bundle.mjs",
@@ -19,7 +19,8 @@
     "verify:account-deletion": "node scripts/verify-account-deletion.mjs",
     "verify:adult-confirmation": "node scripts/verify-adult-confirmation.mjs",
     "verify:content-reports": "node scripts/verify-content-reports.mjs && node scripts/verify-report-export.mjs",
-    "verify:voice-lab": "node scripts/verify-voice-lab.mjs"
+    "verify:voice-lab": "node scripts/verify-voice-lab.mjs",
+    "verify:ingredient-safety": "node scripts/verify-ingredient-safety.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

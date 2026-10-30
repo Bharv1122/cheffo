@@ -12,7 +12,9 @@ export function validateIngredients(
   const warnings: string[] = [];
 
   // 1. Toxic ingredient check
-  const allText = ingredientNames.join(' ');
+  // Join with a separator so a multi-word alias can't match across two
+  // ingredients (e.g. "green beans" + "potato" never reads as "green potato").
+  const allText = ingredientNames.join('; ');
   const toxicResult = checkToxic(allText);
   errors.push(...toxicResult.errors);
   warnings.push(...toxicResult.warnings);
