@@ -9,6 +9,7 @@ import {
   MessageCircle,
   PawPrint,
   Sparkles,
+  ShieldCheck,
   Plus,
   LogOut,
   X,
@@ -34,6 +35,7 @@ const SIDE_ITEMS = [
   { to: '/treats', label: 'Treats', icon: <Sparkles size={21} /> },
   { to: '/assistant', label: 'Ask Chef', icon: <MessageCircle size={21} /> },
   { to: '/calculator', label: 'Calculator', icon: <CalculatorIcon size={21} /> },
+  { to: '/safety', label: 'Food Safety', icon: <ShieldCheck size={21} /> },
 ];
 
 export function AppShell({ active, children, rightRail }: AppShellProps) {

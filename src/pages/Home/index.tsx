@@ -140,7 +140,12 @@ export default function HomePage() {
             <h4 className="font-semibold">Safety first, always</h4>
             <ul className="mt-2 space-y-1 text-xs leading-relaxed text-[#5f8c6a]">
               <li>• Ingredients are screened for common dog toxins and profile restrictions</li>
-              <li>• Ingredients are checked against toxic-food database</li>
+              <li>
+                • Ingredients are checked against our{' '}
+                <button type="button" onClick={() => navigate('/safety')} className="font-semibold text-[#2f8e56] underline">
+                  toxic-food database
+                </button>
+              </li>
               <li>• Education only, not a substitute for veterinary advice</li>
             </ul>
           </section>

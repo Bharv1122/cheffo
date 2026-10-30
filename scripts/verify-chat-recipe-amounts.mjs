@@ -15,6 +15,10 @@ registerHooks({
         url: new URL('../src/utils/chatRecipeAmounts.ts', import.meta.url).href,
         shortCircuit: true,
       };
+      if (specifier === '../data/toxicIngredients') return {
+        url: new URL('../src/data/toxicIngredients.ts', import.meta.url).href,
+        shortCircuit: true,
+      };
     }
     return nextResolve(specifier, context);
   },

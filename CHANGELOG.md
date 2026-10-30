@@ -2,6 +2,16 @@
 
 All notable changes to **Chef Doggo** are documented in this file.
 
+## [Unreleased]
+
+### Safety
+
+- **Ingredient safety database page and a larger toxic list (`src/data/toxicIngredients.ts`, `src/pages/Safety/index.tsx`, `src/utils/safetyValidator.ts`, `src/utils/assistantChat.ts`, `scripts/verify-ingredient-safety.mjs`)**
+  - **What was added:** A signed-in `/safety` page where owners search the list and filter by category and by level (Toxic / Caution / Safe in moderation). Every toxic and caution item carries an ASPCA Animal Poison Control (888-426-4435) callout, and the page keeps the "ask your vet" disclaimer. Linked from the side/menu nav ("Food Safety"), Help and the Home safety box. Free for every signed-in owner (no Premium gate), like other reference content such as the Calculator and Help.
+  - **What changed:** The toxic list now merges Cheffo's 12 entries with the older Chef Doggo safety database: 34 entries with category, signs, onset and guidance. New hard-blocks: leeks/shallots/chives/scallions, hops, stone fruit pits, wild mushrooms, rhubarb, moldy food, tobacco/nicotine. New warnings: salt, MSG, propylene glycol, star anise, artificial sweeteners, raw/green potato, raw eggs, apple seeds, cooked bones, corn cobs. Five "safe in moderation" entries (peanut butter, dairy, liver, store-bought mushrooms, cinnamon) are reference-only and never flag a recipe. Recipe generation, Pantry Mode, swaps, vet-approval edits and the chat prompt all read the same list.
+  - **Why it mattered:** Cheffo only knew 12 toxins, and owners had nowhere to look one up.
+  - **Technical details:** Aliases stay narrow (no bare "mushrooms", "potato" or "soda") so safe recipes aren't blocked. The validator now joins ingredient names with "; " so a multi-word alias can't match across two ingredients. `npm run verify:ingredient-safety` (part of `npm run build`) checks that every catalog ingredient passes, that safe phrases such as "Peanut Butter (xylitol-free)" aren't blocked, that real hazards are, and that no term sits in two entries.
+
 ## [v1.2.0] - 2026-05-11
 
 ### Release summary

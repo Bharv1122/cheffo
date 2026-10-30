@@ -28,6 +28,7 @@ const VetExport = lazy(() => import('./pages/VetExport'));
 const VetApprove = lazy(() => import('./pages/VetApprove'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Help = lazy(() => import('./pages/Help'));
+const Safety = lazy(() => import('./pages/Safety'));
 const Privacy = lazy(() => import('./pages/Legal/Privacy'));
 const Terms = lazy(() => import('./pages/Legal/Terms'));
 const Landing = lazy(() => import('./pages/Landing'));
@@ -209,6 +210,14 @@ function AppLayout() {
             element={
               <ProtectedRoute>
                 <VoiceLab />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/safety"
+            element={
+              <ProtectedRoute>
+                <Safety />
               </ProtectedRoute>
             }
           />

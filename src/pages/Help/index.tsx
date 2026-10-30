@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Mail, ChefHat, ShieldCheck, Stethoscope, CreditCard, Lock } from 'lucide-react';
 
 import { isGooglePlayApp, ANDROID_ACCESS_MESSAGE } from '../../utils/distribution';
+import { hardBlockedNames } from '../../data/toxicIngredients';
 
 const SUPPORT_EMAIL = 'support@cheffodoggo.com';
 
@@ -84,9 +85,10 @@ const CATEGORIES: Category[] = [
         q: 'What ingredients are off-limits?',
         a: (
           <p>
-            We hard-block: chocolate, grapes, raisins, onion, garlic (and their powders), xylitol, macadamia nuts, alcohol, caffeine,
-            avocado, raw yeast dough, and nutmeg. Every generated recipe runs through this check, and the chat assistant won't recommend
-            them either.
+            We hard-block: {hardBlockedNames().map(n => n.toLowerCase()).join(', ')}, plus onion and garlic powders. Every generated recipe
+            runs through this check, and the chat assistant won't recommend them either. Browse the full list, including caution and
+            safe-in-moderation foods, in the{' '}
+            <Link to="/safety" className="font-semibold text-[#f97316] underline">ingredient safety database</Link>.
           </p>
         ),
       },
