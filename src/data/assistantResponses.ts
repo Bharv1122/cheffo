@@ -1,4 +1,5 @@
 import type { AssistantIntent } from '../types/assistant';
+import { hardBlockedNames } from './toxicIngredients';
 import {
   lookupCookingMethods,
   lookupIngredientSafety,
@@ -65,7 +66,7 @@ const RESPONSES: Record<AssistantIntent, string[]> = {
     'The core supplements for homemade feeding are calcium, omega-3 fatty acids (EPA/DHA from fish oil), and usually a canine multivitamin. The exact amounts depend on your dog\'s weight, age, and the specific recipe. I always recommend running your supplement plan by a vet before starting.',
   ],
   safety: [
-    'Safety first! The foods I hard-block are: chocolate, grapes, raisins, onion, garlic (including powders), xylitol, macadamia nuts, alcohol, caffeine, avocado, raw yeast dough, and nutmeg. I check every recipe for these automatically. If you\'re wondering about a specific ingredient, just ask!',
+    `Safety first! The foods I hard-block are: ${hardBlockedNames().map(n => n.toLowerCase()).join(', ')}, plus onion and garlic powders. I check every recipe for these automatically, and the full list is on the Food Safety page. If you're wondering about a specific ingredient, just ask!`,
     'I run a safety check on every recipe before showing it to you. Hard-blocked toxic foods are never included. I also watch for risky things like onion powder, garlic powder, and pumpkin pie filling (which is not the same as plain pumpkin!). Is there a specific ingredient you\'re concerned about?',
     'The biggest dangers in homemade dog food are: using the wrong seasoning (garlic/onion powder are often in spice blends), using sweetened or flavored products (pumpkin pie filling, flavored yogurt, peanut butter with xylitol), and not providing enough calcium. Always read labels!',
   ],

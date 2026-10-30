@@ -93,7 +93,7 @@ export const TOXIC_INGREDIENTS: ToxicEntry[] = [
   },
   {
     name: 'leeks',
-    title: 'Leeks, shallots, chives & scallions',
+    title: 'Leeks, shallots, chives and scallions',
     aliases: ['leek', 'shallot', 'shallots', 'chive', 'chives', 'scallion', 'scallions', 'green onion', 'green onions', 'spring onion', 'spring onions'],
     level: 'hard_block',
     reason: 'Leeks, shallots, chives and scallions are in the onion family and can damage red blood cells in dogs.',
@@ -134,7 +134,7 @@ export const TOXIC_INGREDIENTS: ToxicEntry[] = [
   },
   {
     name: 'caffeine',
-    aliases: ['coffee', 'tea', 'energy drink', 'coffee grounds', 'espresso', 'green tea', 'tea bags', 'caffeine pills', 'cola'],
+    aliases: ['coffee', 'tea', 'energy drink', 'energy drinks', 'coffee grounds', 'espresso', 'green tea', 'tea bags', 'caffeine pills', 'cola'],
     level: 'hard_block',
     reason: 'Caffeine can cause rapid breathing, heart palpitations, muscle tremors, and seizures in dogs.',
     category: 'Drink',
@@ -225,7 +225,7 @@ export const TOXIC_INGREDIENTS: ToxicEntry[] = [
   },
   {
     name: 'tobacco',
-    aliases: ['nicotine', 'cigarette', 'cigarettes', 'cigars', 'nicotine gum', 'vape juice', 'e-liquid'],
+    aliases: ['nicotine', 'cigarette', 'cigarettes', 'cigar', 'cigars', 'vaping liquid', 'nicotine gum', 'vape juice', 'e-liquid'],
     level: 'hard_block',
     reason: 'Nicotine is toxic to dogs and can cause tremors, seizures, and heart problems.',
     category: 'Other',
@@ -342,7 +342,7 @@ export const TOXIC_INGREDIENTS: ToxicEntry[] = [
     aliases: [],
     level: 'info',
     reason: 'Plain, xylitol-free peanut butter is fine as a treat. It is high in fat, so keep portions small.',
-    category: 'Nut',
+    category: 'Food',
     guidance: 'Read the label every time: some brands add xylitol ("birch sugar"), which is toxic.',
   },
   {

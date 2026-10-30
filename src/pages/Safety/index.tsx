@@ -21,7 +21,7 @@ const LEVEL_ORDER: Level[] = ['hard_block', 'warning', 'info'];
 
 const LEVEL_STYLE: Record<Level, { badge: 'red' | 'amber' | 'green'; hint: string }> = {
   hard_block: { badge: 'red', hint: 'Never feed. Cheffo blocks recipes that include it.' },
-  warning: { badge: 'amber', hint: 'Avoid or ask your vet first. Cheffo warns when it appears.' },
+  warning: { badge: 'amber', hint: 'Avoid, or ask your vet first. Some can still be an emergency in larger amounts. Cheffo warns when it appears.' },
   info: { badge: 'green', hint: 'Fine in small amounts for most dogs. Check with your vet.' },
 };
 
@@ -57,16 +57,17 @@ function EntryCard({ entry }: { entry: ToxicEntry }) {
 
   return (
     <Card padding="none" className="overflow-hidden">
+      <h3 className="sr-only">{displayName(entry)}</h3>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
-        aria-controls={detailsId}
+        aria-controls={open ? detailsId : undefined}
         className="flex w-full items-start gap-3 p-4 text-left"
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-[#1C1917]">{displayName(entry)}</h3>
+            <span className="font-semibold text-[#1C1917]">{displayName(entry)}</span>
             <Badge variant={style.badge}>{SAFETY_LEVEL_LABELS[entry.level]}</Badge>
           </div>
           <p className="mt-0.5 text-xs text-[#78716C]">{entry.category}</p>
@@ -110,7 +111,7 @@ function EntryCard({ entry }: { entry: ToxicEntry }) {
         </div>
       )}
 
-      {entry.level === 'hard_block' && (
+      {entry.level !== 'info' && (
         <div className="px-4 pb-4 -mt-3">
           <PoisonControlCallout />
         </div>
@@ -149,7 +150,8 @@ export default function SafetyPage() {
           <div>
             <h2 className="font-bold text-[#1C1917]">Ingredient safety database</h2>
             <p className="mt-0.5 text-sm text-[#78716C]">
-              The foods Cheffo Doggo checks every recipe against: what is toxic, what needs caution, and what is safe in moderation.
+              What is toxic to dogs, what needs caution, and what is safe in moderation. Cheffo Doggo checks every recipe for the toxic
+              and caution foods.
             </p>
           </div>
         </div>
