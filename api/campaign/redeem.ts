@@ -24,10 +24,25 @@ export default async function handler(req: Request): Promise<Response> {
 
   const body = await req.json().catch(() => ({})) as { code?: unknown; source?: unknown };
   const code = typeof body.code === 'string' ? body.code.trim().toLowerCase() : '';
-  if (code !== '3dayfree') return json(400, { error: 'That code is not recognized.' });
+  if (!['3dayfree', 'steph'].includes(code)) return json(400, { error: 'That code is not recognized.' });
 
   const { data, error: authError } = await getUserClient(token).auth.getUser();
   if (authError || !data.user?.email) return json(401, { error: 'Your session has expired.' });
+
+  if (code === 'steph') {
+    const { error } = await getSupabaseAdmin().rpc('redeem_steph_lifetime', {
+      p_user_id: data.user.id,
+      p_email_hash: await sha256(data.user.email),
+    });
+    if (error) {
+      if (error.message.includes('code_already_used')) return json(409, { error: 'That code has already been used.' });
+      if (error.message.includes('already_premium')) return json(409, { error: 'This account already has Premium access.' });
+      console.error('[campaign/redeem] lifetime failed:', error.message);
+      return json(500, { error: 'Could not activate lifetime Premium. Please try again.' });
+    }
+    return json(200, { ok: true, code: 'STEPH', app: 'cheffo-doggo', lifetime: true,
+      message: 'STEPH: lifetime Premium is active. No card required, nothing to renew.' });
+  }
 
   const source = typeof body.source === 'string' ? body.source.slice(0, 40) : null;
   const { data: redemption, error } = await getSupabaseAdmin().rpc('redeem_3dayfree_campaign', {

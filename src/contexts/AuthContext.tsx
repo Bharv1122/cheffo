@@ -9,7 +9,7 @@ import {
 } from '../lib/auth';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { confirmAdultAccount } from '../lib/adultConfirmation';
-import { PUBLIC_CAMPAIGN_CODE, redeemCampaignCode } from '../lib/campaign';
+import { isCampaignCode, redeemCampaignCode } from '../lib/campaign';
 
 interface AuthContextValue {
   user: User | null;
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (nextSession) {
         let pendingCode: string | null = null;
         try { pendingCode = localStorage.getItem('cheffo_pending_campaign_code'); } catch { /* best effort */ }
-        if (pendingCode === PUBLIC_CAMPAIGN_CODE) {
+        if (pendingCode && isCampaignCode(pendingCode)) {
           void redeemCampaignCode(pendingCode, nextSession.access_token).then(result => {
             if (!result.error) {
               try { localStorage.removeItem('cheffo_pending_campaign_code'); } catch { /* best effort */ }
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function signUp(email: string, password: string, campaignCode = '', adultConfirmed = false) {
     if (adultConfirmed !== true) return { error: 'You must confirm that you are at least 18 years old.', campaignError: null, needsEmailVerification: false };
     const normalizedCode = campaignCode.trim().toUpperCase();
-    if (normalizedCode && normalizedCode !== PUBLIC_CAMPAIGN_CODE) {
+    if (normalizedCode && !isCampaignCode(normalizedCode)) {
       return { error: 'That code is not recognized.', campaignError: null, needsEmailVerification: false };
     }
     // First-touch attribution captured in App (?src= on any URL) — stamped

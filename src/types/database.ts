@@ -337,6 +337,10 @@ export type Database = {
         Args: { p_user_id: string; p_recipe_id: string | null; p_source: string; p_reason: string; p_details: string; p_content_title: string; p_content_snapshot: Json };
         Returns: string | null;
       };
+      redeem_steph_lifetime: {
+        Args: { p_user_id: string; p_email_hash: string };
+        Returns: boolean;
+      };
       redeem_3dayfree_campaign: {
         Args: { p_user_id: string; p_email_hash: string; p_source: string | null };
         Returns: { trial_end: string }[];

@@ -1,13 +1,14 @@
 import { supabase } from './supabase';
 
 export const PUBLIC_CAMPAIGN_CODE = '3DAYFREE';
+export const isCampaignCode = (code: string) => [PUBLIC_CAMPAIGN_CODE, 'STEPH'].includes(code);
 
 export async function redeemCampaignCode(
   rawCode: string,
   accessToken?: string,
 ): Promise<{ message: string; error: string | null }> {
   const code = rawCode.trim().toUpperCase();
-  if (code !== PUBLIC_CAMPAIGN_CODE) {
+  if (!isCampaignCode(code)) {
     return { message: '', error: 'That code is not recognized.' };
   }
 
